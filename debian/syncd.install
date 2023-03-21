@@ -1,0 +1,3 @@
+usr/bin/syncd*
+usr/bin/dump_asic_db
+syncd/scripts/* usr/bin

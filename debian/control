@@ -1,0 +1,117 @@
+Source: sonic
+Maintainer: Kamil Cudnik <kcudnik@microsoft.com>
+Section: net
+Priority: optional
+Build-Depends: debhelper (>=9), autotools-dev, libzmq5-dev
+Standards-Version: 1.0.0
+
+Package: syncd
+Architecture: any
+Conflicts: syncd-rpc, syncd-vs
+Description: This package contains sync daemon for SONiC project.
+  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via LAI.
+
+Package: syncd-rpc
+Architecture: any
+Conflicts: syncd, syncd-vs
+Description: This package contains sync daemon with rpc for SONiC project.
+  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via LAI.
+  This daemon contains laithrift rpc library for remote control of an ASIC.
+
+Package: syncd-vs
+Architecture: any
+Conflicts: syncd-rpc, syncd
+Description: This package contains sync daemon for SONiC project linked with virtual switch.
+  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via LAI.
+
+Package: liblairedis
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Pre-Depends}
+Section: libs
+Description: This package contains LAI-Redis implementation for SONiC project.
+
+Package: liblairedis-dev
+Architecture: any
+Depends: liblairedis (= ${binary:Version}), libzmq5-dev
+Section: libdevel
+Description: This package contains development files for LAI-Redis.
+
+Package: liblaivs
+Architecture: any
+Section: libs
+Description: This package contains LAI-VirtualSwitch implementation for SONiC project.
+
+Package: liblaivs-dev
+Architecture: any
+Depends: liblaivs (= ${binary:Version})
+Section: libdevel
+Description: This package contains development files for LAI-VirtualSwitch.
+
+Package: liblaimetadata
+Architecture: any
+Section: libs
+Description: This package contains LAI-Metadata implementation for SONiC project.
+
+Package: liblaimetadata-dev
+Architecture: any
+Depends: liblaimetadata (= ${binary:Version})
+Section: libdevel
+Description: This package contains development files for LAI-Metadata.
+
+Package: syncd-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Conflicts: syncd-rpc-dbg, syncd-vs
+Depends:
+    syncd (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for syncd
+
+Package: syncd-rpc-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Conflicts: syncd-dbg, syncd-vs
+Depends:
+    syncd-rpc (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for syncd-rpc
+
+Package: syncd-vs-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Conflicts: syncd-dbg, syncd-rpc-dbg
+Depends:
+    syncd-vs (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for syncd-vs
+
+Package: liblairedis-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    liblairedis (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for liblairedis
+
+Package: liblaivs-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    liblaivs (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for liblaivs
+
+Package: liblaimetadata-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    liblaimetadata (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for liblaimetadata
+

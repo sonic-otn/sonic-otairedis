@@ -1,1 +1,1 @@
-# sonic-otn-laireds
+# AONOS - LAI Redis - lairedis
