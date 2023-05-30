@@ -1,0 +1,3 @@
+[submodule "LAI"]
+	path = LAI
+	url = https://github.com/zhengweitang-zwt/LAI.git
