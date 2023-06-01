@@ -83,6 +83,17 @@ void Linecard::updateNotifications(
                 m_linecardNotifications.on_linecard_alarm =
                     (lai_linecard_alarm_notification_fn)attr.value.ptr;
                 break;
+
+            case LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY:
+                m_linecardNotifications.on_linecard_ocm_spectrum_power =
+                    (lai_linecard_ocm_spectrum_power_notification_fn)attr.value.ptr;
+                break;
+
+            case LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY:
+                m_linecardNotifications.on_linecard_otdr_result =
+                    (lai_linecard_otdr_result_notification_fn)attr.value.ptr;
+                break;
+
             default:
                 SWSS_LOG_ERROR("pointer for %s is not handled, FIXME!", meta->attridname);
                 break;

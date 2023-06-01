@@ -9,7 +9,7 @@
 #include <memory>
 
 extern "C" {
-#include "lai.h"     // for lai_linecard_type_t
+#include "lai.h"
 }
 
 namespace laivs
@@ -44,7 +44,7 @@ namespace laivs
 
             static bool parseLaiLinecardType(
                     _In_ const char* laiLinecardTypeStr,
-                    _Out_ lai_linecard_type_t& laiLinecardType);
+                    _Out_ std::string& laiLinecardType);
 
             static bool parseLinecardType(
                     _In_ const char* linecardTypeStr,
@@ -59,7 +59,7 @@ namespace laivs
 
         public:
 
-            lai_linecard_type_t m_laiLinecardType;
+            std::string m_laiLinecardType;
 
             lai_vs_linecard_type_t m_linecardType;
 

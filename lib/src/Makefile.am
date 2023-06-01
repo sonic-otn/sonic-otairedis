@@ -25,7 +25,7 @@ libLaiRedis_a_SOURCES = \
 						 VirtualObjectIdManager.cpp \
 						 Notification.cpp \
 						 NotificationLinecardStateChange.cpp \
-						 NotificationLinecardAlarm.cpp \
+						 NotificationOcmNotify.cpp \
 						 NotificationFactory.cpp \
 						 RedisVidIndexGenerator.cpp \
 						 Recorder.cpp \

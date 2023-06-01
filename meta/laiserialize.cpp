@@ -881,18 +881,18 @@ std::string lai_serialize_linecard_alarm(
         _In_ lai_alarm_info_t &alarm_info)
 {
     SWSS_LOG_ENTER();
-	
+
     json j;
-	std::string str_resource,str_alarm_type,type_id;
-	
+    std::string str_resource,str_alarm_type,type_id;
+
     j["linecard_id"] = lai_serialize_object_id(linecard_id);
     j["time-created"] = lai_serialize_number(alarm_info.time_created);
-    j["resource"] = str_resource = lai_serialize_string(alarm_info.resource);
-	j["text"] = lai_serialize_string(alarm_info.text);
-	j["severity"] = lai_serialize_enum(alarm_info.severity,&lai_metadata_enum_lai_alarm_severity_t);	
-	j["type-id"] = lai_serialize_enum(alarm_type,&lai_metadata_enum_lai_alarm_type_t);
-	j["status"] = lai_serialize_enum(alarm_info.status,&lai_metadata_enum_lai_alarm_status_t);
-	j["id"] = str_resource + "#" + type_id;
+    j["resource_oid"] = lai_serialize_object_id(alarm_info.resource_oid);
+    j["text"] = lai_serialize_string(alarm_info.text);
+    j["severity"] = lai_serialize_enum(alarm_info.severity,&lai_metadata_enum_lai_alarm_severity_t);	
+    j["type-id"] = lai_serialize_enum(alarm_type,&lai_metadata_enum_lai_alarm_type_t);
+    j["status"] = lai_serialize_enum(alarm_info.status,&lai_metadata_enum_lai_alarm_status_t);
+    j["id"] = str_resource + "#" + type_id;
 	    
     return j.dump();
 }
@@ -1245,6 +1245,44 @@ std::string lai_serialize_redis_communication_mode(
     }
 }
 
+std::string lai_serialize_ocm_spectrum_power(
+        _In_ lai_spectrum_power_t ocm_result)
+{
+    SWSS_LOG_ENTER();
+
+    return lai_serialize_number(ocm_result.lower_frequency) + "#" +
+           lai_serialize_number(ocm_result.upper_frequency) + "#" +
+           lai_serialize_decimal(ocm_result.power);
+}
+
+std::string lai_serialize_ocm_spectrum_power_list(
+        _In_ lai_spectrum_power_list_t& list)
+{
+    SWSS_LOG_ENTER();
+
+    return lai_serialize_list(list, false, [&](lai_spectrum_power_t item) { return lai_serialize_ocm_spectrum_power(item); });
+}
+
+std::string lai_serialize_otdr_event(
+        _In_ lai_otdr_event_t event)
+{
+    SWSS_LOG_ENTER();
+
+    return lai_serialize_enum(event.type, &lai_metadata_enum_lai_otdr_event_type_t) + "#" +
+           lai_serialize_decimal(event.length) + "#" +
+           lai_serialize_decimal(event.loss) + "#" +
+           lai_serialize_decimal(event.reflection) + "#" +
+           lai_serialize_decimal(event.accumulate_loss);
+}
+
+std::string lai_serialize_otdr_event_list(
+        _In_ lai_otdr_event_list_t &list)
+{
+    SWSS_LOG_ENTER();
+
+    return lai_serialize_list(list, false, [&](lai_otdr_event_t item) { return lai_serialize_otdr_event(item); });
+}
+
 // deserialize
 
 void lai_deserialize_bool(
@@ -1314,6 +1352,16 @@ void lai_deserialize_number(
     SWSS_LOG_ENTER();
 
     lai_deserialize_number<uint32_t>(s, number, hex);
+}
+
+void lai_deserialize_number(
+        _In_ const std::string& s,
+        _Out_ uint64_t& number,
+        _In_ bool hex)
+{
+    SWSS_LOG_ENTER();
+
+    lai_deserialize_number<uint64_t>(s, number, hex);
 }
 
 void lai_deserialize_decimal(
@@ -1680,20 +1728,22 @@ void lai_deserialize_linecard_alarm(
 		_Out_ lai_alarm_type_t &alarm_type,
 		_Out_ lai_alarm_info_t &alarm_info)
 {
-	SWSS_LOG_ENTER();
-	int32_t temp_value=0;
-	json j = json::parse(s);
-	lai_deserialize_object_id(j["linecard_id"], linecard_id);
-	lai_deserialize_number(j["time-created"], alarm_info.time_created);
-	lai_deserialize_string(j["resource"],alarm_info.resource);
-	lai_deserialize_string(j["text"],alarm_info.text);
-	lai_deserialize_enum(j["severity"],&lai_metadata_enum_lai_alarm_severity_t,(int32_t &)temp_value);
-	alarm_info.severity = (lai_alarm_severity_t)temp_value;
-	lai_deserialize_enum(j["type-id"],&lai_metadata_enum_lai_alarm_type_t,(int32_t &)alarm_type);
-	lai_deserialize_enum(j["status"],&lai_metadata_enum_lai_alarm_status_t,temp_value);
-	alarm_info.status = (lai_alarm_status_t)temp_value;
-	
+    SWSS_LOG_ENTER();
+
+    int32_t temp_value=0;
+    json j = json::parse(s);
+
+    lai_deserialize_object_id(j["linecard_id"], linecard_id);
+    lai_deserialize_number(j["time-created"], alarm_info.time_created);
+    lai_deserialize_object_id(j["resource_oid"], alarm_info.resource_oid);
+    lai_deserialize_string(j["text"],alarm_info.text);
+    lai_deserialize_enum(j["severity"],&lai_metadata_enum_lai_alarm_severity_t,(int32_t &)temp_value);
+    alarm_info.severity = (lai_alarm_severity_t)temp_value;
+    lai_deserialize_enum(j["type-id"],&lai_metadata_enum_lai_alarm_type_t,(int32_t &)alarm_type);
+    lai_deserialize_enum(j["status"],&lai_metadata_enum_lai_alarm_status_t,temp_value);
+    alarm_info.status = (lai_alarm_status_t)temp_value;    
 }
+
 void lai_deserialize_object_type(
         _In_ const std::string& s,
         _Out_ lai_object_type_t& object_type)
@@ -1956,5 +2006,67 @@ int lai_deserialize_transceiver_stat(
     _In_ const char *buffer,
     _Out_ lai_transceiver_stat_t *transceiver_stat)
 {
+    SWSS_LOG_ENTER();
+
     return lai_deserialize_enum(buffer, &lai_metadata_enum_lai_transceiver_stat_t, (int*)transceiver_stat);
 }
+
+void lai_deserialize_ocm_spectrum_power(
+    _In_ const std::string& s,
+    _Out_ lai_spectrum_power_t& ocm_result)
+{
+    SWSS_LOG_ENTER();
+
+    auto tokens = swss::tokenize(s, '#');
+
+    if (tokens.size() != 3)
+    {
+        SWSS_LOG_THROW("invalid serialized spectrum power, %s", s.c_str());
+    }
+
+    lai_deserialize_number(tokens[0], ocm_result.lower_frequency);
+    lai_deserialize_number(tokens[1], ocm_result.upper_frequency);
+    lai_deserialize_decimal(tokens[2], ocm_result.power);
+}
+
+void lai_deserialize_ocm_spectrum_power_list(
+    _In_ const std::string& s,
+    _Out_ lai_spectrum_power_list_t& list)
+{
+    SWSS_LOG_ENTER();
+
+    lai_deserialize_list(s, list, false, [&](const std::string sitem, lai_spectrum_power_t& item) { lai_deserialize_ocm_spectrum_power(sitem, item); });
+}
+
+void lai_deserialize_otdr_event(
+    _In_ const std::string &s,
+    _Out_ lai_otdr_event_t &event)
+{
+    SWSS_LOG_ENTER();
+
+    auto tokens = swss::tokenize(s, '#');
+
+    if (tokens.size() != 5)
+    {
+        SWSS_LOG_THROW("invalid serialized otdr event, %s", s.c_str());
+    }
+
+    lai_otdr_event_type_t &event_type = event.type;
+
+    lai_deserialize_enum(tokens[0], &lai_metadata_enum_lai_otdr_event_type_t, (int32_t&)event_type);
+
+    lai_deserialize_decimal(tokens[1], event.length);
+    lai_deserialize_decimal(tokens[2], event.loss);
+    lai_deserialize_decimal(tokens[3], event.reflection);
+    lai_deserialize_decimal(tokens[4], event.accumulate_loss);
+}
+
+void lai_deserialize_otdr_event_list(
+    _In_ const std::string& s,
+    _Out_ lai_otdr_event_list_t& list)
+{
+    SWSS_LOG_ENTER();
+
+    lai_deserialize_list(s, list, false, [&](const std::string sitem, lai_otdr_event_t &item) { lai_deserialize_otdr_event(sitem, item); });
+}
+

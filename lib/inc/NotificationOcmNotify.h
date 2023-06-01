@@ -4,15 +4,15 @@
 
 namespace lairedis
 {
-    class NotificationLinecardAlarm:
+    class NotificationOcmNotify:
         public Notification
     {
         public:
 
-            NotificationLinecardAlarm(
+            NotificationOcmNotify(
                     _In_ const std::string& serializedNotification);
-
-            virtual ~NotificationLinecardAlarm();
+    
+            virtual ~NotificationOcmNotify() = default;
 
         public:
 
@@ -29,8 +29,9 @@ namespace lairedis
         private:
 
             lai_object_id_t m_linecardId;
-            lai_alarm_type_t m_alarm_type;
-            lai_alarm_info_t m_alarm_info;
 
+            lai_object_id_t m_ocmId;
+
+            lai_spectrum_power_list_t m_spectrumPowerList;
     };
 }

@@ -117,7 +117,7 @@ lai_status_t VirtualLinecardLaiInterface::create(
     else
     {
         // create new real object ID
-        *objectId = m_realObjectIdManager->allocateNewObjectId(objectType, linecardId);
+        *objectId = m_realObjectIdManager->allocateNewObjectId(objectType, linecardId, attr_count, attr_list);
     }
 
     std::string str_object_id = lai_serialize_object_id(*objectId);
@@ -203,23 +203,22 @@ std::shared_ptr<LinecardStateBase> VirtualLinecardLaiInterface::init_linecard(
         SWSS_LOG_THROW("init linecard with NULL linecard id is not allowed");
     }
 
-    if (m_linecardStateMap.find(linecard_id) != m_linecardStateMap.end())
+    if (m_linecardStateMap.find(linecard_id) == m_linecardStateMap.end())
     {
-        SWSS_LOG_THROW("linecard already exists %s", lai_serialize_object_id(linecard_id).c_str());
-    }
-    SWSS_LOG_NOTICE("init_linecard type: %d", config->m_linecardType);
-    switch (config->m_linecardType)
-    {
-        case LAI_VS_LINECARD_TYPE_P230C:
+        SWSS_LOG_NOTICE("init_linecard type: %d", config->m_linecardType);
+        switch (config->m_linecardType)
+        {
+            case LAI_VS_LINECARD_TYPE_P230C:
 
-            m_linecardStateMap[linecard_id] = std::make_shared<LinecardP230C>(linecard_id, m_realObjectIdManager, config);
-            break;
+                m_linecardStateMap[linecard_id] = std::make_shared<LinecardP230C>(linecard_id, m_realObjectIdManager, config);
+                break;
 
-        default:
+            default:
 
-            SWSS_LOG_WARN("unknown linecard type: %d", config->m_linecardType);
+                SWSS_LOG_WARN("unknown linecard type: %d", config->m_linecardType);
 
-            return nullptr;
+                return nullptr;
+        }
     }
 
     auto ss = m_linecardStateMap.at(linecard_id);
@@ -476,90 +475,6 @@ lai_status_t VirtualLinecardLaiInterface::clearStats(
             counter_ids,
             LAI_STATS_MODE_READ_AND_CLEAR,
             counters);
-}
-
-lai_status_t VirtualLinecardLaiInterface::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-    
-    lai_object_id_t linecard_id = LAI_NULL_OBJECT_ID;
-
-    if (m_linecardStateMap.size() == 0)
-    {
-        SWSS_LOG_ERROR("no switch!, was removed but some function still call");
-        return LAI_STATUS_FAILURE;
-    }
-
-    if (m_linecardStateMap.size() == 1)
-    {
-        linecard_id = m_linecardStateMap.begin()->first;
-    }
-    else
-    {
-        SWSS_LOG_THROW("multiple linecards not supported, FIXME");
-    }
-
-    if (m_linecardStateMap.find(linecard_id) == m_linecardStateMap.end())
-    {
-        SWSS_LOG_ERROR("failed to find switch %s in switch state map", lai_serialize_object_id(linecard_id).c_str());
-
-        return LAI_STATUS_FAILURE;
-    }
-
-    auto ss = m_linecardStateMap.at(linecard_id);
-
-    return ss->getAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids,
-            alarm_info);
-}
-
-lai_status_t VirtualLinecardLaiInterface::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    SWSS_LOG_ENTER();
-
-    lai_object_id_t linecard_id = LAI_NULL_OBJECT_ID;
-
-    if (m_linecardStateMap.size() == 0)
-    {
-        SWSS_LOG_ERROR("no switch!, was removed but some function still call");
-        return LAI_STATUS_FAILURE;
-    }
-
-    if (m_linecardStateMap.size() == 1)
-    {
-        linecard_id = m_linecardStateMap.begin()->first;
-    }
-    else
-    {
-        SWSS_LOG_THROW("multiple linecards not supported, FIXME");
-    }
-
-    if (m_linecardStateMap.find(linecard_id) == m_linecardStateMap.end())
-    {
-        SWSS_LOG_ERROR("failed to find switch %s in switch state map", lai_serialize_object_id(linecard_id).c_str());
-
-        return LAI_STATUS_FAILURE;
-    }
-
-    auto ss = m_linecardStateMap.at(linecard_id);
-
-    return ss->clearAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids);
 }
 
 lai_object_type_t VirtualLinecardLaiInterface::objectTypeQuery(

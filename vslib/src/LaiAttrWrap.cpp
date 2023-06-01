@@ -84,7 +84,6 @@ const std::string& LaiAttrWrap::getAttrStrValue() const
 
 void LaiAttrWrap::updateValue()
 {
-
     switch (m_meta->attrvaluetype)
     {
         case LAI_ATTR_VALUE_TYPE_BOOL:

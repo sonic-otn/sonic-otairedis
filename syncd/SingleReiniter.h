@@ -48,7 +48,8 @@ namespace syncd
 
         std::shared_ptr<LaiLinecard> getLinecard() const;
 
-        void setBoardMode(lai_linecard_board_mode_t mode);
+        void setBoardMode(std::string mode);
+
     private:
 
         void prepareAsicState();

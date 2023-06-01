@@ -21,11 +21,6 @@ std::vector<swss::FieldValueTuple> serialize_counter_id_list(
         _In_ uint32_t count,
         _In_ const lai_stat_id_t *counter_id_list);
 
-std::vector<swss::FieldValueTuple> serialize_alarm_id_list(
-        _In_ const lai_enum_metadata_t *alarms_enum,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_id_list);
-
 #define MUTEX() std::lock_guard<std::mutex> _lock(m_mutex)
 #define DEFAULT_RECORDING_FILE_NAME "lairedis.rec"
 Recorder::Recorder()
@@ -679,108 +674,6 @@ void Recorder::recordGenericClearStatsResponse(
         return;
 
     recordLine("Q|clear_stats|" + lai_serialize_status(status));
-}
-
-void Recorder::recordGenericGetAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_recordStats)
-        return;
-
-    auto alarms_enum = lai_metadata_get_object_type_info(object_type)->alarmenum;
-
-    auto entry = serialize_alarm_id_list(alarms_enum, number_of_alarms, alarm_ids);
-
-    std::string str_object_type = lai_serialize_object_type(object_type);
-
-    std::string key = str_object_type + ":" + lai_serialize_object_id(object_id);
-
-    SWSS_LOG_DEBUG("generic get alarms key: %s, fields: %zu", key.c_str(), entry.size());
-
-    recordGenericGetAlarms(key, entry);
-}
-
-// TODO to private
-void Recorder::recordGenericGetAlarms(
-        _In_ const std::string& key,
-        _In_ const std::vector<swss::FieldValueTuple>& arguments)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_recordStats)
-        return;
-
-    recordLine("q|get_alarms|" + key + "|" + joinFieldValues(arguments));
-}
-
-void Recorder::recordGenericGetAlarmsResponse(
-        _In_ lai_status_t status,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_info_t *alarm_info)
-{
-    if (!m_recordStats)
-        return;
-
-    std::string joined;
-
-    for (uint32_t idx = 0; idx < number_of_alarms; idx ++)
-    {
-        //joined += "|" + std::to_string(counters[idx]);
-    }
-
-    recordLine("Q|get_alarms|" + lai_serialize_status(status) + joined);
-}
-
-void Recorder::recordGenericClearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_recordAlarms)
-        return;
-
-    auto alarms_enum = lai_metadata_get_object_type_info(object_type)->alarmenum;
-
-    auto values = serialize_alarm_id_list(alarms_enum, number_of_alarms, alarm_ids);
-
-    std::string str_object_type = lai_serialize_object_type(object_type);
-    std::string key = str_object_type + ":" + lai_serialize_object_id(object_id);
-
-    SWSS_LOG_DEBUG("generic clear alarms key: %s, fields: %zu", key.c_str(), values.size());
-
-    recordGenericClearAlarms(key, values);
-}
-
-// TODO to private
-void Recorder::recordGenericClearAlarms(
-        _In_ const std::string& key,
-        _In_ const std::vector<swss::FieldValueTuple>& arguments)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_recordAlarms)
-        return;
-
-    recordLine("q|clear_alarms|" + key + "|" + joinFieldValues(arguments));
-}
-
-void Recorder::recordGenericClearAlarmsResponse(
-        _In_ lai_status_t status)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_recordAlarms)
-        return;
-
-    recordLine("Q|clear_alarms|" + lai_serialize_status(status));
 }
 
 void Recorder::recordNotification(

@@ -5,6 +5,7 @@
 #include <memory>
 #include <condition_variable>
 #include <functional>
+#include <queue>
 
 #include "lairediscommon.h"
 #include "NotificationQueue.h"
@@ -13,7 +14,6 @@
 #include "NotificationProducerBase.h"
 
 #include "swss/notificationproducer.h"
-
 
 namespace syncd
 {
@@ -69,6 +69,17 @@ namespace syncd
             _In_ const std::string& data,
             _In_ const std::vector<swss::FieldValueTuple>& fv);
 
+        void handle_ocm_spectrum_power_notify(
+            _In_ const std::string& data,
+            _In_ const std::vector<swss::FieldValueTuple>& fv);
+
+        void handle_otdr_result_notify(
+            _In_ const std::string& data,
+            _In_ const std::vector<swss::FieldValueTuple>& fv);
+
+        std::string get_resource_name_by_rid(
+            _In_ lai_object_id_t rid);
+
         void handle_linecard_alarm(
             _In_ const std::string& data);
 
@@ -86,9 +97,10 @@ namespace syncd
             _In_ const std::string& timecreated,
             _In_ const std::vector<swss::FieldValueTuple>& alarmvector);
 
-
         void processNotification(
             _In_ const swss::KeyOpFieldsValuesTuple& item);
+
+        void initOtdrScanTimeSet();
 
     public:
 
@@ -126,10 +138,19 @@ namespace syncd
 
         std::unique_ptr<swss::Table> m_stateAlarmable;
         std::unique_ptr<swss::Table> m_stateOLPSwitchInfoTbl;
+        std::unique_ptr<swss::Table> m_stateOcmTable;
+
+        std::shared_ptr<swss::Table> m_stateOtdrTable;
+        std::shared_ptr<swss::Table> m_stateOtdrEventTable;
 
         std::shared_ptr<swss::DBConnector> m_history_db;
-        std::unique_ptr<swss::Table> m_historyAlarmable;
-        std::unique_ptr<swss::Table> m_historyEventable;
+        std::unique_ptr<swss::Table> m_historyAlarmTable;
+        std::unique_ptr<swss::Table> m_historyEventTable;
+
+        std::shared_ptr<swss::Table> m_historyOtdrTable;
+        std::shared_ptr<swss::Table> m_historyOtdrEventTable;
+
+        std::map<std::string, std::queue<uint64_t>> m_otdrScanTimeQueue;
 
         uint32_t m_ttlPM15Min;
         uint32_t m_ttlPM24Hour;

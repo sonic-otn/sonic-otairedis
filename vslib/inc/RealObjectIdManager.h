@@ -52,6 +52,11 @@ namespace laivs
              */
             void clear();
 
+            uint64_t allocateNewObjectIndex(
+                    _In_ lai_object_type_t objectType,
+                    _In_ uint32_t attr_count,
+                    _In_ const lai_attribute_t *attr_list);
+
             /**
              * @brief Allocate new object id on a given linecard.
              *
@@ -62,7 +67,9 @@ namespace laivs
              */
             lai_object_id_t allocateNewObjectId(
                     _In_ lai_object_type_t objectType,
-                    _In_ lai_object_id_t linecardId);
+                    _In_ lai_object_id_t linecardId,
+                    _In_ uint32_t attr_count,
+                    _In_ const lai_attribute_t *attr_list);
 
             /**
              * @brief Allocate new linecard object id.

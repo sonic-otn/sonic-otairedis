@@ -285,7 +285,6 @@ lai_status_t LinecardState::getStatsExt(
                 }
                 else
                 {
-                    it->second++;
                     counters[i].u64 = it->second;
                 }
 
@@ -303,88 +302,11 @@ lai_status_t LinecardState::getStatsExt(
             }
             else
             {
-                it->second++;
                 counters[i].d64 = (double)(it->second);
             }
         }
     }
 
-    return LAI_STATUS_SUCCESS;
-}
-
-lai_status_t LinecardState::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-
-    bool perform_set = false;
-
-    // auto info = lai_metadata_get_object_type_info(object_type);
-
-    // bool enabled = false;
-
-    auto meta = m_meta.lock();
-
-    //if (meta)
-    //{
-    //    enabled = meta->meta_unittests_enabled();
-    //}
-    //else
-    //{
-    //    SWSS_LOG_WARN("meta pointer expired");
-    //}
-
-    auto str_object_id = lai_serialize_object_id(object_id);
-
-    auto mapit = m_alarmsMap.find(str_object_id);
-
-    if (mapit == m_alarmsMap.end())
-        m_alarmsMap[str_object_id] = { };
-
-    auto& localalarms = m_alarmsMap[str_object_id];
-
-    for (uint32_t i = 0; i < number_of_alarms; ++i)
-    {
-        int32_t id = alarm_ids[i];
-
-        if (perform_set)
-        {
-            //localalarms[ id ] = counters[i];
-        }
-        else
-        {
-            auto it = localalarms.find(id);
-
-            if (it == localalarms.end())
-            {
-                // if counter is not found on list, just return 0
-                // counters[i] = 0;
-            }
-            else
-            {
-                // counters[i] = it->second;
-            }
-
-            // if (mode == LAI_STATS_MODE_READ_AND_CLEAR)
-            // {
-                // localcounters[ id ] = 0;
-            // }
-        }
-    }
-
-    return LAI_STATUS_SUCCESS;
-}
-
-lai_status_t LinecardState::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
     return LAI_STATUS_SUCCESS;
 }
 

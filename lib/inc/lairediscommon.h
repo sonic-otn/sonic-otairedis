@@ -29,9 +29,6 @@
 #define REDIS_ASIC_STATE_COMMAND_GET_STATS          "get_stats"
 #define REDIS_ASIC_STATE_COMMAND_CLEAR_STATS        "clear_stats"
 
-#define REDIS_ASIC_STATE_COMMAND_GET_ALARMS          "get_alarms"
-#define REDIS_ASIC_STATE_COMMAND_CLEAR_ALARMS        "clear_alarms"
-
 #define REDIS_ASIC_STATE_COMMAND_GETRESPONSE        "getresponse"
 
 #define REDIS_ASIC_STATE_COMMAND_ATTR_CAPABILITY_QUERY      "attribute_capability_query"
@@ -48,6 +45,8 @@
 #define LAI_APS_NOTIFICATION_NAME_OLP_SWITCH_NOTIFY                 "olp_switch_notify"
 #define LAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE        "linecard_state_change"
 #define LAI_LINECARD_NOTIFICATION_NAME_LINECARD_ALARM_NOTIFY        "linecard_alarm_notify"
+#define LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY             "spectrum_power_notify"
+#define LAI_OTDR_NOTIFICATION_NAME_RESULT_NOTIFY                    "otdr_result_notify"
 
 #define SYNCD_NOTIFICATION_CHANNEL_LINECARDSTATE "LINECARDSTATE"
 

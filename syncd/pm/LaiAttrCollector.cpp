@@ -87,7 +87,7 @@ LaiAttrCollector::~LaiAttrCollector()
         string field = lai_serialize_attr_id_kebab_case(*e.m_meta);
         m_stateTable->hdel(m_stateTableKeyName, field);
 
-        SWSS_LOG_ERROR("Clear state data, table:%s, field:%s",
+        SWSS_LOG_NOTICE("Clear state data, table:%s, field:%s",
                        m_stateTableKeyName.c_str(), field.c_str());
     }
 

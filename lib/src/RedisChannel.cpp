@@ -178,7 +178,24 @@ lai_status_t RedisChannel::wait(
 
         if (result == swss::Select::OBJECT)
         {
-            m_getConsumer->pop(kco);
+            std::deque<swss::KeyOpFieldsValuesTuple> vkco;
+
+            m_getConsumer->pops(vkco);
+
+            if (vkco.empty())
+            {
+                std::string &key = kfvKey(kco);
+                std::string &op = kfvOp(kco);
+                std::vector<swss::FieldValueTuple> &fvs = kfvFieldsValues(kco);
+
+                fvs.clear();
+                key.clear();
+                op.clear();
+            }
+            else
+            {
+                kco = vkco.back();
+            }
 
             const std::string &op = kfvOp(kco);
             const std::string &opkey = kfvKey(kco);

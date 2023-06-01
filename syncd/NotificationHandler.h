@@ -53,6 +53,16 @@ namespace syncd
             _In_ lai_object_id_t rid,
             _In_ lai_olp_switch_t switch_info);
 
+        void onOcmReportSpectrumPower(
+            _In_ lai_object_id_t linecard_id,
+            _In_ lai_object_id_t ocm_id,
+            _In_ lai_spectrum_power_list_t ocm_result);
+
+        void onOtdrReportResult(
+            _In_ lai_object_id_t linecard_id,
+            _In_ lai_object_id_t otdr_id,
+            _In_ lai_otdr_result_t otdr_result);
+
     private:
 
         void generate_linecard_communication_alarm(

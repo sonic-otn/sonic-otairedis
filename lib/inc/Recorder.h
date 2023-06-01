@@ -190,38 +190,6 @@ namespace lairedis
             void recordGenericClearStatsResponse(
                     _In_ lai_status_t status);
 
-        public: // LAI alarms API
-
-            void recordGenericGetAlarms(
-                    _In_ lai_object_type_t object_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids);
-
-            // TODO to private
-            void recordGenericGetAlarms(
-                    _In_ const std::string& key,
-                    _In_ const std::vector<swss::FieldValueTuple>& arguments);
-
-            void recordGenericGetAlarmsResponse(
-                    _In_ lai_status_t status,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_info_t *alarm_info);
-
-            void recordGenericClearAlarms(
-                    _In_ lai_object_type_t object_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids);
-
-            // TODO to private
-            void recordGenericClearAlarms(
-                    _In_ const std::string& key,
-                    _In_ const std::vector<swss::FieldValueTuple>& arguments);
-
-            void recordGenericClearAlarmsResponse(
-                    _In_ lai_status_t status);
-
         public: // LAI bulk API
 
             void recordBulkGenericCreate(

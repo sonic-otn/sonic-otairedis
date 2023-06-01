@@ -2,7 +2,6 @@
 
 VS_GENERIC_QUAD(LINECARD,linecard);
 VS_GENERIC_STATS(LINECARD,linecard);
-VS_GENERIC_ALARMS(LINECARD,linecard);
 
 static lai_status_t vs_create_linecard_uniq(
         _Out_ lai_object_id_t *linecard_id,
@@ -25,5 +24,4 @@ const lai_linecard_api_t vs_linecard_api = {
     vs_set_linecard_attribute,
     vs_get_linecard_attribute,
     VS_GENERIC_STATS_API(linecard)
-    VS_GENERIC_ALARMS_API(linecard)
 };

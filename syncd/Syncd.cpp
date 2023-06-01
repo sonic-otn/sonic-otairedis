@@ -91,6 +91,8 @@ Syncd::Syncd(
     m_ln.onLinecardStateChange = std::bind(&NotificationHandler::onLinecardStateChange, m_handler.get(), _1, _2);
     m_ln.onLinecardAlarm = std::bind(&NotificationHandler::onLinecardAlarm, m_handler.get(), _1, _2, _3);
     m_ln.onApsReportSwitchInfo = std::bind(&NotificationHandler::onApsReportSwitchInfo, m_handler.get(), _1, _2);
+    m_ln.onOcmReportSpectrumPower = std::bind(&NotificationHandler::onOcmReportSpectrumPower, m_handler.get(), _1, _2, _3);
+    m_ln.onOtdrReportResult = std::bind(&NotificationHandler::onOtdrReportResult, m_handler.get(), _1, _2, _3);
     m_handler->setLinecardNotifications(m_ln.getLinecardNotifications());
     m_restartQuery = std::make_shared<swss::NotificationConsumer>(m_dbAsic.get(), SYNCD_NOTIFICATION_CHANNEL_RESTARTQUERY);
     m_linecardStateNtf = std::make_shared<swss::NotificationConsumer>(m_dbAsic.get(), SYNCD_NOTIFICATION_CHANNEL_LINECARDSTATE);
@@ -444,7 +446,7 @@ void Syncd::sendApiResponse(
 
     std::string strStatus = lai_serialize_status(status);
 
-    SWSS_LOG_NOTICE("sending response for %s api with status: %s",
+    SWSS_LOG_INFO("sending response for %s api with status: %s",
         lai_serialize_common_api(api).c_str(),
         strStatus.c_str());
 
@@ -468,7 +470,9 @@ void Syncd::processFlexCounterGroupEvent( // TODO must be moved to go via ASIC c
     auto& groupName = kfvKey(kco);
     auto& op = kfvOp(kco);
     auto& values = kfvFieldsValues(kco);
+
     SWSS_LOG_NOTICE("processFlexCounterGroupEvent group is %s", groupName.c_str());
+
     if (op == SET_COMMAND)
     {
         m_manager->addCounterPlugin(groupName, values);

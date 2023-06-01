@@ -542,14 +542,14 @@ lai_status_t RedisRemoteLaiInterface::set(
 
     std::string key = serializedObjectType + ":" + serializedObjectId;
 
-    SWSS_LOG_NOTICE("generic set key: %s, fields: %zu", key.c_str(), entry.size());
+    SWSS_LOG_DEBUG("generic set key: %s, fields: %zu", key.c_str(), entry.size());
 
     m_recorder->recordGenericSet(key, entry);
 
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_SET);
 
     auto status = waitForResponse(LAI_COMMON_API_SET);
-    SWSS_LOG_NOTICE("generic set key: %s end, fields: %zu", key.c_str(), entry.size());
+
     m_recorder->recordGenericSetResponse(status);
 
     return status;
@@ -592,7 +592,6 @@ lai_status_t RedisRemoteLaiInterface::waitForGetResponse(
 
     if (status == LAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_INFO("logic error states = success size=%zu",values.size());
         if (values.size() == 0)
         {
             SWSS_LOG_THROW("logic error states = success, get response returned 0 values!, send api response or sync/async issue?");
@@ -640,7 +639,7 @@ lai_status_t RedisRemoteLaiInterface::get(
 
     std::string key = serializedObjectType + ":" + serializedObjectId;
 
-    SWSS_LOG_NOTICE("generic get key: %s, fields: %zu id:%d", key.c_str(), entry.size(),attr_list->id);
+    SWSS_LOG_DEBUG("generic get key: %s, fields: %lu", key.c_str(), entry.size());
 
     bool record = !m_skipRecordAttrContainer->canSkipRecording(objectType, attr_count, attr_list);
 
@@ -654,7 +653,7 @@ lai_status_t RedisRemoteLaiInterface::get(
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_GET);
 
     auto status = waitForGetResponse(objectType, attr_count, attr_list);
-    SWSS_LOG_NOTICE("generic get key: %s end, fields: %zu id:%d", key.c_str(), entry.size(),attr_list->id);
+
     if (record)
     {
         m_recorder->recordGenericGetResponse(status, objectType, attr_count, attr_list);
@@ -774,102 +773,6 @@ lai_status_t RedisRemoteLaiInterface::clearStats(
 }
 
 lai_status_t RedisRemoteLaiInterface::waitForClearStatsResponse()
-{
-    SWSS_LOG_ENTER();
-
-    swss::KeyOpFieldsValuesTuple kco;
-
-    auto status = m_communicationChannel->wait(REDIS_ASIC_STATE_COMMAND_GETRESPONSE, kco);
-
-    return status;
-}
-
-lai_status_t RedisRemoteLaiInterface::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-
-    auto alarms_enum = lai_metadata_get_object_type_info(object_type)->alarmenum;
-
-    auto entry = serialize_alarm_id_list(alarms_enum, number_of_alarms, alarm_ids);
-
-    std::string str_object_type = lai_serialize_object_type(object_type);
-
-    std::string key = str_object_type + ":" + lai_serialize_object_id(object_id);
-
-    SWSS_LOG_DEBUG("generic get alarms key: %s, fields: %zu", key.c_str(), entry.size());
-
-    // get_alarms will not put data to asic view, only to message queue
-
-    m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_GET_ALARMS);
-
-    return waitForGetAlarmsResponse(number_of_alarms, alarm_info);
-}
-
-lai_status_t RedisRemoteLaiInterface::waitForGetAlarmsResponse(
-        _In_ uint32_t number_of_alarms,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-
-    swss::KeyOpFieldsValuesTuple kco;
-
-    auto status = m_communicationChannel->wait(REDIS_ASIC_STATE_COMMAND_GETRESPONSE, kco);
-
-    if (status == LAI_STATUS_SUCCESS)
-    {
-        auto &values = kfvFieldsValues(kco);
-
-        if (values.size () != number_of_alarms)
-        {
-            SWSS_LOG_THROW("wrong number of counters, got %zu, expected %" PRIu32, values.size(), number_of_alarms);
-        }
-
-        for (uint32_t idx = 0; idx < number_of_alarms; idx++)
-        {
-            // counters[idx] = stoull(fvValue(values[idx]));
-        }
-    }
-
-    return status;
-}
-
-lai_status_t RedisRemoteLaiInterface::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    SWSS_LOG_ENTER();
-
-    auto alarms_enum = lai_metadata_get_object_type_info(object_type)->alarmenum;
-
-    auto values = serialize_alarm_id_list(alarms_enum, number_of_alarms, alarm_ids);
-
-    auto str_object_type = lai_serialize_object_type(object_type);
-
-    auto key = str_object_type + ":" + lai_serialize_object_id(object_id);
-
-    SWSS_LOG_DEBUG("generic clear alarms key: %s, fields: %zu", key.c_str(), values.size());
-
-    // clear_alarms will not put data into asic view, only to message queue
-
-    m_recorder->recordGenericClearAlarms(object_type, object_id, number_of_alarms, alarm_ids);
-
-    m_communicationChannel->set(key, values, REDIS_ASIC_STATE_COMMAND_CLEAR_ALARMS);
-
-    auto status = waitForClearAlarmsResponse();
-
-    m_recorder->recordGenericClearAlarmsResponse(status);
-
-    return status;
-}
-
-lai_status_t RedisRemoteLaiInterface::waitForClearAlarmsResponse()
 {
     SWSS_LOG_ENTER();
 
@@ -1371,7 +1274,7 @@ lai_linecard_notifications_t RedisRemoteLaiInterface::syncProcessNotification(
     {
         SWSS_LOG_WARN("meta pointer expired");
 
-        return {nullptr, nullptr};
+        return {nullptr, nullptr, nullptr, nullptr};
     }
 
     notification->processMetadata(meta);
@@ -1390,6 +1293,6 @@ lai_linecard_notifications_t RedisRemoteLaiInterface::syncProcessNotification(
     SWSS_LOG_WARN("linecard %s not present in container, returning empty linecard notifications",
             lai_serialize_object_id(linecardId).c_str());
 
-    return {nullptr, nullptr};
+    return {nullptr, nullptr, nullptr, nullptr};
 }
 

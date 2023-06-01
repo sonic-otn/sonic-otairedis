@@ -58,21 +58,6 @@ namespace laivs
 
         public:
 
-            lai_status_t getAlarms(
-                    _In_ lai_object_type_t obejct_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids,
-                    _Out_ lai_alarm_info_t *alarm_info);
-
-            lai_status_t clearAlarms(
-                    _In_ lai_object_type_t obejct_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids);
-
-        public:
-
             lai_object_id_t getLinecardId() const;
 
             void setIfNameToPortId(
@@ -116,8 +101,6 @@ namespace laivs
 
             std::map<std::string, std::map<int, uint64_t>> m_countersMap;
 
-            std::map<std::string, std::map<int, lai_alarm_info_t>> m_alarmsMap;
-
             lai_object_id_t m_linecard_id;
 
         private : // tap device related objects
@@ -135,5 +118,10 @@ namespace laivs
             std::weak_ptr<laimeta::Meta> m_meta;
 
             std::shared_ptr<LinecardConfig> m_linecardConfig;
+
+        public:
+
+            std::set<std::string> m_otdrOidList;
+
     };
 }

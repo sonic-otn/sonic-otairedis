@@ -1,5 +1,8 @@
-#include "LinecardStateBase.h"
+#include <thread>
+#include <chrono>
+#include <inttypes.h>
 
+#include "LinecardStateBase.h"
 #include "swss/logger.h"
 #include "meta/lai_serialize.h"
 #include "EventPayloadNotification.h"
@@ -9,14 +12,28 @@
 
 #include <algorithm>
 #include <unistd.h>
- #include <shell.h>
+#include <shell.h>
+#include <string.h>
 
 #define LAI_VS_MAX_PORTS 1024
 
 using namespace laivs;
+using namespace std;
 
 int g_linecard_state_change = 0;
 lai_oper_status_t g_linecard_state = LAI_OPER_STATUS_DISABLED;
+
+int g_alarm_change = 0;
+bool g_alarm_occur = false;
+
+int g_event_change = 0;
+bool g_event_occur = false;
+
+lai_object_id_t g_scanning_ocm_oid = LAI_NULL_OBJECT_ID;
+bool g_ocm_scan = false;
+
+lai_object_id_t g_scanning_otdr_oid = LAI_NULL_OBJECT_ID;
+bool g_otdr_scan = false;
 
 void LinecardStateBase::externEventThreadProc()
 {
@@ -27,9 +44,145 @@ void LinecardStateBase::externEventThreadProc()
         if (g_linecard_state_change) {
             send_linecard_state_change_notification(0x100000000, g_linecard_state, true);
             g_linecard_state_change = 0;
-        } else {
-            usleep(1000);
         }
+
+        if (g_alarm_change) {
+            lai_alarm_type_t alarm_type = LAI_ALARM_TYPE_RX_LOS;
+            lai_alarm_info_t alarm_info;
+            alarm_info.time_created = (uint64_t)chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count();
+            string text = "rx los";
+            alarm_info.text.count = text.size();
+            alarm_info.text.list = (int8_t *)text.c_str();
+
+            alarm_info.resource_oid = 0x20000000e;
+            alarm_info.severity = LAI_ALARM_SEVERITY_MAJOR;
+
+            if (g_alarm_occur)
+            {
+                alarm_info.status = LAI_ALARM_STATUS_ACTIVE;
+            }
+            else
+            {
+                alarm_info.status = LAI_ALARM_STATUS_INACTIVE;
+            }
+            send_linecard_alarm_notification(0x100000000, alarm_type, alarm_info);
+
+            g_alarm_change = 0;
+        }
+
+        if (g_event_change) {
+            if (g_event_occur)
+            {
+                lai_alarm_type_t alarm_type = LAI_ALARM_TYPE_PORT_INIT;
+                lai_alarm_info_t alarm_info;
+                alarm_info.time_created = (uint64_t)chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count();
+                string text = "init port";
+                alarm_info.text.count = text.size();
+                alarm_info.text.list = (int8_t *)text.c_str();
+
+                alarm_info.resource_oid = 0x1000000002;
+                alarm_info.severity = LAI_ALARM_SEVERITY_MINOR;
+                alarm_info.status = LAI_ALARM_STATUS_TRANSIENT;
+                send_linecard_alarm_notification(0x100000000, alarm_type, alarm_info);
+            }
+
+            g_event_change = 0;
+        }
+
+        if (g_scanning_ocm_oid != LAI_NULL_OBJECT_ID)
+        {
+            send_ocm_spectrum_power_notification(0x100000000, g_scanning_ocm_oid);
+        }
+
+        if (g_otdr_scan)
+        {
+            send_otdr_result_notification(0x100000000, g_scanning_otdr_oid); 
+            g_otdr_scan = false;
+        }
+
+        usleep(1000);
+    }
+}
+
+void LinecardStateBase::send_otdr_result_notification(
+        _In_ lai_object_id_t linecard_id,
+        _In_ lai_object_id_t otdr_id)
+{
+    SWSS_LOG_ENTER();
+
+    lai_attribute_t attr;
+
+    attr.id = LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY;
+    if (get(LAI_OBJECT_TYPE_LINECARD, m_linecard_id, 1, &attr) != LAI_STATUS_SUCCESS)
+    {
+        SWSS_LOG_ERROR("failed to get LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY for linecard %s",
+                       lai_serialize_object_id(m_linecard_id).c_str());
+
+        return;
+    }
+
+    if (attr.value.ptr == NULL)
+    {
+        SWSS_LOG_INFO("LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY callback is NULL");
+        return;
+    }
+
+    usleep(100000);
+
+    lai_otdr_result_t result;
+
+    result.scanning_profile.scan_time = (uint64_t)chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count();
+    result.scanning_profile.distance_range = 80;
+    result.scanning_profile.pulse_width = 20;
+    result.scanning_profile.average_time = 300;
+    result.scanning_profile.output_frequency = 125000;
+
+    lai_otdr_event_t events[] = 
+    {
+        {
+            .type = LAI_OTDR_EVENT_TYPE_START,
+            .length = 0.0,
+            .loss = -40.0,
+            .reflection = 1.0,
+            .accumulate_loss = -40.0,
+        },
+        {
+            .type = LAI_OTDR_EVENT_TYPE_END,
+            .length = 80.1,
+            .loss = -38.1,
+            .reflection = 1.0,
+            .accumulate_loss = -38.0,
+        }
+    };
+
+    result.events.span_distance = 80.1;
+    result.events.span_loss = -38.0;
+    result.events.events.count = 2;
+    result.events.events.list = events;
+
+    result.trace.update_time = result.scanning_profile.scan_time;
+
+    uint8_t data[400000];
+    uint8_t count = 0;
+    for (uint32_t i = 0; i < sizeof(data)/sizeof(uint8_t); i++)
+    {
+        data[i] = count++;
+    }
+
+    result.trace.data.count = sizeof(data)/sizeof(uint8_t);
+    result.trace.data.list = data;
+
+    lai_linecard_notifications_t mn = {nullptr, nullptr, nullptr, nullptr};
+    mn.on_linecard_otdr_result = (lai_linecard_otdr_result_notification_fn)attr.value.ptr;
+    mn.on_linecard_otdr_result(linecard_id, otdr_id, result);
+
+    lai_attribute_t otdr_attr;
+    otdr_attr.id = LAI_OTDR_ATTR_SCANNING_STATUS;
+    otdr_attr.value.s32 = LAI_SCANNING_STATUS_INACTIVE;
+
+    for (auto &strOid : m_otdrOidList)
+    {
+        set(LAI_OBJECT_TYPE_OTDR, strOid, &otdr_attr);
     }
 }
 
@@ -67,7 +220,7 @@ LinecardStateBase::LinecardStateBase(
 
     m_externEventThreadRun = true;
     m_externEventThread = std::make_shared<std::thread>(&LinecardStateBase::externEventThreadProc, this);
-    m_updateObjectThreadRun = true;
+    m_updateObjectThreadRun = false;
     m_updateObjectThread = std::make_shared<std::thread>(&LinecardStateBase::updateObjectThreadProc, this);
 }
 
@@ -94,7 +247,7 @@ lai_status_t LinecardStateBase::create(
         SWSS_LOG_THROW("this method can't be used to create linecard");
     }
 
-    *object_id = m_realObjectIdManager->allocateNewObjectId(object_type, linecard_id);
+    *object_id = m_realObjectIdManager->allocateNewObjectId(object_type, linecard_id, attr_count, attr_list);
 
     auto sid = lai_serialize_object_id(*object_id);
 
@@ -238,6 +391,15 @@ lai_status_t LinecardStateBase::create_internal(
             id++;    
             meta = lai_metadata_get_attr_metadata(object_type, id);
         }
+
+        if (object_type == LAI_OBJECT_TYPE_OTDR)
+        {
+            attr.id = LAI_OTDR_ATTR_SCANNING_STATUS;
+            attr.value.s32 = LAI_SCANNING_STATUS_INACTIVE;
+            setObjectHash(object_type, serializedObjectId, &attr);
+
+            m_otdrOidList.insert(serializedObjectId);
+        }
     }
 
     for (uint32_t i = 0; i < attr_count; ++i)
@@ -331,9 +493,32 @@ lai_status_t LinecardStateBase::set_internal(
 
     auto meta = lai_metadata_get_attr_metadata(objectType, attr->id);
 
-    SWSS_LOG_NOTICE("set %s:%s %s", lai_serialize_object_type(objectType).c_str(),
-                    serializedObjectId.c_str(),
-                    meta->attridname);
+    SWSS_LOG_INFO("set %s:%s %s", lai_serialize_object_type(objectType).c_str(),
+                  serializedObjectId.c_str(),
+                  meta->attridname);
+
+    if (objectType == LAI_OBJECT_TYPE_OTDR &&
+        attr->id == LAI_OTDR_ATTR_SCAN &&
+        attr->value.booldata == true)
+    {
+        if (g_otdr_scan)
+        {
+            return LAI_STATUS_FAILURE;
+        }
+
+        lai_attribute_t otdr_attr;
+        otdr_attr.id = LAI_OTDR_ATTR_SCANNING_STATUS;
+        otdr_attr.value.s32 = LAI_SCANNING_STATUS_ACTIVE;
+
+        for (auto &strOid : m_otdrOidList)
+        {
+            set(LAI_OBJECT_TYPE_OTDR, strOid, &otdr_attr);
+        }
+
+        lai_deserialize_object_id(serializedObjectId, g_scanning_otdr_oid);
+
+        g_otdr_scan = true;
+    }
 
     return LAI_STATUS_SUCCESS;
 }
@@ -493,7 +678,7 @@ lai_status_t LinecardStateBase::set_linecard_default_attributes()
     lai_attribute_t attr;
 
     attr.id = LAI_LINECARD_ATTR_LINECARD_TYPE;
-    attr.value.s32 = LAI_LINECARD_TYPE_P230C;
+    strcpy(attr.value.chardata, "P230C");
 
     return set(LAI_OBJECT_TYPE_LINECARD, m_linecard_id, &attr);
 }
@@ -546,6 +731,8 @@ lai_status_t LinecardStateBase::refresh_read_only(
         meta->objecttype == LAI_OBJECT_TYPE_APS ||
         meta->objecttype == LAI_OBJECT_TYPE_APSPORT ||
         meta->objecttype == LAI_OBJECT_TYPE_ATTENUATOR ||
+        meta->objecttype == LAI_OBJECT_TYPE_OCM ||
+        meta->objecttype == LAI_OBJECT_TYPE_OTDR ||
         meta->objecttype == LAI_OBJECT_TYPE_LLDP)
     {
         return LAI_STATUS_SUCCESS;
@@ -850,10 +1037,9 @@ void LinecardStateBase::send_linecard_state_change_notification(
         return;
     }
 
-    lai_linecard_notifications_t mn = {nullptr, nullptr};
+    lai_linecard_notifications_t mn = {nullptr, nullptr, nullptr, nullptr};
     mn.on_linecard_state_change = (lai_linecard_state_change_notification_fn)attr.value.ptr;
-
-	mn.on_linecard_state_change(linecard_id,status);  
+    mn.on_linecard_state_change(linecard_id,status);  
 }
 
 void LinecardStateBase::send_linecard_alarm_notification(
@@ -870,22 +1056,63 @@ void LinecardStateBase::send_linecard_alarm_notification(
         return;  
     }
 
-	lai_attribute_t attr;
-	attr.id = LAI_LINECARD_ATTR_LINECARD_ALARM_NOTIFY;
-	if (get(LAI_OBJECT_TYPE_LINECARD, m_linecard_id, 1, &attr) != LAI_STATUS_SUCCESS) {
-		SWSS_LOG_ERROR("failed to get LAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY for linecard %s",
-				lai_serialize_object_id(m_linecard_id).c_str());
-		return;
-	}
-
-	if (attr.value.ptr == NULL) {
-		SWSS_LOG_INFO("LAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY callback is NULL");
-		return;
-	}
-
-	lai_linecard_notifications_t mn = {nullptr, nullptr};
-	mn.on_linecard_alarm = (lai_linecard_alarm_notification_fn)attr.value.ptr;
-
-	mn.on_linecard_alarm(linecard_id,alarm_type,alarm_info);  
-
+    lai_attribute_t attr;
+    attr.id = LAI_LINECARD_ATTR_LINECARD_ALARM_NOTIFY;
+    if (get(LAI_OBJECT_TYPE_LINECARD, m_linecard_id, 1, &attr) != LAI_STATUS_SUCCESS) {
+        SWSS_LOG_ERROR("failed to get LAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY for linecard %s",
+            lai_serialize_object_id(m_linecard_id).c_str());
+        return;
+    }
+    
+    if (attr.value.ptr == NULL) {
+    	SWSS_LOG_INFO("LAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY callback is NULL");
+    	return;
+    }
+    
+    lai_linecard_notifications_t mn = {nullptr, nullptr, nullptr, nullptr};
+    mn.on_linecard_alarm = (lai_linecard_alarm_notification_fn)attr.value.ptr;
+    mn.on_linecard_alarm(linecard_id,alarm_type,alarm_info);  
 }
+
+void LinecardStateBase::send_ocm_spectrum_power_notification(
+        _In_ lai_object_id_t linecard_id,
+        _In_ lai_object_id_t ocm_id)
+{
+    lai_attribute_t attr;
+
+    attr.id = LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY;
+    if (get(LAI_OBJECT_TYPE_LINECARD, m_linecard_id, 1, &attr) != LAI_STATUS_SUCCESS) {
+        SWSS_LOG_ERROR("failed to get LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY for linecard %s",
+            lai_serialize_object_id(m_linecard_id).c_str());
+        return;
+    }
+    
+    if (attr.value.ptr == NULL) {
+        SWSS_LOG_INFO("LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY callback is NULL");
+    	return;
+    }
+
+    usleep(1000000);
+
+    lai_spectrum_power_t list[96];
+    lai_uint64_t freq = 194400000;
+    lai_uint64_t freq_step = 12500;
+    for (int i = 0; i < 96; i++)
+    {
+        list[i].lower_frequency = freq;
+        list[i].upper_frequency = freq + freq_step;
+        list[i].power = -10.0;
+
+        freq += freq_step;
+    }
+
+    lai_spectrum_power_list_t ocm_result;
+    ocm_result.count = 96;
+    ocm_result.list = list; 
+
+    lai_linecard_notifications_t mn = {nullptr, nullptr, nullptr, nullptr};
+    mn.on_linecard_ocm_spectrum_power = (lai_linecard_ocm_spectrum_power_notification_fn)attr.value.ptr;
+    mn.on_linecard_ocm_spectrum_power(linecard_id, ocm_id, ocm_result);
+}
+
+

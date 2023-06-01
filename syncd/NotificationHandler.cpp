@@ -104,6 +104,56 @@ void NotificationHandler::onApsReportSwitchInfo(
     } 
 }
 
+void NotificationHandler::onOcmReportSpectrumPower(
+    _In_ lai_object_id_t linecard_rid,
+    _In_ lai_object_id_t ocm_id,
+    _In_ lai_spectrum_power_list_t ocm_result)
+{
+    SWSS_LOG_ENTER();
+
+    if (ocm_result.list == NULL)
+    {
+        return;
+    }
+
+    nlohmann::json j;
+    j["linecard_rid"] = lai_serialize_object_id(linecard_rid);
+    j["ocm_id"] = lai_serialize_object_id(ocm_id);
+    j["spectrum_power_list"] = lai_serialize_ocm_spectrum_power_list(ocm_result);
+
+    std::string s = j.dump();
+    enqueueNotification(LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY, s);
+}
+
+void NotificationHandler::onOtdrReportResult(
+    _In_ lai_object_id_t linecard_rid,
+    _In_ lai_object_id_t otdr_id,
+    _In_ lai_otdr_result_t result)
+{
+    SWSS_LOG_ENTER();
+
+    nlohmann::json j;
+
+    j["linecard_rid"] = lai_serialize_object_id(linecard_rid);
+    j["otdr_id"] = lai_serialize_object_id(otdr_id);
+
+    j["scan-time"] = lai_serialize_number(result.scanning_profile.scan_time);
+    j["distance-range"] = lai_serialize_number(result.scanning_profile.distance_range);
+    j["pulse-width"] = lai_serialize_number(result.scanning_profile.pulse_width);
+    j["average-time"] = lai_serialize_number(result.scanning_profile.average_time);
+    j["output-frequency"] = lai_serialize_number(result.scanning_profile.output_frequency);
+
+    j["span-distance"] = lai_serialize_decimal(result.events.span_distance);
+    j["span-loss"] = lai_serialize_decimal(result.events.span_loss);
+    j["events"] = lai_serialize_otdr_event_list(result.events.events);
+
+    j["update-time"] = lai_serialize_number(result.trace.update_time);
+    j["data"] = lai_serialize_hex_binary(result.trace.data.list, result.trace.data.count);
+
+    std::string s = j.dump();
+    enqueueNotification(LAI_OTDR_NOTIFICATION_NAME_RESULT_NOTIFY, s);
+}
+
 void NotificationHandler::updateNotificationsPointers(
     _In_ lai_object_type_t object_type,
     _In_ uint32_t attr_count,
@@ -160,8 +210,16 @@ void NotificationHandler::updateNotificationsPointers(
             case LAI_LINECARD_ATTR_LINECARD_ALARM_NOTIFY:
                 attr.value.ptr = (void*)m_notifications.on_linecard_alarm;
                 break;
-            default:
 
+            case LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY:
+                attr.value.ptr = (void*)m_notifications.on_linecard_ocm_spectrum_power;
+                break;
+
+            case LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY:
+                attr.value.ptr = (void*)m_notifications.on_linecard_otdr_result;
+                break;
+
+            default:
                 SWSS_LOG_ERROR("pointer for %s is not handled, FIXME!", meta->attridname);
                 continue;
             }
@@ -216,7 +274,7 @@ void NotificationHandler::generate_linecard_communication_alarm(
 
         j["time-created"] = lai_serialize_number((uint64_t)chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count());
 
-        j["resource"] = strlinecard;
+        j["resource_oid"] = lai_serialize_object_id(linecard_rid);
         j["id"] = strlinecard;
         j["text"] = "SLOT COMMUNICATION FAIL";
 
@@ -224,6 +282,7 @@ void NotificationHandler::generate_linecard_communication_alarm(
         j["type-id"] = lai_serialize_enum_v2(LAI_ALARM_TYPE_SLOT_COMM_FAIL, &lai_metadata_enum_lai_alarm_type_t);
 
         lai_alarm_status_t status = LAI_ALARM_STATUS_INACTIVE;
+
         if (linecard_oper_status == LAI_OPER_STATUS_INACTIVE)
         {
             status = LAI_ALARM_STATUS_ACTIVE;
@@ -247,8 +306,6 @@ void NotificationHandler::onLinecardAlarm(
 {
     SWSS_LOG_ENTER();
 
-    //auto s = lai_serialize_linecard_alarm(linecard_id, alarm_type, alarm_info);
-
     nlohmann::json j;
     std::string str_resource, type_id, str_text, s;
 
@@ -260,10 +317,7 @@ void NotificationHandler::onLinecardAlarm(
     j["linecard_id"] = lai_serialize_object_id(linecard_rid);
     j["time-created"] = lai_serialize_number(alarm_info.time_created);
 
-    if (alarm_info.resource.list == NULL)
-        j["resource"] = "";
-    else
-        j["resource"] = str_resource = (char*)(alarm_info.resource.list);
+    j["resource_oid"] = lai_serialize_object_id(alarm_info.resource_oid);
 
     if (alarm_info.text.list == NULL)
         j["text"] = "";

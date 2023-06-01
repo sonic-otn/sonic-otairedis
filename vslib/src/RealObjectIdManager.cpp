@@ -208,10 +208,49 @@ void RealObjectIdManager::releaseLinecardIndex(
     SWSS_LOG_DEBUG("released linecard index 0x%x", index);
 }
 
+uint64_t RealObjectIdManager::allocateNewObjectIndex(
+        _In_ lai_object_type_t objectType,
+        _In_ uint32_t attr_count,
+        _In_ const lai_attribute_t *attr_list)
+{
+    uint64_t objectIndex = 0;
+
+    if (objectType == LAI_OBJECT_TYPE_OCM)
+    {
+        for (uint32_t i = 0; i < attr_count; i++)
+        {
+            if (attr_list[i].id == LAI_OCM_ATTR_ID)
+            {
+                objectIndex = attr_list[i].value.u32;
+                break;
+            }
+        }        
+    }
+    else if (objectType == LAI_OBJECT_TYPE_OTDR)
+    {
+        for (uint32_t i = 0; i < attr_count; i++)
+        {
+            if (attr_list[i].id == LAI_OTDR_ATTR_ID)
+            {
+                objectIndex = attr_list[i].value.u32;
+                break;
+            }
+        }
+        
+    }
+    else
+    {
+        objectIndex = m_indexer[objectType]++;
+    }
+
+    return objectIndex;
+}
 
 lai_object_id_t RealObjectIdManager::allocateNewObjectId(
         _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t linecardId)
+        _In_ lai_object_id_t linecardId,
+        _In_ uint32_t attr_count,
+        _In_ const lai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
@@ -237,7 +276,7 @@ lai_object_id_t RealObjectIdManager::allocateNewObjectId(
     uint32_t linecardIndex = (uint32_t)LAI_VS_GET_LINECARD_INDEX(linecardId);
 
     // count from zero
-    uint64_t objectIndex = m_indexer[objectType]++; // allocation !
+    uint64_t objectIndex = allocateNewObjectIndex(objectType, attr_count, attr_list);
 
     if (objectIndex > LAI_VS_OBJECT_INDEX_MAX)
     {

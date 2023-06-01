@@ -333,46 +333,6 @@ lai_status_t Lai::clearStats(
             counter_ids);
 }
 
-// ALARMS
-
-lai_status_t Lai::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(object_id);
-
-    return context->m_meta->getAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids,
-            alarm_info);
-}
-
-lai_status_t Lai::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(object_id);
-
-    return context->m_meta->clearAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids);
-}
-
 lai_status_t Lai::queryAttributeCapability(
         _In_ lai_object_id_t linecard_id,
         _In_ lai_object_type_t object_type,
@@ -481,7 +441,7 @@ lai_linecard_notifications_t Lai::handle_notification(
     {
         SWSS_LOG_ERROR("%s: api not initialized", __PRETTY_FUNCTION__);
 
-        return {nullptr, nullptr};
+        return {nullptr, nullptr, nullptr, nullptr};
     }
 
     return context->m_redisLai->syncProcessNotification(notification);

@@ -1,7 +1,6 @@
 #include "NotificationProcessor.h"
 #include "RedisClient.h"
 
-
 #include "meta/lai_serialize.h"
 #include "meta/LaiAttributeList.h"
 
@@ -16,7 +15,6 @@ using json = nlohmann::json;
 using namespace syncd;
 using namespace laimeta;
 using namespace swss;
-
 
 NotificationProcessor::NotificationProcessor(
     _In_ std::mutex& mtxAlarm,
@@ -40,10 +38,19 @@ NotificationProcessor::NotificationProcessor(
     m_state_db = std::shared_ptr<DBConnector>(new DBConnector("STATE_DB", 0));
     m_stateAlarmable = std::unique_ptr<Table>(new Table(m_state_db.get(), "CURALARM"));
     m_stateOLPSwitchInfoTbl = std::unique_ptr<Table>(new Table(m_state_db.get(), "OLP_SWITCH_INFO"));
+    m_stateOcmTable = std::unique_ptr<Table>(new Table(m_state_db.get(), STATE_OCM_TABLE_NAME));
+
+    m_stateOtdrTable = std::make_shared<Table>(m_state_db.get(), STATE_OTDR_TABLE_NAME);
+    m_stateOtdrEventTable = std::make_shared<Table>(m_state_db.get(), "OTDR_EVENT");
 
     m_history_db = std::shared_ptr<DBConnector>(new DBConnector("HISTORY_DB", 0));
-    m_historyAlarmable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISALARM"));
-    m_historyEventable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISEVENT"));
+    m_historyAlarmTable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISALARM"));
+    m_historyEventTable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISEVENT"));
+
+    m_historyOtdrTable = std::make_shared<Table>(m_history_db.get(), "OTDR");
+    m_historyOtdrEventTable = std::make_shared<Table>(m_history_db.get(), "OTDR_EVENT");
+
+    initOtdrScanTimeSet();
 
     m_ttlPM15Min = EXIPRE_TIME_SECONDS_2DAYS;
     m_ttlPM24Hour = EXIPRE_TIME_SECONDS_7DAYS;
@@ -55,6 +62,41 @@ NotificationProcessor::~NotificationProcessor()
     SWSS_LOG_ENTER();
 
     stopNotificationsProcessingThread();
+}
+
+void NotificationProcessor::initOtdrScanTimeSet()
+{
+    SWSS_LOG_ENTER();
+
+    std::map<std::string, std::set<uint64_t>> scanTimeSet;
+
+    std::string pattern = "OTDR:*";
+
+    auto keys = m_history_db->keys(pattern);
+
+    for (auto &k : keys)
+    {
+        auto name = m_history_db->hget(k, "name");
+        auto strScanTime = m_history_db->hget(k, "scan-time");
+
+        if (name == nullptr || strScanTime == nullptr)
+        {
+            continue;
+        }
+
+        uint64_t scanTime = 0;
+        lai_deserialize_number(*strScanTime, scanTime);
+
+        scanTimeSet[*name].insert(scanTime);
+    }
+
+    for (auto &s : scanTimeSet)
+    {
+        for (auto &t : s.second)
+        {
+            m_otdrScanTimeQueue[s.first].push(t);
+        }
+    }
 }
 
 void NotificationProcessor::sendNotification(
@@ -151,6 +193,196 @@ void NotificationProcessor::handle_olp_switch_notify(
     m_stateOLPSwitchInfoTbl->set(strKey, fv);
 }
 
+void NotificationProcessor::handle_ocm_spectrum_power_notify(
+    _In_ const std::string& data,
+    _In_ const std::vector<FieldValueTuple>& fv)
+{
+    SWSS_LOG_ENTER();
+
+    json j = json::parse(data);
+
+    lai_object_id_t vid;
+    lai_object_id_t rid;
+    lai_spectrum_power_list_t list;
+
+    lai_object_id_t linecard_vid;
+    lai_object_id_t linecard_rid;
+
+    lai_deserialize_object_id(j["ocm_id"], rid);
+    lai_deserialize_object_id(j["linecard_rid"], linecard_rid);
+    
+    lai_deserialize_ocm_spectrum_power_list(j["spectrum_power_list"], list);
+
+    if (!m_translator->tryTranslateRidToVid(rid, vid))
+    {
+        SWSS_LOG_ERROR("translate rid to vid failed, rid=0x%" PRIx64, rid);
+        return;
+    }
+
+    linecard_vid = m_translator->translateRidToVid(linecard_rid, LAI_NULL_OBJECT_ID);
+
+    auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
+    std::string strVid = lai_serialize_object_id(vid);
+    auto key = counters_db->hget(COUNTERS_OCM_NAME_MAP, strVid);
+    if (key == nullptr)
+    {
+        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OCM_NAME_MAP, strVid.c_str());
+        return;
+    }
+
+    for (uint32_t i = 0 ; i < list.count; i++)
+    {
+        std::string lowFreq = lai_serialize_number(list.list[i].lower_frequency);
+        std::string upFreq = lai_serialize_number(list.list[i].upper_frequency);
+        std::string power = lai_serialize_decimal(list.list[i].power);
+
+        std::string tableKey = *key + '|' + lowFreq + '|' + upFreq;
+
+        m_stateOcmTable->hset(tableKey, "lower-frequency", lowFreq);
+        m_stateOcmTable->hset(tableKey, "upper-frequency", upFreq);
+        m_stateOcmTable->hset(tableKey, "power", power);
+        m_stateOcmTable->expire(tableKey, 60);  /* expire after 1 minute */
+    }
+
+    json j2;
+
+    j2["linecard_id"] = lai_serialize_object_id(linecard_vid);
+    j2["ocm_id"] = lai_serialize_object_id(vid);
+
+    sendNotification(LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY, j2.dump());
+}
+
+void writeOtdrTable(
+        std::shared_ptr<Table> table,
+        std::string &key,
+        std::string &name,
+        json &j)
+{
+    SWSS_LOG_ENTER();
+
+    table->hset(key, "name", name);
+    table->hset(key, "scan-time", j["scan-time"]);
+    table->hset(key, "distance-range", j["distance-range"]);
+    table->hset(key, "pulse-width", j["pulse-width"]);
+    table->hset(key, "average-time", j["average-time"]);
+    table->hset(key, "output-frequency", j["output-frequency"]);
+    table->hset(key, "span-distance", j["span-distance"]);
+    table->hset(key, "span-loss", j["span-loss"]);
+    table->hset(key, "update-time", j["update-time"]);
+    table->hset(key, "data", j["data"]);
+}
+
+void writeOtdrEventTable(
+        std::shared_ptr<Table> table,
+        std::string &key,
+        lai_otdr_event_t &e,
+        uint32_t index)
+{
+    SWSS_LOG_ENTER();
+
+    table->hset(key, "index", lai_serialize_number(index));
+    table->hset(key, "length", lai_serialize_decimal(e.length));
+    table->hset(key, "loss", lai_serialize_decimal(e.loss));
+    table->hset(key, "accumulate-loss", lai_serialize_decimal(e.accumulate_loss));
+    table->hset(key, "type", lai_serialize_enum(e.type, &lai_metadata_enum_lai_otdr_event_type_t));
+    table->hset(key, "reflection", lai_serialize_decimal(e.reflection));
+}
+
+void NotificationProcessor::handle_otdr_result_notify(
+    _In_ const std::string& data,
+    _In_ const std::vector<FieldValueTuple>& fv)
+{
+    SWSS_LOG_ENTER();
+
+    lai_object_id_t otdrVid;
+    lai_object_id_t otdrRid;
+
+    json j = json::parse(data);
+
+    lai_deserialize_object_id(j["otdr_id"], otdrRid);
+
+    if (!m_translator->tryTranslateRidToVid(otdrRid, otdrVid))
+    {
+        SWSS_LOG_ERROR("translate rid to vid failed, rid=0x%" PRIx64, otdrRid);
+        return;
+    }
+
+    auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
+
+    std::string strVid = lai_serialize_object_id(otdrVid);
+
+    auto key = counters_db->hget(COUNTERS_OTDR_NAME_MAP, strVid);
+
+    if (key == nullptr)
+    {
+        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OTDR_NAME_MAP, strVid.c_str());
+        return;
+    }
+
+    std::string stateTableKey = *key + "|CURRENT";
+
+    writeOtdrTable(m_stateOtdrTable, stateTableKey, *key, j);
+
+    lai_otdr_event_list_t events;
+
+    lai_deserialize_otdr_event_list(j["events"], events);
+
+    for (uint32_t i = 0; i < events.count; i++)
+    {
+        uint32_t index = i + 1;
+
+        std::string eventKey = *key + "|CURRENT|" + lai_serialize_number(index);
+
+        writeOtdrEventTable(m_stateOtdrEventTable, eventKey, events.list[i], index);
+    }
+
+    std::string strScanTime = j["scan-time"];
+    std::string historyTableKey = *key + "|" + strScanTime;
+
+    writeOtdrTable(m_historyOtdrTable, historyTableKey, *key, j);
+
+    for (uint32_t i = 0; i < events.count; i++)
+    {
+        uint32_t index = i + 1;
+
+        std::string eventKey = *key + "|" + strScanTime + "|" + lai_serialize_number(index);
+
+        writeOtdrEventTable(m_historyOtdrEventTable, eventKey, events.list[i], index);
+    }
+
+    uint64_t scanTime = 0;
+
+    lai_deserialize_number(j["scan-time"], scanTime);
+
+    m_otdrScanTimeQueue[*key].push(scanTime);
+
+    while (m_otdrScanTimeQueue[*key].size() > 10)
+    {
+        scanTime = m_otdrScanTimeQueue[*key].front(); 
+
+        m_otdrScanTimeQueue[*key].pop();
+
+        std::string entry = m_historyOtdrTable->getTableName() + ":" +
+                            *key + "|" + lai_serialize_number(scanTime);
+
+        SWSS_LOG_INFO("Delete old otdr data, %s", entry.c_str());
+
+        m_history_db->del(entry);
+
+        std::string pattern = m_historyOtdrEventTable->getTableName() + ":" +
+                              *key + "|" + lai_serialize_number(scanTime) + "*";
+
+        auto keys = m_history_db->keys(pattern);
+
+        for (auto &k : keys)
+        {
+            SWSS_LOG_INFO("Delete old otdr event data, %s", k.c_str());
+
+            m_history_db->del(k);
+        }
+    }
+}
+
 void NotificationProcessor::handle_linecard_alarm(
     _In_ const std::string& data)
 {
@@ -176,6 +408,33 @@ void NotificationProcessor::handle_linecard_alarm(
     }
 }
 
+std::string NotificationProcessor::get_resource_name_by_rid(
+        _In_ lai_object_id_t rid)
+{
+    SWSS_LOG_ENTER();
+
+    lai_object_id_t vid;
+
+    if (!m_translator->tryTranslateRidToVid(rid, vid))
+    {
+        SWSS_LOG_ERROR("Failed to translate rid to vid, rid=0x%" PRIx64, rid);
+
+        return "";
+    }
+
+    auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
+    std::string strVid = lai_serialize_object_id(vid);
+    auto key = counters_db->hget("VID2NAME", strVid);
+    if (key == NULL)
+    {
+        SWSS_LOG_ERROR("Failed to get name from VID2NAME, vid=0x%" PRIx64, vid);
+
+        return "";
+    }
+
+    return *key;
+}
+
 void NotificationProcessor::handler_event_generated(
     _In_ const std::string data)
 {
@@ -188,25 +447,32 @@ void NotificationProcessor::handler_event_generated(
     FieldValueTuple tupletemp;
     std::string keyid;
 
-    std::string dataarry[] = { "id","time-created","resource","text","severity","type-id" };
+    std::string data_array[] = { "id","time-created","text","severity","type-id" };
 
     std::string resource, timecreated, type_id;
 
-    resource = j["resource"];
+    lai_object_id_t rid;
+    lai_deserialize_object_id(j["resource_oid"], rid);
+    resource = get_resource_name_by_rid(rid);
+
     timecreated = j["time-created"];
     type_id = j["type-id"];
 
     keyid = j["id"] = resource + "#" + type_id;
     j["time-created"] = timecreated;
 
-    for (uint32_t i = 0; i < sizeof(dataarry) / sizeof(dataarry[0]); i++)
+    for (uint32_t i = 0; i < sizeof(data_array) / sizeof(data_array[0]); i++)
     {
-        tupletemp = std::make_pair(dataarry[i], j[dataarry[i]]);
+        tupletemp = std::make_pair(data_array[i], j[data_array[i]]);
         alarmVector.emplace_back(tupletemp);
     }
+
+    tupletemp = std::make_pair("resource", resource);
+    alarmVector.emplace_back(tupletemp);
+
     std::string strKey = keyid + "#" + timecreated;
-    m_historyEventable->set(strKey, alarmVector);
-    m_historyEventable->expire(strKey, m_ttlAlarm);
+    m_historyEventTable->set(strKey, alarmVector);
+    m_historyEventTable->expire(strKey, m_ttlAlarm);
     SWSS_LOG_WARN("EVENT generated key:%s content:%s", strKey.c_str(), data.c_str());
 }
 
@@ -223,11 +489,14 @@ void NotificationProcessor::handler_alarm_generated(
     FieldValueTuple tupletemp;
     std::string keyid;
 
-    std::string dataarry[] = { "id","time-created","resource","text","severity","type-id" };
+    std::string data_array[] = { "id","time-created","text","severity","type-id" };
 
     std::string resource, type_id, timecreated;
 
-    resource = j["resource"];
+    lai_object_id_t rid;
+    lai_deserialize_object_id(j["resource_oid"], rid);
+    resource = get_resource_name_by_rid(rid);
+
     type_id = j["type-id"];
     timecreated = j["time-created"];
 
@@ -242,11 +511,13 @@ void NotificationProcessor::handler_alarm_generated(
         return;
     }
 
-    for (uint32_t i = 0; i < sizeof(dataarry) / sizeof(dataarry[0]); i++)
+    for (uint32_t i = 0; i < sizeof(data_array) / sizeof(data_array[0]); i++)
     {
-        tupletemp = std::make_pair(dataarry[i], j[dataarry[i]]);
+        tupletemp = std::make_pair(data_array[i], j[data_array[i]]);
         alarmVector.emplace_back(tupletemp);
     }
+    tupletemp = std::make_pair("resource", resource);
+    alarmVector.emplace_back(tupletemp);
 
     m_stateAlarmable->set(keyid, alarmVector);
     SWSS_LOG_WARN("ALARM generated key:%s content:%s", keyid.c_str(), data.c_str());
@@ -258,10 +529,9 @@ void NotificationProcessor::handler_history_alarm(
     _In_ const std::vector<FieldValueTuple>& alarmvector)
 {
     std::string strKey = key + "#" + timecreated;
-    m_historyAlarmable->set(strKey, alarmvector);
-    m_historyAlarmable->expire(strKey, m_ttlAlarm);
+    m_historyAlarmTable->set(strKey, alarmvector);
+    m_historyAlarmTable->expire(strKey, m_ttlAlarm);
 }
-
 
 void NotificationProcessor::handler_alarm_cleared(
     _In_ const std::string data)
@@ -275,7 +545,10 @@ void NotificationProcessor::handler_alarm_cleared(
 
     json j = json::parse(data);
 
-    resource = j["resource"];
+    lai_object_id_t rid;
+    lai_deserialize_object_id(j["resource_oid"], rid);
+    resource = get_resource_name_by_rid(rid);
+
     type_id = j["type-id"];
 
     keyid = resource + "#" + type_id;
@@ -325,6 +598,14 @@ void NotificationProcessor::syncProcessNotification(
     else if (notification == LAI_APS_NOTIFICATION_NAME_OLP_SWITCH_NOTIFY)
     {
         handle_olp_switch_notify(data, fv);
+    }
+    else if (notification == LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY)
+    {
+        handle_ocm_spectrum_power_notify(data, fv);
+    }
+    else if (notification == LAI_OTDR_NOTIFICATION_NAME_RESULT_NOTIFY)
+    {
+        handle_otdr_result_notify(data, fv);
     }
     else
     {

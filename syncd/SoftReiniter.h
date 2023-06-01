@@ -42,7 +42,7 @@ namespace syncd
             void stopPreConfigLinecards();
             void processOids();
             lai_object_id_t processSingleVid(_In_ lai_object_id_t vid);
-            void setBoardMode(lai_linecard_board_mode_t mode);
+            void setBoardMode(std::string mode);
         private:
             std::shared_ptr<lairedis::LaiInterface> m_vendorLai;
 

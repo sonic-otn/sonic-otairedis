@@ -181,6 +181,11 @@ void lai_deserialize_number(
         _Out_ uint32_t& number,
         _In_ bool hex = false);
 
+void lai_deserialize_number(
+        _In_ const std::string& s,
+        _Out_ uint64_t& number,
+        _In_ bool hex = false);
+
 void lai_deserialize_status(
         _In_ const std::string& s,
         _Out_ lai_status_t& status);
@@ -193,11 +198,12 @@ void lai_deserialize_linecard_oper_status(
 void lai_deserialize_linecard_shutdown_request(
         _In_ const std::string& s,
         _Out_ lai_object_id_t &linecard_id);
+
 void lai_deserialize_linecard_alarm(
-				_In_ const std::string& s,
-				_Out_ lai_object_id_t &linecard_id,
-				_Out_ lai_alarm_type_t &alarm_type,
-				_Out_ lai_alarm_info_t &alarm_info);
+        _In_ const std::string& s,
+        _Out_ lai_object_id_t &linecard_id,
+        _Out_ lai_alarm_type_t &alarm_type,
+        _Out_ lai_alarm_info_t &alarm_info);
 
 void lai_deserialize_object_type(
         _In_ const std::string& s,
@@ -262,5 +268,33 @@ std::string lai_serialize_transceiver_stat(
 int lai_deserialize_transceiver_stat(
     _In_ const char *buffer,
     _Out_ lai_transceiver_stat_t *transceiver_stat);
+
+std::string lai_serialize_ocm_spectrum_power(
+    _In_ lai_spectrum_power_t ocm_result);
+
+std::string lai_serialize_ocm_spectrum_power_list(
+    _In_ lai_spectrum_power_list_t& list);
+
+std::string lai_serialize_otdr_event(
+    _In_ lai_otdr_event_t event);
+
+std::string lai_serialize_otdr_event_list(
+    _In_ lai_otdr_event_list_t &list);
+
+void lai_deserialize_ocm_spectrum_power(
+    _In_ const std::string& s,
+    _Out_ lai_spectrum_power_t& ocm_result);
+
+void lai_deserialize_ocm_spectrum_power_list(
+    _In_ const std::string& s,
+    _Out_ lai_spectrum_power_list_t& list);
+
+void lai_deserialize_otdr_event(
+    _In_ const std::string &s,
+    _Out_ lai_otdr_event_t &event);
+
+void lai_deserialize_otdr_event_list(
+    _In_ const std::string& s,
+    _Out_ lai_otdr_event_list_t &list);
 
 #endif // __LAI_SERIALIZE__

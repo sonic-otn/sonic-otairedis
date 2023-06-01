@@ -146,14 +146,22 @@ namespace laivs
                     _In_ lai_object_id_t linecard_id,
                     _In_ lai_oper_status_t status,
                     _In_ bool force);
-			void send_linecard_alarm_notification(
-		           _In_ lai_object_id_t linecard_id,
-                   _In_ lai_alarm_type_t alarm_type,
-                   _In_ lai_alarm_info_t alarm_info);
+
+            void send_linecard_alarm_notification(
+                    _In_ lai_object_id_t linecard_id,
+                    _In_ lai_alarm_type_t alarm_type,
+                    _In_ lai_alarm_info_t alarm_info);
+
+            void send_ocm_spectrum_power_notification(
+                    _In_ lai_object_id_t linecard_id,
+                    _In_ lai_object_id_t ocm_id);
+
+            void send_otdr_result_notification(
+                    _In_ lai_object_id_t linecard_id,
+                    _In_ lai_object_id_t otdr_id);
 
             void send_aps_switch_info_notification(
-                _In_ lai_object_id_t linecard_id
-            );
+                _In_ lai_object_id_t linecard_id);
 
         public: // TODO move inside warm boot load state
 

@@ -350,6 +350,12 @@ lai_status_t VendorLai::getStats(
     case LAI_OBJECT_TYPE_ATTENUATOR:
         ptr = m_apis.attenuator_api->get_attenuator_stats;
         break;
+    case LAI_OBJECT_TYPE_OCM:
+        ptr = m_apis.ocm_api->get_ocm_stats;
+        break;
+    case LAI_OBJECT_TYPE_OTDR:
+        ptr = m_apis.otdr_api->get_otdr_stats;
+        break;
     default:
         SWSS_LOG_ERROR("not implemented, FIXME");
         return LAI_STATUS_FAILURE;
@@ -469,83 +475,6 @@ lai_status_t VendorLai::clearStats(
     }
 
     return ptr(object_id, number_of_counters, counter_ids);
-}
-
-
-lai_status_t VendorLai::getAlarms(
-    _In_ lai_object_type_t object_type,
-    _In_ lai_object_id_t object_id,
-    _In_ uint32_t number_of_alarms,
-    _In_ const lai_alarm_type_t* alarm_ids,
-    _Out_ lai_alarm_info_t* alarm_info)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VENDOR_CHECK_API_INITIALIZED();
-
-    lai_status_t(*ptr)(
-        _In_ lai_object_id_t linecard_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t * alarm_ids,
-        _Out_ lai_alarm_info_t * alarm_info) = nullptr;
-
-    if (!alarm_ids || !alarm_info)
-    {
-        SWSS_LOG_ERROR("NULL pointer function argument");
-        return LAI_STATUS_INVALID_PARAMETER;
-    }
-
-    switch ((int)object_type)
-    {
-    case LAI_OBJECT_TYPE_LINECARD:
-        ptr = m_apis.linecard_api->get_linecard_alarms;
-        break;
-    default:
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return LAI_STATUS_FAILURE;
-    }
-
-    if (nullptr == ptr)
-    {
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return LAI_STATUS_FAILURE;
-    }
-    return ptr(object_id, number_of_alarms, alarm_ids, alarm_info);
-}
-
-lai_status_t VendorLai::clearAlarms(
-    _In_ lai_object_type_t object_type,
-    _In_ lai_object_id_t object_id,
-    _In_ uint32_t number_of_alarms,
-    _In_ const lai_alarm_type_t* alarm_ids)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VENDOR_CHECK_API_INITIALIZED();
-
-    lai_status_t(*ptr)(
-        _In_ lai_object_id_t linecard_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t * alarm_ids) = nullptr;
-
-    switch ((int)object_type)
-    {
-    case LAI_OBJECT_TYPE_LINECARD:
-        ptr = m_apis.linecard_api->clear_linecard_alarms;
-        break;
-
-    default:
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return LAI_STATUS_FAILURE;
-    }
-
-    if (nullptr == ptr)
-    {
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return LAI_STATUS_FAILURE;
-    }
-
-    return ptr(object_id, number_of_alarms, alarm_ids);
 }
 
 // LAI API

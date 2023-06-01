@@ -67,6 +67,28 @@ void LinecardNotifications::SlotBase::onApsReportSwitchInfo(
     return m_slots.at(context)->m_handler->onApsReportSwitchInfo(aps_id, switch_info);
 }
 
+void LinecardNotifications::SlotBase::onOcmReportSpectrumPower(
+        _In_ int context,
+        _In_ lai_object_id_t linecard_id,
+        _In_ lai_object_id_t ocm_id,
+        _In_ lai_spectrum_power_list_t ocm_result)
+{
+    SWSS_LOG_ENTER();
+
+    return m_slots.at(context)->m_handler->onOcmReportSpectrumPower(linecard_id, ocm_id, ocm_result);
+}
+
+void LinecardNotifications::SlotBase::onOtdrReportResult(
+        _In_ int context,
+        _In_ lai_object_id_t linecard_id,
+        _In_ lai_object_id_t otdr_id,
+        _In_ lai_otdr_result_t otdr_result)
+{
+    SWSS_LOG_ENTER();
+
+    return m_slots.at(context)->m_handler->onOtdrReportResult(linecard_id, otdr_id, otdr_result);
+}
+
 const lai_notifications_t& LinecardNotifications::SlotBase::getLinecardNotifications() const
 {
     SWSS_LOG_ENTER();

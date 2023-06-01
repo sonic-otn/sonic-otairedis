@@ -270,7 +270,7 @@ void SingleReiniter::processLinecards()
         std::vector<lai_attribute_t> attrs_left;    // attrs for set
 
         bool is_board_mode_existed = false;
-        lai_linecard_board_mode_t board_mode = LAI_LINECARD_BOARD_MODE_L1_400G_CA_100GE;
+        std::string board_mode;
 
         for (uint32_t idx = 0; idx < attrCount; ++idx)
         {
@@ -296,7 +296,7 @@ void SingleReiniter::processLinecards()
             else if (attrList[idx].id == LAI_LINECARD_ATTR_BOARD_MODE)
             {
                 is_board_mode_existed = true;
-                board_mode = (lai_linecard_board_mode_t)(attrList[idx].value.s32);
+                board_mode = (attrList[idx].value.chardata);
             }
             else
             {
@@ -384,7 +384,7 @@ void SingleReiniter::processLinecards()
     }
 }
 
-void SingleReiniter::setBoardMode(lai_linecard_board_mode_t mode)
+void SingleReiniter::setBoardMode(std::string mode)
 {
     SWSS_LOG_ENTER();
 
@@ -393,21 +393,23 @@ void SingleReiniter::setBoardMode(lai_linecard_board_mode_t mode)
     lai_status_t status;
 
     attr.id = LAI_LINECARD_ATTR_BOARD_MODE;
+    memset(attr.value.chardata, 0, sizeof(attr.value.chardata));
     status = m_vendorLai->get(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, 1, &attr);
-    if (status == LAI_STATUS_SUCCESS && attr.value.s32 == mode)
+    if (status == LAI_STATUS_SUCCESS && mode == attr.value.chardata)
     {
-        SWSS_LOG_DEBUG("Linecard and maincard have a same board-mode, %d", mode);
+        SWSS_LOG_DEBUG("Linecard and maincard have a same board-mode, %s", mode.c_str());
         return;
     }
 
-    SWSS_LOG_NOTICE("Begin to set board-mode %d", mode);
+    SWSS_LOG_NOTICE("Begin to set board-mode %s", mode.c_str());
 
-    attr.value.s32 = mode;
+    memset(attr.value.chardata, 0, sizeof(attr.value.chardata));
+    strncpy(attr.value.chardata, mode.c_str(), sizeof(attr.value.chardata) - 1);
     status = m_vendorLai->set(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &attr);
     if (status != LAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_ERROR("Failed to set board-mode status=%d, mode=%d",
-                       status, mode);
+        SWSS_LOG_ERROR("Failed to set board-mode status=%d, mode=%s",
+                       status, mode.c_str());
         return;
     }
     do
@@ -419,7 +421,7 @@ void SingleReiniter::setBoardMode(lai_linecard_board_mode_t mode)
         {
             continue;
         }
-        if (attr.value.s32 == mode)
+        if (mode == attr.value.chardata)
         {
             break;
         }

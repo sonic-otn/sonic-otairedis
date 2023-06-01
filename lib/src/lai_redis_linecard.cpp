@@ -2,7 +2,6 @@
 
 REDIS_GENERIC_QUAD(LINECARD,linecard);
 REDIS_GENERIC_STATS(LINECARD,linecard);
-REDIS_GENERIC_ALARMS(LINECARD,linecard);
 
 static lai_status_t redis_create_linecard_uniq(
         _Out_ lai_object_id_t *linecard_id,
@@ -24,5 +23,4 @@ const lai_linecard_api_t redis_linecard_api = {
     redis_set_linecard_attribute,
     redis_get_linecard_attribute,
     REDIS_GENERIC_STATS_API(linecard)
-    REDIS_GENERIC_ALARMS_API(linecard)
 };

@@ -624,94 +624,6 @@ lai_status_t Meta::clearStats(
     return status;
 }
 
-lai_status_t Meta::meta_validate_alarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-
-    PARAMETER_CHECK_OBJECT_TYPE_VALID(object_type);
-    PARAMETER_CHECK_OID_OBJECT_TYPE(object_id, object_type);
-    PARAMETER_CHECK_OID_EXISTS(object_id, object_type);
-    PARAMETER_CHECK_POSITIVE(number_of_alarms);
-    PARAMETER_CHECK_IF_NOT_NULL(alarm_ids);
-    PARAMETER_CHECK_IF_NOT_NULL(alarm_info);
-
-    lai_object_id_t linecard_id = linecardIdQuery(object_id);
-
-    // checks also if object type is OID
-    lai_status_t status = meta_lai_validate_oid(object_type, &object_id, linecard_id, false);
-
-    CHECK_STATUS_SUCCESS(status);
-
-    auto info = lai_metadata_get_object_type_info(object_type);
-
-    PARAMETER_CHECK_IF_NOT_NULL(info);
-
-    if (info->statenum == nullptr)
-    {
-        SWSS_LOG_ERROR("%s does not support stats", info->objecttypename);
-
-        return LAI_STATUS_INVALID_PARAMETER;
-    }
-    // check if all counter ids are in enum range
-
-    for (uint32_t idx = 0; idx < number_of_alarms; idx++)
-    {
-        if (lai_metadata_get_enum_value_name(info->alarmenum, alarm_ids[idx]) == nullptr)
-        {
-            SWSS_LOG_ERROR("value %d is not in range on %s", alarm_ids[idx], info->alarmenum->name);
-
-            return LAI_STATUS_INVALID_PARAMETER;
-        }
-    }
-
-    return LAI_STATUS_SUCCESS;
-}
-
-lai_status_t Meta::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{
-    SWSS_LOG_ENTER();
-
-    auto status = meta_validate_alarms(object_type, object_id, number_of_alarms, alarm_ids, alarm_info);
-
-    CHECK_STATUS_SUCCESS(status);
-
-    status = m_implementation->getAlarms(object_type, object_id, number_of_alarms, alarm_ids, alarm_info);
-
-    // no post validation required
-
-    return status;
-}
-
-lai_status_t Meta::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    SWSS_LOG_ENTER();
-
-    lai_alarm_info_t alarm_info;
-    auto status = meta_validate_alarms(object_type, object_id, number_of_alarms, alarm_ids, &alarm_info);
-
-    CHECK_STATUS_SUCCESS(status);
-
-    status = m_implementation->clearAlarms(object_type, object_id, number_of_alarms, alarm_ids);
-
-    // no post validation required
-
-    return status;
-}
-
 lai_object_type_t Meta::objectTypeQuery(
         _In_ lai_object_id_t objectId)
 {
@@ -1379,6 +1291,7 @@ lai_status_t Meta::meta_generic_validation_create(
             case LAI_ATTR_VALUE_TYPE_INT64:
             case LAI_ATTR_VALUE_TYPE_DOUBLE:
             case LAI_ATTR_VALUE_TYPE_POINTER:
+            case LAI_ATTR_VALUE_TYPE_CHARDATA:
                 // primitives
                 break;
 

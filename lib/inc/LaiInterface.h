@@ -94,21 +94,6 @@ namespace lairedis
                     _In_ uint32_t number_of_counters,
                     _In_ const lai_stat_id_t *counter_ids) = 0;
 
-        public: // alarms API
-
-            virtual lai_status_t getAlarms(
-                    _In_ lai_object_type_t object_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids,
-                    _Out_ lai_alarm_info_t *alarm_info) = 0;
-
-            virtual lai_status_t clearAlarms(
-                    _In_ lai_object_type_t object_type,
-                    _In_ lai_object_id_t object_id,
-                    _In_ uint32_t number_of_alarms,
-                    _In_ const lai_alarm_type_t *alarm_ids) = 0;
-
         public: // LAI API
 
             virtual lai_status_t objectTypeGetAvailability(

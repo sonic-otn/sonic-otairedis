@@ -28,6 +28,12 @@ using namespace laivs;
         SWSS_LOG_ERROR("%s: api not initialized", __PRETTY_FUNCTION__);     \
         return LAI_STATUS_FAILURE; }
 
+extern lai_object_id_t g_scanning_ocm_oid;
+extern bool g_ocm_scan;
+
+extern lai_object_id_t g_scanning_otdr_oid;
+extern bool g_otdr_scan;
+
 Lai::Lai()
 {
     SWSS_LOG_ENTER();
@@ -37,6 +43,8 @@ Lai::Lai()
     m_apiInitialized = false;
 
     m_isLinkUp = true;
+    m_isAlarm = false;
+    m_isEvent = false;
 }
 
 Lai::~Lai()
@@ -108,15 +116,6 @@ lai_status_t Lai::initialize(
 
     m_resourceLimiterContainer = ResourceLimiterParser::parseFromFile(resourceLimiterFile);
 
-    auto boot_type          = service_method_table->profile_get_value(0, LAI_KEY_BOOT_TYPE);
-
-    lai_vs_boot_type_t bootType;
-
-    if (!LinecardConfig::parseBootType(boot_type, bootType))
-    {
-        return LAI_STATUS_FAILURE;
-    }
-
     lai_vs_linecard_type_t linecardType;
 
     if (!LinecardConfig::parseLinecardType(linecard_type, linecardType))
@@ -131,7 +130,6 @@ lai_status_t Lai::initialize(
     auto sc = std::make_shared<LinecardConfig>();
 
     sc->m_linecardType = linecardType;
-    sc->m_bootType = bootType;
     sc->m_linecardIndex = 0;
     sc->m_eventQueue = m_eventQueue;
     sc->m_resourceLimiter = m_resourceLimiterContainer->getResourceLimiter(sc->m_linecardIndex);
@@ -258,6 +256,19 @@ lai_status_t Lai::set(
             }
         }
     }
+    else if (objectType == LAI_OBJECT_TYPE_OCM)
+    {
+        if (attr)
+        {
+            if (attr->id == LAI_OCM_ATTR_SCAN &&
+                attr->value.booldata == true)
+            {
+                g_scanning_ocm_oid = objectId;
+                g_ocm_scan = true;
+                return LAI_STATUS_SUCCESS;
+            }
+        }
+    }
 
     return m_meta->set(objectType, objectId, attr);
 }
@@ -379,44 +390,6 @@ lai_status_t Lai::clearStats(
             object_id,
             number_of_counters,
             counter_ids);
-}
-
-// ALARMS
-
-lai_status_t Lai::getAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids,
-        _Out_ lai_alarm_info_t *alarm_info)
-{   
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VS_CHECK_API_INITIALIZED();
-    
-    return m_meta->getAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids,
-            alarm_info);
-}
-
-lai_status_t Lai::clearAlarms(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ uint32_t number_of_alarms,
-        _In_ const lai_alarm_type_t *alarm_ids)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VS_CHECK_API_INITIALIZED();
-
-    return m_meta->clearAlarms(
-            object_type,
-            object_id,
-            number_of_alarms,
-            alarm_ids);
 }
 
 // LAI API

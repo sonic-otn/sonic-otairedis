@@ -126,6 +126,16 @@ Collector::Collector(
         strCountersTable = COUNTERS_ATTENUATOR_TABLE_NAME;
         strTableNameMap = COUNTERS_ATTENUATOR_NAME_MAP;
         break;
+    case LAI_OBJECT_TYPE_OCM:
+        strStateTable = STATE_OCM_TABLE_NAME;
+        strCountersTable = COUNTERS_OCM_TABLE_NAME;
+        strTableNameMap = COUNTERS_OCM_NAME_MAP;
+        break;
+    case LAI_OBJECT_TYPE_OTDR:
+        strStateTable = STATE_OTDR_TABLE_NAME;
+        strCountersTable = COUNTERS_OTDR_TABLE_NAME;
+        strTableNameMap = COUNTERS_OTDR_NAME_MAP;
+        break;
     default:
         SWSS_LOG_THROW("Unsupported object type:%d", objectType);
     }

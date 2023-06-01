@@ -6,7 +6,7 @@
 using namespace laivs;
 
 LinecardConfig::LinecardConfig():
-    m_laiLinecardType(LAI_LINECARD_TYPE_P230C),
+    m_laiLinecardType("P230C"),
     m_linecardType(LAI_VS_LINECARD_TYPE_NONE),
     m_bootType(LAI_VS_BOOT_TYPE_COLD),
     m_linecardIndex(0),
@@ -21,7 +21,7 @@ LinecardConfig::LinecardConfig():
 
 bool LinecardConfig::parseLaiLinecardType(
         _In_ const char* laiLinecardTypeStr,
-        _Out_ lai_linecard_type_t& laiLinecardType)
+        _Out_ std::string& laiLinecardType)
 {
     SWSS_LOG_ENTER();
 
@@ -29,7 +29,7 @@ bool LinecardConfig::parseLaiLinecardType(
 
     if (st == LAI_VALUE_LAI_LINECARD_TYPE_P230C)
     {
-        laiLinecardType = LAI_LINECARD_TYPE_P230C;
+        laiLinecardType = "P230C";
     }
     else
     {
