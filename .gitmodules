@@ -1,3 +1,6 @@
-[submodule "LAI"]
-	path = LAI
-	url = https://github.com/zhengweitang-zwt/LAI.git
+[submodule "SAI"]
+	path = SAI
+	url = https://github.com/oplinkoms/SAI.git
+[submodule "OTAI"]
+	path = OTAI
+	url = https://github.com/zhengweitang-zwt/OTAI.git
