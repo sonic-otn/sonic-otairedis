@@ -1,13 +1,13 @@
 #pragma once
 
-#include "LaiLinecard.h"
+#include "OtaiLinecard.h"
 #include "VirtualOidTranslator.h"
 #include "RedisClient.h"
 #include "NotificationHandler.h"
 
-#include "lib/inc/LaiInterface.h"
+#include "lib/inc/OtaiInterface.h"
 
-#include "meta/LaiAttributeList.h"
+#include "meta/OtaiAttributeList.h"
 #include "FlexCounterManager.h"
 
 #include <string>
@@ -23,14 +23,14 @@ namespace syncd
     public:
 
         typedef std::unordered_map<std::string, std::string> StringHash;
-        typedef std::unordered_map<lai_object_id_t, lai_object_id_t> ObjectIdMap;
+        typedef std::unordered_map<otai_object_id_t, otai_object_id_t> ObjectIdMap;
 
     public:
 
         SingleReiniter(
             _In_ std::shared_ptr<RedisClient> client,
             _In_ std::shared_ptr<VirtualOidTranslator> translator,
-            _In_ std::shared_ptr<lairedis::LaiInterface> lai,
+            _In_ std::shared_ptr<otairedis::OtaiInterface> otai,
             _In_ std::shared_ptr<NotificationHandler> handler,
             _In_ const ObjectIdMap& vidToRidMap,
             _In_ const ObjectIdMap& ridToVidMap,
@@ -40,13 +40,13 @@ namespace syncd
 
     public:
 
-        std::shared_ptr<LaiLinecard> hardReinit();
+        std::shared_ptr<OtaiLinecard> hardReinit();
 
         void postRemoveActions();
 
         ObjectIdMap getTranslatedVid2Rid() const;
 
-        std::shared_ptr<LaiLinecard> getLinecard() const;
+        std::shared_ptr<OtaiLinecard> getLinecard() const;
 
         void setBoardMode(std::string mode);
 
@@ -66,28 +66,28 @@ namespace syncd
 
         void stopPreConfigLinecards();
 
-        lai_object_id_t processSingleVid(
-            _In_ lai_object_id_t vid);
+        otai_object_id_t processSingleVid(
+            _In_ otai_object_id_t vid);
 
-        std::shared_ptr<laimeta::LaiAttributeList> redisGetAttributesFromAsicKey(
+        std::shared_ptr<otaimeta::OtaiAttributeList> redisGetAttributesFromAsicKey(
             _In_ const std::string& key);
 
         void processAttributesForOids(
-            _In_ lai_object_type_t objectType,
+            _In_ otai_object_type_t objectType,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
         void processStructNonObjectIds(
-            _In_ lai_object_meta_key_t& meta_key);
+            _In_ otai_object_meta_key_t& meta_key);
 
         void listFailedAttributes(
-            _In_ lai_object_type_t objectType,
+            _In_ otai_object_type_t objectType,
             _In_ uint32_t attrCount,
-            _In_ const lai_attribute_t* attrList);
+            _In_ const otai_attribute_t* attrList);
 
     public:
 
-        static lai_object_type_t getObjectTypeFromAsicKey(
+        static otai_object_type_t getObjectTypeFromAsicKey(
             _In_ const std::string& key);
 
         static std::string getObjectIdFromAsicKey(
@@ -95,7 +95,7 @@ namespace syncd
 
     private:
 
-        std::shared_ptr<lairedis::LaiInterface> m_vendorLai;
+        std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
         ObjectIdMap m_translatedV2R;
         ObjectIdMap m_translatedR2V;
@@ -108,15 +108,15 @@ namespace syncd
 
         std::vector<std::string> m_asicKeys;
 
-        std::unordered_map<std::string, std::shared_ptr<laimeta::LaiAttributeList>> m_attributesLists;
+        std::unordered_map<std::string, std::shared_ptr<otaimeta::OtaiAttributeList>> m_attributesLists;
 
-        std::map<lai_object_type_t, std::tuple<int, double>> m_perf_create;
-        std::map<lai_object_type_t, std::tuple<int, double>> m_perf_set;
+        std::map<otai_object_type_t, std::tuple<int, double>> m_perf_create;
+        std::map<otai_object_type_t, std::tuple<int, double>> m_perf_set;
 
-        lai_object_id_t m_linecard_rid;
-        lai_object_id_t m_linecard_vid;
+        otai_object_id_t m_linecard_rid;
+        otai_object_id_t m_linecard_vid;
 
-        std::shared_ptr<LaiLinecard> m_sw;
+        std::shared_ptr<OtaiLinecard> m_sw;
 
         std::shared_ptr<VirtualOidTranslator> m_translator;
 

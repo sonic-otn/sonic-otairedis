@@ -6,17 +6,17 @@
 
 #include "swss/logger.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 using namespace syncd;
 
 HardReiniter::HardReiniter(
         _In_ std::shared_ptr<RedisClient> client,
         _In_ std::shared_ptr<VirtualOidTranslator> translator,
-        _In_ std::shared_ptr<lairedis::LaiInterface> lai,
+        _In_ std::shared_ptr<otairedis::OtaiInterface> otai,
         _In_ std::shared_ptr<NotificationHandler> handler,
         _In_ std::shared_ptr<FlexCounterManager> manager):
-    m_vendorLai(lai),
+    m_vendorOtai(otai),
     m_translator(translator),
     m_client(client),
     m_handler(handler),
@@ -65,8 +65,8 @@ void HardReiniter::readAsicState()
     {
         auto mk = key.substr(key.find_first_of(":") + 1); // skip asic key
 
-        lai_object_meta_key_t metaKey;
-        lai_deserialize_object_meta_key(mk, metaKey);
+        otai_object_meta_key_t metaKey;
+        otai_deserialize_object_meta_key(mk, metaKey);
 
         // if object is non object id then first item will be linecard id
 
@@ -80,11 +80,11 @@ void HardReiniter::readAsicState()
 
     for (auto& kvp: m_linecardMap)
     {
-        SWSS_LOG_NOTICE("linecard VID: %s keys %d", lai_serialize_object_id(kvp.first).c_str(), (int)kvp.second.size());
+        SWSS_LOG_NOTICE("linecard VID: %s keys %d", otai_serialize_object_id(kvp.first).c_str(), (int)kvp.second.size());
     }
 }
 
-std::map<lai_object_id_t, std::shared_ptr<syncd::LaiLinecard>> HardReiniter::hardReinit()
+std::map<otai_object_id_t, std::shared_ptr<syncd::OtaiLinecard>> HardReiniter::hardReinit()
 {
     SWSS_LOG_ENTER();
 
@@ -102,7 +102,7 @@ std::map<lai_object_id_t, std::shared_ptr<syncd::LaiLinecard>> HardReiniter::har
         auto sr = std::make_shared<SingleReiniter>(
                 m_client,
                 m_translator,
-                m_vendorLai,
+                m_vendorOtai,
                 m_handler,
                 m_linecardVidToRid.at(kvp.first),
                 m_linecardRidToVid.at(kvp.first),
@@ -170,7 +170,7 @@ std::map<lai_object_id_t, std::shared_ptr<syncd::LaiLinecard>> HardReiniter::har
 
     m_client->setVidAndRidMap(vid2rid);
 
-    std::map<lai_object_id_t, std::shared_ptr<syncd::LaiLinecard>> linecards;
+    std::map<otai_object_id_t, std::shared_ptr<syncd::OtaiLinecard>> linecards;
 
     for (auto& sr: vec)
     {

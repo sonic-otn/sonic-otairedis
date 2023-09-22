@@ -5,7 +5,7 @@
 #include <memory>
 #include <map>
 
-namespace lairedis
+namespace otairedis
 {
     class LinecardContainer
     {
@@ -31,7 +31,7 @@ namespace lairedis
              * Throws when linecard is not present in container.
              */
             void removeLinecard(
-                    _In_ lai_object_id_t linecardId);
+                    _In_ otai_object_id_t linecardId);
 
             /**
              * @brief Remove linecard from container.
@@ -47,7 +47,7 @@ namespace lairedis
              * If linecard is not present in container returns NULL pointer.
              */
             std::shared_ptr<Linecard> getLinecard(
-                    _In_ lai_object_id_t linecardId) const;
+                    _In_ otai_object_id_t linecardId) const;
 
             /**
              * @brief Removes all linecards from container.
@@ -58,7 +58,7 @@ namespace lairedis
              * @brief Check whether linecard is in the container.
              */
             bool contains(
-                    _In_ lai_object_id_t linecardId) const;
+                    _In_ otai_object_id_t linecardId) const;
 
             /**
              * @brief Get linecard by hardware info.
@@ -70,7 +70,7 @@ namespace lairedis
 
         private:
 
-            std::map<lai_object_id_t, std::shared_ptr<Linecard>> m_linecardMap;
+            std::map<otai_object_id_t, std::shared_ptr<Linecard>> m_linecardMap;
 
     };
 };

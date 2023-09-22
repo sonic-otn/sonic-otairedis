@@ -8,7 +8,7 @@
 
 using json = nlohmann::json;
 
-using namespace lairedis;
+using namespace otairedis;
 
 ContextConfigContainer::ContextConfigContainer()
 {

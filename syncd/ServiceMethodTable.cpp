@@ -7,7 +7,7 @@
 using namespace syncd;
 
 ServiceMethodTable::SlotBase::SlotBase(
-        _In_ lai_service_method_table_t smt):
+        _In_ otai_service_method_table_t smt):
     m_handler(nullptr),
     m_smt(smt)
 {
@@ -40,7 +40,7 @@ ServiceMethodTable* ServiceMethodTable::SlotBase::getHandler() const
 
 const char* ServiceMethodTable::SlotBase::profileGetValue(
         _In_ int context,
-        _In_ lai_linecard_profile_id_t profile_id,
+        _In_ otai_linecard_profile_id_t profile_id,
         _In_ const char* variable)
 {
     SWSS_LOG_ENTER();
@@ -50,14 +50,14 @@ const char* ServiceMethodTable::SlotBase::profileGetValue(
 
 int ServiceMethodTable::SlotBase::profileGetNextValue(
         _In_ int context,
-        _In_ lai_linecard_profile_id_t profile_id,
+        _In_ otai_linecard_profile_id_t profile_id,
         _Out_ const char** variable,
         _Out_ const char** value)
 {
     return m_slots.at(context)->m_handler->profileGetNextValue(profile_id, variable, value);
 }
 
-const lai_service_method_table_t& ServiceMethodTable::SlotBase::getServiceMethodTable() const
+const otai_service_method_table_t& ServiceMethodTable::SlotBase::getServiceMethodTable() const
 {
     SWSS_LOG_ENTER();
 
@@ -128,7 +128,7 @@ ServiceMethodTable::~ServiceMethodTable()
     m_slot->setHandler(nullptr);
 }
 
-const lai_service_method_table_t& ServiceMethodTable::getServiceMethodTable() const
+const otai_service_method_table_t& ServiceMethodTable::getServiceMethodTable() const
 {
     SWSS_LOG_ENTER();
 

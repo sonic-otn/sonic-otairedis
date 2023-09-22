@@ -2,7 +2,7 @@
 
 #include "LinecardConfigContainer.h"
 
-namespace lairedis
+namespace otairedis
 {
     class ContextConfig
     {

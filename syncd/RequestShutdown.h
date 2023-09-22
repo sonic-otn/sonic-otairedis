@@ -28,6 +28,6 @@ namespace syncd
 
             std::shared_ptr<RequestShutdownCommandLineOptions> m_options;
 
-            std::shared_ptr<lairedis::ContextConfig> m_contextConfig;
+            std::shared_ptr<otairedis::ContextConfig> m_contextConfig;
     };
 }

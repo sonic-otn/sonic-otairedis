@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
 #include "meta/Meta.h"
@@ -9,14 +9,14 @@ extern "C" {
 #include <string>
 #include <memory>
 
-namespace lairedis
+namespace otairedis
 {
     class Notification
     {
         public:
 
             Notification(
-                    _In_ lai_linecard_notification_type_t linecardNotificationType,
+                    _In_ otai_linecard_notification_type_t linecardNotificationType,
                     _In_ const std::string& serializedNotification);
 
             virtual ~Notification() = default;
@@ -31,9 +31,9 @@ namespace lairedis
              * first one is returned.
              *
              * If notification don't contain linecard id field, return value is
-             * LAI_NULL_OBJECT_ID.
+             * OTAI_NULL_OBJECT_ID.
              */
-            virtual lai_object_id_t getLinecardId() const = 0;
+            virtual otai_object_id_t getLinecardId() const = 0;
 
             /**
              * @brief Get any object id.
@@ -46,12 +46,12 @@ namespace lairedis
              * should be returned.
              *
              * This object id will be used to determine linecard id using
-             * lai_linecard_id_query() API.
+             * otai_linecard_id_query() API.
              *
              * If no other object besides linecard id is defined, then this
              * function returns linecard id.
              */
-            virtual lai_object_id_t getAnyObjectId() const = 0;
+            virtual otai_object_id_t getAnyObjectId() const = 0;
 
             /**
              * @brief Process metadata for notification.
@@ -60,10 +60,10 @@ namespace lairedis
              * arrive, this will pass notification data to notification
              * function.
              *
-             * This function must be executed under lairedis API mutex.
+             * This function must be executed under otairedis API mutex.
              */
             virtual void processMetadata(
-                    std::shared_ptr<laimeta::Meta> meta) const = 0;
+                    std::shared_ptr<otaimeta::Meta> meta) const = 0;
 
             /**
              * @brief Execute callback notification.
@@ -72,14 +72,14 @@ namespace lairedis
              * deserialized data.
              */
             virtual void executeCallback(
-                    _In_ const lai_linecard_notifications_t& linecardNotifications) const = 0;
+                    _In_ const otai_linecard_notifications_t& linecardNotifications) const = 0;
 
         public:
 
             /**
              * @brief Get notification type.
              */
-            lai_linecard_notification_type_t getNotificationType() const;
+            otai_linecard_notification_type_t getNotificationType() const;
 
             /**
              * @brief Get serialized notification.
@@ -90,7 +90,7 @@ namespace lairedis
 
         private:
 
-            const lai_linecard_notification_type_t m_linecardNotificationType;
+            const otai_linecard_notification_type_t m_linecardNotificationType;
 
             const std::string m_serializedNotification;
     };

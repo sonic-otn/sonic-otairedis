@@ -3,11 +3,11 @@
 #include "swss/logger.h"
 #include "swss/tokenize.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include <fstream>
 
-using namespace laivs;
+using namespace otaivs;
 
 std::shared_ptr<ResourceLimiterContainer> ResourceLimiterParser::parseFromFile(
         _In_ const char* fileName)
@@ -43,10 +43,10 @@ std::shared_ptr<ResourceLimiterContainer> ResourceLimiterParser::parseFromFile(
         /*
          * line can be in 2 forms:
          *
-         * LAI_OBJECT_TYPE_XXX=limit
-         * N:LAI_OBJECT_TYPE_XXX=limit
+         * OTAI_OBJECT_TYPE_XXX=limit
+         * N:OTAI_OBJECT_TYPE_XXX=limit
          *
-         * where N is linecardIndex (0..255) - LAI_VS_LINECARD_INDEX_MAX
+         * where N is linecardIndex (0..255) - OTAI_VS_LINECARD_INDEX_MAX
          * if N is not specified then zero (0) is assumed
          */
 
@@ -125,11 +125,11 @@ void ResourceLimiterParser::parse(
 {
     SWSS_LOG_ENTER();
 
-    lai_object_type_t objectType;
+    otai_object_type_t objectType;
 
     try
     {
-        lai_deserialize_object_type(strObjectType, objectType);
+        otai_deserialize_object_type(strObjectType, objectType);
     }
     catch(const std::exception& e)
     {
@@ -156,7 +156,7 @@ void ResourceLimiterParser::parse(
 
     SWSS_LOG_NOTICE("adding limit on linecard index %u, %s = %zu",
             linecardIndex,
-            lai_serialize_object_type(objectType).c_str(),
+            otai_serialize_object_type(objectType).c_str(),
             limit);
 
     limiter->setObjectTypeLimit(objectType, limit);

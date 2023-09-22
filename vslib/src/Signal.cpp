@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 void Signal::notifyAll()
 {

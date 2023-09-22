@@ -1,4 +1,4 @@
-AC_INIT([lairedis],[1.0])
+AC_INIT([otairedis],[1.0])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([])
 AC_CONFIG_AUX_DIR(config)
@@ -20,13 +20,13 @@ AC_ARG_ENABLE(debug,
 esac],[debug=false])
 AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
 
-AC_ARG_WITH(lai,
-[  --with-lai=vs           compiling against specific LAI],
+AC_ARG_WITH(otai,
+[  --with-otai=vs           compiling against specific OTAI],
 [case "${withval}" in
-	vs)   lai=vs ;;
-	*) AC_MSG_ERROR(bad value ${withval} for --with-lai) ;;
+	vs)   otai=vs ;;
+	*) AC_MSG_ERROR(bad value ${withval} for --with-otai) ;;
 esac])
-AM_CONDITIONAL(LAIVS,   test x$lai = xvs)
+AM_CONDITIONAL(OTAIVS,   test x$otai = xvs)
 
 AC_ARG_WITH(swss-common-inc,
 [  --with-swss-common-inc=DIR
@@ -49,7 +49,7 @@ AC_ARG_ENABLE(syncd,
 esac],[syncd=true])
 AM_CONDITIONAL(SYNCD, test x$syncd = xtrue)
 AM_COND_IF([SYNCD], [
-        AM_COND_IF([LAIVS], [], [AC_CHECK_LIB([lai], [main], [AC_MSG_NOTICE(liblai found)], [AC_MSG_ERROR(liblai is required for syncd)])
+        AM_COND_IF([OTAIVS], [], [AC_CHECK_LIB([otai], [main], [AC_MSG_NOTICE(libotai found)], [AC_MSG_ERROR(libotai is required for syncd)])
 ])])
 
 AC_ARG_ENABLE(rpcserver,
@@ -59,8 +59,8 @@ AC_ARG_ENABLE(rpcserver,
    no)  rpcserver=false ;;
    *) AC_MSG_ERROR(bad value ${enableval} for --enable-rpcserver) ;;
 esac],[rpcserver=false])
-AM_CONDITIONAL(LAITHRIFT, test x$rpcserver = xtrue)
-AM_COND_IF([LAITHRIFT], [
+AM_CONDITIONAL(OTAITHRIFT, test x$rpcserver = xtrue)
+AM_COND_IF([OTAITHRIFT], [
         AC_CHECK_LIB([thrift], [main], [AC_MSG_NOTICE(libthrift found)], [AC_MSG_ERROR(libthrift is required for rpcserver)])
 ])
 

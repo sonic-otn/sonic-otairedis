@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 SelectableFd::SelectableFd(
         _In_ int fd)

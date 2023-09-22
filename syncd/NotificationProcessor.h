@@ -7,7 +7,7 @@
 #include <functional>
 #include <queue>
 
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 #include "NotificationQueue.h"
 #include "VirtualOidTranslator.h"
 #include "RedisClient.h"
@@ -27,7 +27,7 @@ namespace syncd
             _In_ std::string dbAsic,
             _In_ std::shared_ptr<RedisClient> client,
             _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer,
-            _In_ std::function<void(const lai_oper_status_t&)> linecard_state_change_handler);
+            _In_ std::function<void(const otai_oper_status_t&)> linecard_state_change_handler);
 
         virtual ~NotificationProcessor();
 
@@ -57,8 +57,8 @@ namespace syncd
     private: // processors
 
         void process_on_linecard_state_change(
-            _In_ lai_object_id_t linecard_rid,
-            _In_ lai_oper_status_t linecard_oper_status);
+            _In_ otai_object_id_t linecard_rid,
+            _In_ otai_oper_status_t linecard_oper_status);
 
     private: // handlers
 
@@ -78,7 +78,7 @@ namespace syncd
             _In_ const std::vector<swss::FieldValueTuple>& fv);
 
         std::string get_resource_name_by_rid(
-            _In_ lai_object_id_t rid);
+            _In_ otai_object_id_t rid);
 
         void handle_linecard_alarm(
             _In_ const std::string& data);
@@ -128,7 +128,7 @@ namespace syncd
         std::mutex& m_mtxAlarmTable;
 
         std::function<void(const swss::KeyOpFieldsValuesTuple&)> m_synchronizer;
-        std::function<void(const lai_oper_status_t&)> m_linecard_state_change_handler;
+        std::function<void(const otai_oper_status_t&)> m_linecard_state_change_handler;
 
         std::shared_ptr<RedisClient> m_client;
 

@@ -37,7 +37,7 @@ build:
 
 binary: binary-syncd-rpc binary-syncd
 
-binary-lairedis:
+binary-otairedis:
 	echo '--enable-syncd=no' > /tmp/syncd-build
 	dh clean  --with autotools-dev
 	dh build  -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
@@ -55,8 +55,8 @@ binary-syncd-rpc: | binary-syncd
 	dh build  -N syncd -N syncd-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
 	dh binary -N syncd -N syncd-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
 
-binary-syncd-vs:
-	echo '--with-lai=vs' > /tmp/syncd-build
+binary-syncd-ot-vs:
+	echo '--with-otai=vs' > /tmp/syncd-build
 	dh clean  --with autotools-dev
 	dh build  -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg --with autotools-dev
 	dh binary -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg --with autotools-dev
@@ -84,6 +84,6 @@ override_dh_strip:
 	dh_strip -psyncd-rpc --dbg-package=syncd-rpc-dbg
 	dh_strip -psyncd --dbg-package=syncd-dbg
 	dh_strip -psyncd-vs --dbg-package=syncd-vs-dbg
-	dh_strip -pliblairedis --dbg-package=liblairedis-dbg
-	dh_strip -pliblaivs --dbg-package=liblaivs-dbg
-	dh_strip -pliblaimetadata --dbg-package=liblaimetadata-dbg
+	dh_strip -plibotairedis --dbg-package=libotairedis-dbg
+	dh_strip -plibotaivs --dbg-package=libotaivs-dbg
+	dh_strip -plibotaimetadata --dbg-package=libotaimetadata-dbg

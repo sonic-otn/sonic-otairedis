@@ -14,7 +14,7 @@ RequestShutdown::RequestShutdown(
 {
     SWSS_LOG_ENTER();
 
-    auto ccc = lairedis::ContextConfigContainer::loadFromFile(m_options->m_contextConfig.c_str());
+    auto ccc = otairedis::ContextConfigContainer::loadFromFile(m_options->m_contextConfig.c_str());
 
     m_contextConfig = ccc->get(m_options->m_globalContext);
 

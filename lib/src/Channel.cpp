@@ -1,15 +1,15 @@
 #include "Channel.h"
 
-#include "lairedis.h"
+#include "otairedis.h"
 
 #include "swss/logger.h"
 
-using namespace lairedis;
+using namespace otairedis;
 
 Channel::Channel(
         _In_ Callback callback):
     m_callback(callback),
-    m_responseTimeoutMs(LAI_REDIS_DEFAULT_SYNC_OPERATION_RESPONSE_TIMEOUT)
+    m_responseTimeoutMs(OTAI_REDIS_DEFAULT_SYNC_OPERATION_RESPONSE_TIMEOUT)
 {
     SWSS_LOG_ENTER();
 

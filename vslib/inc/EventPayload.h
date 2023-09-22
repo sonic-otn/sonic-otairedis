@@ -1,6 +1,6 @@
 #pragma once
 
-namespace laivs
+namespace otaivs
 {
     class EventPayload
     {

@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C"{
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
 #include "swss/logger.h"
@@ -9,13 +9,13 @@ extern "C"{
 #include <functional>
 #include <vector>
 
-typedef struct _lai_notifications_t {
-    lai_linecard_alarm_notification_fn on_linecard_alarm;
-    lai_linecard_state_change_notification_fn on_linecard_state_change;
-    lai_aps_report_switch_info_fn on_aps_report_switch_info;
-    lai_linecard_ocm_spectrum_power_notification_fn on_linecard_ocm_spectrum_power;
-    lai_linecard_otdr_result_notification_fn on_linecard_otdr_result;
-} lai_notifications_t;
+typedef struct _otai_notifications_t {
+    otai_linecard_alarm_notification_fn on_linecard_alarm;
+    otai_linecard_state_change_notification_fn on_linecard_state_change;
+    otai_aps_report_switch_info_fn on_aps_report_switch_info;
+    otai_linecard_ocm_spectrum_power_notification_fn on_linecard_ocm_spectrum_power;
+    otai_linecard_otdr_result_notification_fn on_linecard_otdr_result;
+} otai_notifications_t;
 
 namespace syncd
 {
@@ -28,7 +28,7 @@ namespace syncd
                 public:
 
                     SlotBase(
-                            _In_ lai_notifications_t sn);
+                            _In_ otai_notifications_t sn);
 
                     virtual ~SlotBase();
 
@@ -39,43 +39,43 @@ namespace syncd
 
                     LinecardNotifications* getHandler() const;
 
-                    const lai_notifications_t& getLinecardNotifications() const;
+                    const otai_notifications_t& getLinecardNotifications() const;
 
                 protected:
 
                     static void onLinecardStateChange(
                             _In_ int context,
-                            _In_ lai_object_id_t linecard_id,
-                            _In_ lai_oper_status_t linecard_oper_status);
+                            _In_ otai_object_id_t linecard_id,
+                            _In_ otai_oper_status_t linecard_oper_status);
 
                     static void onLinecardAlarm(
                             _In_ int context,
-                            _In_ lai_object_id_t linecard_id,
-                            _In_ lai_alarm_type_t alarm_type,
-                            _In_ lai_alarm_info_t alarm_info);
+                            _In_ otai_object_id_t linecard_id,
+                            _In_ otai_alarm_type_t alarm_type,
+                            _In_ otai_alarm_info_t alarm_info);
 
                     static void onApsReportSwitchInfo(
                             _In_ int context,
-                            _In_ lai_object_id_t aps_id,
-                            _In_ lai_olp_switch_t switch_info);
+                            _In_ otai_object_id_t aps_id,
+                            _In_ otai_olp_switch_t switch_info);
 
                     static void onOcmReportSpectrumPower(
                             _In_ int context,
-                            _In_ lai_object_id_t linecard_id,
-                            _In_ lai_object_id_t ocm_id,
-                            _In_ lai_spectrum_power_list_t ocm_result);
+                            _In_ otai_object_id_t linecard_id,
+                            _In_ otai_object_id_t ocm_id,
+                            _In_ otai_spectrum_power_list_t ocm_result);
                     
                     static void onOtdrReportResult(
                             _In_ int context,
-                            _In_ lai_object_id_t linecard_id,
-                            _In_ lai_object_id_t otdr_id,
-                            _In_ lai_otdr_result_t otdr_result);
+                            _In_ otai_object_id_t linecard_id,
+                            _In_ otai_object_id_t otdr_id,
+                            _In_ otai_otdr_result_t otdr_result);
 
                 protected:
 
                     LinecardNotifications* m_handler;
 
-                    lai_notifications_t m_sn;
+                    otai_notifications_t m_sn;
             };
 
             template<size_t context>
@@ -98,8 +98,8 @@ namespace syncd
             private:
 
                 static void onLinecardStateChange(
-                        _In_ lai_object_id_t linecard_id,
-                        _In_ lai_oper_status_t linecard_oper_status)
+                        _In_ otai_object_id_t linecard_id,
+                        _In_ otai_oper_status_t linecard_oper_status)
                 {
                     SWSS_LOG_ENTER();
 
@@ -107,9 +107,9 @@ namespace syncd
                 }
 
                 static void onLinecardAlarm(
-                        _In_ lai_object_id_t linecard_id,
-                        _In_ lai_alarm_type_t alarm_type,
-                        _In_ lai_alarm_info_t alarm_info)
+                        _In_ otai_object_id_t linecard_id,
+                        _In_ otai_alarm_type_t alarm_type,
+                        _In_ otai_alarm_info_t alarm_info)
                 {
                     SWSS_LOG_ENTER();
 
@@ -117,8 +117,8 @@ namespace syncd
                 }
 
                 static void onApsReportSwitchInfo(
-                        _In_ lai_object_id_t aps_id,
-                        _In_ lai_olp_switch_t switch_info)
+                        _In_ otai_object_id_t aps_id,
+                        _In_ otai_olp_switch_t switch_info)
                 {
                     SWSS_LOG_ENTER();
 
@@ -126,9 +126,9 @@ namespace syncd
                 }
 
                 static void onOcmReportSpectrumPower(
-                        _In_ lai_object_id_t linecard_id,
-                        _In_ lai_object_id_t ocm_id,
-                        _In_ lai_spectrum_power_list_t ocm_result)
+                        _In_ otai_object_id_t linecard_id,
+                        _In_ otai_object_id_t ocm_id,
+                        _In_ otai_spectrum_power_list_t ocm_result)
                 {
                     SWSS_LOG_ENTER();
 
@@ -136,9 +136,9 @@ namespace syncd
                 }
 
                 static void onOtdrReportResult(
-                        _In_ lai_object_id_t linecard_id,
-                        _In_ lai_object_id_t otdr_id,
-                        _In_ lai_otdr_result_t otdr_result)
+                        _In_ otai_object_id_t linecard_id,
+                        _In_ otai_object_id_t otdr_id,
+                        _In_ otai_otdr_result_t otdr_result)
                 {
                     SWSS_LOG_ENTER();
 
@@ -157,15 +157,15 @@ namespace syncd
 
         public:
 
-            const lai_notifications_t& getLinecardNotifications() const;
+            const otai_notifications_t& getLinecardNotifications() const;
 
         public: // wrapped methods
 
-            std::function<void(lai_object_id_t linecard_id, lai_oper_status_t)>                  onLinecardStateChange;
-            std::function<void(lai_object_id_t linecard_id, lai_alarm_type_t, lai_alarm_info_t)> onLinecardAlarm;
-            std::function<void(lai_object_id_t aps_id, lai_olp_switch_t)>                        onApsReportSwitchInfo;
-            std::function<void(lai_object_id_t linecard_id, lai_object_id_t ocm_id, lai_spectrum_power_list_t)>               onOcmReportSpectrumPower;
-            std::function<void(lai_object_id_t linecard_id, lai_object_id_t otdr_id, lai_otdr_result_t)>                      onOtdrReportResult;
+            std::function<void(otai_object_id_t linecard_id, otai_oper_status_t)>                  onLinecardStateChange;
+            std::function<void(otai_object_id_t linecard_id, otai_alarm_type_t, otai_alarm_info_t)> onLinecardAlarm;
+            std::function<void(otai_object_id_t aps_id, otai_olp_switch_t)>                        onApsReportSwitchInfo;
+            std::function<void(otai_object_id_t linecard_id, otai_object_id_t ocm_id, otai_spectrum_power_list_t)>               onOcmReportSpectrumPower;
+            std::function<void(otai_object_id_t linecard_id, otai_object_id_t otdr_id, otai_otdr_result_t)>                      onOtdrReportResult;
 
         private:
 

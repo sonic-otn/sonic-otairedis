@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 namespace syncd
@@ -23,25 +23,25 @@ namespace syncd
              * Return linecard object id for given object if. If object type is
              * linecard, it will return input value.
              *
-             * For LAI_NULL_OBJECT_ID returns LAI_NULL_OBJECT_ID.
+             * For OTAI_NULL_OBJECT_ID returns OTAI_NULL_OBJECT_ID.
              *
              * Throws for invalid object ID.
              */
-            static lai_object_id_t linecardIdQuery(
-                    _In_ lai_object_id_t objectId);
+            static otai_object_id_t linecardIdQuery(
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Object type query.
              *
              * Returns object type for input object id. If object id is invalid
-             * then returns LAI_OBJECT_TYPE_NULL.
+             * then returns OTAI_OBJECT_TYPE_NULL.
              *
-             * For LAI_NULL_OBJECT_ID returns LAI_OBJECT_TYPE_NULL.
+             * For OTAI_NULL_OBJECT_ID returns OTAI_OBJECT_TYPE_NULL.
              *
              * Throws for invalid object ID.
              */
-            static lai_object_type_t objectTypeQuery(
-                    _In_ lai_object_id_t objectId);
+            static otai_object_type_t objectTypeQuery(
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Get linecard index.
@@ -50,12 +50,12 @@ namespace syncd
              *
              * Returns linecard index for given oid. 
              *
-             * For LAI_NULL_OBJECT_ID returns 0.
+             * For OTAI_NULL_OBJECT_ID returns 0.
              *
              * Throws for invalid object ID.
              */
             static uint32_t getLinecardIndex(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Get global context ID.
@@ -64,12 +64,12 @@ namespace syncd
              *
              * Returns linecard index for given oid. 
              *
-             * For LAI_NULL_OBJECT_ID returns 0.
+             * For OTAI_NULL_OBJECT_ID returns 0.
              *
              * Throws for invalid object ID.
              */
             static uint32_t getGlobalContext(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Get object index.
@@ -77,15 +77,15 @@ namespace syncd
              * Returns object index.
              */
             static uint64_t getObjectIndex(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Update object index.
              *
              * Returns objects with updated object index.
              */
-            static lai_object_id_t updateObjectIndex(
-                    _In_ lai_object_id_t objectId,
+            static otai_object_id_t updateObjectIndex(
+                    _In_ otai_object_id_t objectId,
                     _In_ uint64_t objectIndex);
     };
 }

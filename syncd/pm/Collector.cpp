@@ -25,14 +25,14 @@ using namespace std;
 using namespace syncd;
 
 Collector::Collector(
-    _In_ lai_object_type_t objectType,
-    _In_ lai_object_id_t vid,
-    _In_ lai_object_id_t rid,
-    std::shared_ptr<lairedis::LaiInterface> vendorLai) :
+    _In_ otai_object_type_t objectType,
+    _In_ otai_object_id_t vid,
+    _In_ otai_object_id_t rid,
+    std::shared_ptr<otairedis::OtaiInterface> vendorOtai) :
     m_objectType(objectType),
     m_vid(vid),
     m_rid(rid),
-    m_vendorLai(vendorLai)
+    m_vendorOtai(vendorOtai)
 {
     SWSS_LOG_ENTER();
 
@@ -46,95 +46,95 @@ Collector::Collector(
 
     switch (objectType)
     {
-    case LAI_OBJECT_TYPE_LINECARD:
-        strStateTable = STATE_LINECARD_TABLE_NAME;
-        strCountersTable = COUNTERS_LINECARD_TABLE_NAME;
-        strTableNameMap = COUNTERS_LINECARD_NAME_MAP;
+    case OTAI_OBJECT_TYPE_LINECARD:
+        strStateTable = STATE_OT_LINECARD_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_LINECARD_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_LINECARD_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_PORT:
-        strStateTable = STATE_PORT_TABLE_NAME;
-        strCountersTable = COUNTERS_PORT_TABLE_NAME;
-        strTableNameMap = COUNTERS_PORT_NAME_MAP;
+    case OTAI_OBJECT_TYPE_PORT:
+        strStateTable = STATE_OT_PORT_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_PORT_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_PORT_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_TRANSCEIVER:
-        strStateTable = STATE_TRANSCEIVER_TABLE_NAME;
-        strCountersTable = COUNTERS_TRANSCEIVER_TABLE_NAME;
-        strTableNameMap = COUNTERS_TRANSCEIVER_NAME_MAP;
+    case OTAI_OBJECT_TYPE_TRANSCEIVER:
+        strStateTable = STATE_OT_TRANSCEIVER_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_TRANSCEIVER_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_TRANSCEIVER_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_LOGICALCHANNEL:
-        strStateTable = STATE_LOGICALCHANNEL_TABLE_NAME;
-        strCountersTable = COUNTERS_LOGICALCHANNEL_TABLE_NAME;
-        strTableNameMap = COUNTERS_LOGICALCHANNEL_NAME_MAP;
+    case OTAI_OBJECT_TYPE_LOGICALCHANNEL:
+        strStateTable = STATE_OT_LOGICALCHANNEL_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_LOGICALCHANNEL_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_LOGICALCHANNEL_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OTN:
-        strStateTable = STATE_OTN_TABLE_NAME;
-        strCountersTable = COUNTERS_OTN_TABLE_NAME;
-        strTableNameMap = COUNTERS_OTN_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OTN:
+        strStateTable = STATE_OT_OTN_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OTN_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OTN_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_ETHERNET:
-        strStateTable = STATE_ETHERNET_TABLE_NAME;
-        strCountersTable = COUNTERS_ETHERNET_TABLE_NAME;
-        strTableNameMap = COUNTERS_ETHERNET_NAME_MAP;
+    case OTAI_OBJECT_TYPE_ETHERNET:
+        strStateTable = STATE_OT_ETHERNET_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_ETHERNET_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_ETHERNET_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_PHYSICALCHANNEL:
-        strStateTable = COUNTERS_PHYSICALCHANNEL_TABLE_NAME;
-        strCountersTable = COUNTERS_PHYSICALCHANNEL_TABLE_NAME;
-        strTableNameMap = COUNTERS_PHYSICALCHANNEL_NAME_MAP;
+    case OTAI_OBJECT_TYPE_PHYSICALCHANNEL:
+        strStateTable = COUNTERS_OT_PHYSICALCHANNEL_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_PHYSICALCHANNEL_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_PHYSICALCHANNEL_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OCH:
-        strStateTable = STATE_OCH_TABLE_NAME;
-        strCountersTable = COUNTERS_OCH_TABLE_NAME;
-        strTableNameMap = COUNTERS_OCH_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OCH:
+        strStateTable = STATE_OT_OCH_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OCH_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OCH_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_LLDP:
-        strStateTable = STATE_LLDP_TABLE_NAME;
-        strCountersTable = COUNTERS_LLDP_TABLE_NAME;
-        strTableNameMap = COUNTERS_LLDP_NAME_MAP;
+    case OTAI_OBJECT_TYPE_LLDP:
+        strStateTable = STATE_OT_LLDP_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_LLDP_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_LLDP_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_ASSIGNMENT:
-        strStateTable = STATE_ASSIGNMENT_TABLE_NAME;
-        strCountersTable = COUNTERS_ASSIGNMENT_TABLE_NAME;
-        strTableNameMap = COUNTERS_ASSIGNMENT_NAME_MAP;
+    case OTAI_OBJECT_TYPE_ASSIGNMENT:
+        strStateTable = STATE_OT_ASSIGNMENT_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_ASSIGNMENT_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_ASSIGNMENT_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_INTERFACE:
-        strStateTable = STATE_INTERFACE_TABLE_NAME;
-        strCountersTable = COUNTERS_INTERFACE_TABLE_NAME;
-        strTableNameMap = COUNTERS_INTERFACE_NAME_MAP;
+    case OTAI_OBJECT_TYPE_INTERFACE:
+        strStateTable = STATE_OT_INTERFACE_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_INTERFACE_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_INTERFACE_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OA:
-        strStateTable = STATE_OA_TABLE_NAME;
-        strCountersTable = COUNTERS_OA_TABLE_NAME;
-        strTableNameMap = COUNTERS_OA_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OA:
+        strStateTable = STATE_OT_OA_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OA_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OA_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OSC:
-        strStateTable = STATE_OSC_TABLE_NAME;
-        strCountersTable = COUNTERS_OSC_TABLE_NAME;
-        strTableNameMap = COUNTERS_OSC_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OSC:
+        strStateTable = STATE_OT_OSC_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OSC_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OSC_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_APS:
-        strStateTable = STATE_APS_TABLE_NAME;
-        strCountersTable = COUNTERS_APS_TABLE_NAME;
-        strTableNameMap = COUNTERS_APS_NAME_MAP;
+    case OTAI_OBJECT_TYPE_APS:
+        strStateTable = STATE_OT_APS_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_APS_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_APS_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_APSPORT:
-        strStateTable = STATE_APSPORT_TABLE_NAME;
-        strCountersTable = COUNTERS_APSPORT_TABLE_NAME;
-        strTableNameMap = COUNTERS_APSPORT_NAME_MAP;
+    case OTAI_OBJECT_TYPE_APSPORT:
+        strStateTable = STATE_OT_APSPORT_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_APSPORT_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_APSPORT_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_ATTENUATOR:
-        strStateTable = STATE_ATTENUATOR_TABLE_NAME;
-        strCountersTable = COUNTERS_ATTENUATOR_TABLE_NAME;
-        strTableNameMap = COUNTERS_ATTENUATOR_NAME_MAP;
+    case OTAI_OBJECT_TYPE_ATTENUATOR:
+        strStateTable = STATE_OT_ATTENUATOR_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_ATTENUATOR_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_ATTENUATOR_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OCM:
-        strStateTable = STATE_OCM_TABLE_NAME;
-        strCountersTable = COUNTERS_OCM_TABLE_NAME;
-        strTableNameMap = COUNTERS_OCM_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OCM:
+        strStateTable = STATE_OT_OCM_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OCM_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OCM_NAME_MAP;
         break;
-    case LAI_OBJECT_TYPE_OTDR:
-        strStateTable = STATE_OTDR_TABLE_NAME;
-        strCountersTable = COUNTERS_OTDR_TABLE_NAME;
-        strTableNameMap = COUNTERS_OTDR_NAME_MAP;
+    case OTAI_OBJECT_TYPE_OTDR:
+        strStateTable = STATE_OT_OTDR_TABLE_NAME;
+        strCountersTable = COUNTERS_OT_OTDR_TABLE_NAME;
+        strTableNameMap = COUNTERS_OT_OTDR_NAME_MAP;
         break;
     default:
         SWSS_LOG_THROW("Unsupported object type:%d", objectType);
@@ -147,7 +147,7 @@ Collector::Collector(
     m_countersTableName = strCountersTable;
 
     swss::DBConnector dbCounters("COUNTERS_DB", 0); 
-    std::string strVid = lai_serialize_object_id(vid);
+    std::string strVid = otai_serialize_object_id(vid);
     auto key = dbCounters.hget(strTableNameMap, strVid);
     if (key != NULL)
     {

@@ -1,0 +1,6 @@
+1a6710f634ba7ac04a85b86cb0448409  usr/bin/dump_asic_db
+ceb36b64bfe9bcb9e7287a8cf1b6e3bf  usr/bin/syncd
+9e64ee5eab1019349381b59c80e99253  usr/bin/syncd_init_common.sh
+ce1243c7f88e2874503af0438eb6ac09  usr/bin/syncd_request_shutdown
+69814e3004e70efe5efae170da9ef6c2  usr/bin/syncd_start.sh
+61fcc001f2af19aa25e77dc9d49f4aeb  usr/share/doc/syncd-ot-vs/changelog.gz

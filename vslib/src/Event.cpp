@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 Event::Event(
         _In_ EventType eventType,

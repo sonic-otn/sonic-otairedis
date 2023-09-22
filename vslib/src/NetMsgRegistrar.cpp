@@ -5,7 +5,7 @@
 #include "swss/netlink.h"
 #include "swss/select.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 #define MUTEX std::lock_guard<std::mutex> _lock(m_mutex);
 

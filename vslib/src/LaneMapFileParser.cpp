@@ -7,9 +7,9 @@
 
 #include <fstream>
 
-using namespace laivs;
+using namespace otaivs;
 
-// must be the same or less as LAI_VS_LINECARD_INDEX_MAX
+// must be the same or less as OTAI_VS_LINECARD_INDEX_MAX
 #define MAX_LINECARD_INDEX (255)
 
 bool LaneMapFileParser::isInterfaceNameValid(
@@ -160,7 +160,7 @@ std::shared_ptr<LaneMapContainer> LaneMapFileParser::parseLaneMapFile(
          * ethX:lane,...
          * N:ethX:lane,...
          *
-         * where N is linecardIndex (0..255) - LAI_VS_LINECARD_INDEX_MAX
+         * where N is linecardIndex (0..255) - OTAI_VS_LINECARD_INDEX_MAX
          * if N is not specified then zero (0) is assumed
          */
 

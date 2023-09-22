@@ -1,13 +1,13 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 #include <map>
 #include <set>
 
-namespace lairedis
+namespace otairedis
 {
     /**
      * @brief Skip record attributes container.
@@ -32,22 +32,22 @@ namespace lairedis
         public:
 
             bool add(
-                    _In_ lai_object_type_t objectType,
-                    _In_ lai_attr_id_t attrId);
+                    _In_ otai_object_type_t objectType,
+                    _In_ otai_attr_id_t attrId);
 
             bool remove(
-                    _In_ lai_object_type_t objectType,
-                    _In_ lai_attr_id_t attrId);
+                    _In_ otai_object_type_t objectType,
+                    _In_ otai_attr_id_t attrId);
 
             void clear();
 
             bool canSkipRecording(
-                    _In_ lai_object_type_t objectType,
+                    _In_ otai_object_type_t objectType,
                     _In_ uint32_t count,
-                    _In_ lai_attribute_t* attrList) const;
+                    _In_ otai_attribute_t* attrList) const;
 
         private:
 
-            std::map<lai_object_type_t, std::set<lai_attr_id_t>> m_map;
+            std::map<otai_object_type_t, std::set<otai_attr_id_t>> m_map;
     };
 }

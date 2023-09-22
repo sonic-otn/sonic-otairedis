@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace laivs
+namespace otaivs
 {
     typedef enum _EventType
     {

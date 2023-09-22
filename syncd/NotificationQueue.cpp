@@ -1,5 +1,5 @@
 #include "NotificationQueue.h"
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 
 #define NOTIFICATION_QUEUE_DROP_COUNT_INDICATOR (1000)
 

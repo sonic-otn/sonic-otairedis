@@ -6,7 +6,7 @@
 #include <mutex>
 #include <deque>
 
-namespace laivs
+namespace otaivs
 {
     class EventQueue
     {

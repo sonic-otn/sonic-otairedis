@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib/inc -I$(top_srcdir)/LAI/inc -I$(top_srcdir)/LAI/meta
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib/inc -I$(top_srcdir)/OTAI/inc -I$(top_srcdir)/OTAI/meta
 
 if DEBUG
 DBGFLAGS = -ggdb -D_DEBUG_
@@ -6,20 +6,20 @@ else
 DBGFLAGS = -g
 endif
 
-lib_LTLIBRARIES = liblairedis.la
+lib_LTLIBRARIES = libotairedis.la
 
-noinst_LIBRARIES = libLaiRedis.a
-libLaiRedis_a_SOURCES = \
+noinst_LIBRARIES = libotaiRedis.a
+libotaiRedis_a_SOURCES = \
 						 PerformanceIntervalTimer.cpp \
 						 Channel.cpp \
 						 Context.cpp \
 						 ContextConfigContainer.cpp \
 						 ContextConfig.cpp \
-						 LaiInterface.cpp \
+						 OtaiInterface.cpp \
 						 LinecardConfig.cpp \
 						 LinecardConfigContainer.cpp \
 						 RedisChannel.cpp \
-						 Lai.cpp \
+						 Otai.cpp \
 						 Linecard.cpp \
 						 LinecardContainer.cpp \
 						 VirtualObjectIdManager.cpp \
@@ -29,36 +29,36 @@ libLaiRedis_a_SOURCES = \
 						 NotificationFactory.cpp \
 						 RedisVidIndexGenerator.cpp \
 						 Recorder.cpp \
-						 RedisRemoteLaiInterface.cpp \
+						 RedisRemoteOtaiInterface.cpp \
 						 Utils.cpp \
 						 SkipRecordAttrContainer.cpp
 
-liblairedis_la_SOURCES = \
-                         lai_redis_interfacequery.cpp \
-                         lai_redis_linecard.cpp \
-                         lai_redis_port.cpp \
-                         lai_redis_transceiver.cpp \
-                         lai_redis_logicalchannel.cpp \
-                         lai_redis_otn.cpp \
-                         lai_redis_ethernet.cpp \
-                         lai_redis_physicalchannel.cpp \
-                         lai_redis_och.cpp \
-                         lai_redis_lldp.cpp \
-                         lai_redis_assignment.cpp \
-                         lai_redis_interface.cpp \
-                         lai_redis_oa.cpp \
-                         lai_redis_osc.cpp \
-                         lai_redis_aps.cpp \
-                         lai_redis_apsport.cpp \
-                         lai_redis_attenuator.cpp \
-                         lai_redis_wss.cpp \
-                         lai_redis_mediachannel.cpp \
-                         lai_redis_ocm.cpp \
-                         lai_redis_otdr.cpp
+libotairedis_la_SOURCES = \
+                         otai_redis_interfacequery.cpp \
+                         otai_redis_linecard.cpp \
+                         otai_redis_port.cpp \
+                         otai_redis_transceiver.cpp \
+                         otai_redis_logicalchannel.cpp \
+                         otai_redis_otn.cpp \
+                         otai_redis_ethernet.cpp \
+                         otai_redis_physicalchannel.cpp \
+                         otai_redis_och.cpp \
+                         otai_redis_lldp.cpp \
+                         otai_redis_assignment.cpp \
+                         otai_redis_interface.cpp \
+                         otai_redis_oa.cpp \
+                         otai_redis_osc.cpp \
+                         otai_redis_aps.cpp \
+                         otai_redis_apsport.cpp \
+                         otai_redis_attenuator.cpp \
+                         otai_redis_wss.cpp \
+                         otai_redis_mediachannel.cpp \
+                         otai_redis_ocm.cpp \
+                         otai_redis_otdr.cpp
 
-libLaiRedis_a_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
+libotaiRedis_a_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
 
-liblairedis_la_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
-liblairedis_la_LIBADD = -lhiredis -lswsscommon libLaiRedis.a
+libotairedis_la_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
+libotairedis_la_LIBADD = -lhiredis -lswsscommon libotaiRedis.a
 
 

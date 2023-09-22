@@ -4,7 +4,7 @@
 
 #include <set>
 
-using namespace laivs;
+using namespace otaivs;
 
 #define VS_IF_PREFIX   "eth"
 

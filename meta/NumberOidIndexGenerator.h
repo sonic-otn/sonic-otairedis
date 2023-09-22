@@ -2,10 +2,10 @@
 
 #include "lib/inc/OidIndexGenerator.h"
 
-namespace laimeta
+namespace otaimeta
 {
     class NumberOidIndexGenerator:
-        public lairedis::OidIndexGenerator
+        public otairedis::OidIndexGenerator
     {
 
         public:

@@ -2,11 +2,11 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 EventPayloadNotification::EventPayloadNotification(
-        _In_ std::shared_ptr<lairedis::Notification> ntf,
-        _In_ const lai_linecard_notifications_t& linecardNotifications):
+        _In_ std::shared_ptr<otairedis::Notification> ntf,
+        _In_ const otai_linecard_notifications_t& linecardNotifications):
     m_ntf(ntf),
     m_linecardNotifications(linecardNotifications)
 {
@@ -15,14 +15,14 @@ EventPayloadNotification::EventPayloadNotification(
     // empty
 }
 
-std::shared_ptr<lairedis::Notification> EventPayloadNotification::getNotification() const
+std::shared_ptr<otairedis::Notification> EventPayloadNotification::getNotification() const
 {
     SWSS_LOG_ENTER();
 
     return m_ntf;
 }
 
-const lai_linecard_notifications_t& EventPayloadNotification::getLinecardNotifications() const
+const otai_linecard_notifications_t& EventPayloadNotification::getLinecardNotifications() const
 {
     SWSS_LOG_ENTER();
 

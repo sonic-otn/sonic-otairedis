@@ -9,28 +9,28 @@
 #include <memory>
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
-namespace laivs
+namespace otaivs
 {
-    typedef enum _lai_vs_linecard_type_t
+    typedef enum _otai_vs_linecard_type_t
     {
-        LAI_VS_LINECARD_TYPE_NONE,
+        OTAI_VS_LINECARD_TYPE_NONE,
 
-        LAI_VS_LINECARD_TYPE_P230C,
+        OTAI_VS_LINECARD_TYPE_P230C,
 
-    } lai_vs_linecard_type_t;
+    } otai_vs_linecard_type_t;
 
-    typedef enum _lai_vs_boot_type_t
+    typedef enum _otai_vs_boot_type_t
     {
-        LAI_VS_BOOT_TYPE_COLD,
+        OTAI_VS_BOOT_TYPE_COLD,
 
-        LAI_VS_BOOT_TYPE_WARM,
+        OTAI_VS_BOOT_TYPE_WARM,
 
-        LAI_VS_BOOT_TYPE_FAST,
+        OTAI_VS_BOOT_TYPE_FAST,
 
-    } lai_vs_boot_type_t;
+    } otai_vs_boot_type_t;
 
     class LinecardConfig
     {
@@ -42,28 +42,28 @@ namespace laivs
 
         public:
 
-            static bool parseLaiLinecardType(
-                    _In_ const char* laiLinecardTypeStr,
-                    _Out_ std::string& laiLinecardType);
+            static bool parseOtaiLinecardType(
+                    _In_ const char* otaiLinecardTypeStr,
+                    _Out_ std::string& otaiLinecardType);
 
             static bool parseLinecardType(
                     _In_ const char* linecardTypeStr,
-                    _Out_ lai_vs_linecard_type_t& linecardType);
+                    _Out_ otai_vs_linecard_type_t& linecardType);
 
             static bool parseBootType(
                     _In_ const char* bootTypeStr,
-                    _Out_ lai_vs_boot_type_t& bootType);
+                    _Out_ otai_vs_boot_type_t& bootType);
 
             static bool parseUseTapDevice(
                     _In_ const char* useTapDeviceStr);
 
         public:
 
-            std::string m_laiLinecardType;
+            std::string m_otaiLinecardType;
 
-            lai_vs_linecard_type_t m_linecardType;
+            otai_vs_linecard_type_t m_linecardType;
 
-            lai_vs_boot_type_t m_bootType;
+            otai_vs_boot_type_t m_bootType;
 
             uint32_t m_linecardIndex;
 

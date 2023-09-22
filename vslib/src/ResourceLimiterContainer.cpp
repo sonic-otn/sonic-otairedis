@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 void ResourceLimiterContainer::insert(
         _In_ uint32_t linecardIndex,

@@ -99,7 +99,7 @@ int main()
         }
     }
     auto vidToRid = client->getVidToRidMap();
-    std::map<lai_object_id_t, lai_object_id_t> v2r;
+    std::map<otai_object_id_t, otai_object_id_t> v2r;
     for (auto& i : vidToRid)
     {
         v2r.insert(i);
@@ -110,7 +110,7 @@ int main()
     }
 
     auto ridToVid = client->getRidToVidMap();
-    std::map<lai_object_id_t, lai_object_id_t> r2v;
+    std::map<otai_object_id_t, otai_object_id_t> r2v;
     for (auto& i : ridToVid)
     {
         r2v.insert(i);

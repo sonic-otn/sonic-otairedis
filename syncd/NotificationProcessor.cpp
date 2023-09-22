@@ -1,8 +1,8 @@
 #include "NotificationProcessor.h"
 #include "RedisClient.h"
 
-#include "meta/lai_serialize.h"
-#include "meta/LaiAttributeList.h"
+#include "meta/otai_serialize.h"
+#include "meta/OtaiAttributeList.h"
 
 #include "swss/logger.h"
 #include "swss/notificationproducer.h"
@@ -13,7 +13,7 @@
 
 using json = nlohmann::json;
 using namespace syncd;
-using namespace laimeta;
+using namespace otaimeta;
 using namespace swss;
 
 NotificationProcessor::NotificationProcessor(
@@ -22,7 +22,7 @@ NotificationProcessor::NotificationProcessor(
     _In_ std::string dbAsic,
     _In_ std::shared_ptr<RedisClient> client,
     _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer,
-    _In_ std::function<void(const lai_oper_status_t&)> linecard_state_change_handler) :
+    _In_ std::function<void(const otai_oper_status_t&)> linecard_state_change_handler) :
     m_mtxAlarmTable(mtxAlarm),
     m_synchronizer(synchronizer),
     m_linecard_state_change_handler(linecard_state_change_handler),
@@ -38,9 +38,9 @@ NotificationProcessor::NotificationProcessor(
     m_state_db = std::shared_ptr<DBConnector>(new DBConnector("STATE_DB", 0));
     m_stateAlarmable = std::unique_ptr<Table>(new Table(m_state_db.get(), "CURALARM"));
     m_stateOLPSwitchInfoTbl = std::unique_ptr<Table>(new Table(m_state_db.get(), "OLP_SWITCH_INFO"));
-    m_stateOcmTable = std::unique_ptr<Table>(new Table(m_state_db.get(), STATE_OCM_TABLE_NAME));
+    m_stateOcmTable = std::unique_ptr<Table>(new Table(m_state_db.get(), STATE_OT_OCM_TABLE_NAME));
 
-    m_stateOtdrTable = std::make_shared<Table>(m_state_db.get(), STATE_OTDR_TABLE_NAME);
+    m_stateOtdrTable = std::make_shared<Table>(m_state_db.get(), STATE_OT_OTDR_TABLE_NAME);
     m_stateOtdrEventTable = std::make_shared<Table>(m_state_db.get(), "OTDR_EVENT");
 
     m_history_db = std::shared_ptr<DBConnector>(new DBConnector("HISTORY_DB", 0));
@@ -85,7 +85,7 @@ void NotificationProcessor::initOtdrScanTimeSet()
         }
 
         uint64_t scanTime = 0;
-        lai_deserialize_number(*strScanTime, scanTime);
+        otai_deserialize_number(*strScanTime, scanTime);
 
         scanTimeSet[*name].insert(scanTime);
     }
@@ -125,18 +125,18 @@ void NotificationProcessor::sendNotification(
 }
 
 void NotificationProcessor::process_on_linecard_state_change(
-    _In_ lai_object_id_t linecard_rid,
-    _In_ lai_oper_status_t linecard_oper_status)
+    _In_ otai_object_id_t linecard_rid,
+    _In_ otai_oper_status_t linecard_oper_status)
 {
     SWSS_LOG_ENTER();
 
-    lai_object_id_t linecard_vid = m_translator->translateRidToVid(linecard_rid, LAI_NULL_OBJECT_ID);
+    otai_object_id_t linecard_vid = m_translator->translateRidToVid(linecard_rid, OTAI_NULL_OBJECT_ID);
 
-    auto s = lai_serialize_linecard_oper_status(linecard_vid, linecard_oper_status);
+    auto s = otai_serialize_linecard_oper_status(linecard_vid, linecard_oper_status);
 
     SWSS_LOG_NOTICE("linecard state change to %s", s.c_str());
 
-    sendNotification(LAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, s);
+    sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, s);
 
     swss::DBConnector db(m_dbAsic, 0);
     swss::NotificationProducer linecard_state(&db, SYNCD_NOTIFICATION_CHANNEL_LINECARDSTATE);
@@ -150,10 +150,10 @@ void NotificationProcessor::handle_linecard_state_change(
 {
     SWSS_LOG_ENTER();
 
-    lai_oper_status_t linecard_oper_status;
-    lai_object_id_t linecard_id;
+    otai_oper_status_t linecard_oper_status;
+    otai_object_id_t linecard_id;
 
-    lai_deserialize_linecard_oper_status(data, linecard_id, linecard_oper_status);
+    otai_deserialize_linecard_oper_status(data, linecard_id, linecard_oper_status);
 
     process_on_linecard_state_change(linecard_id, linecard_oper_status);
 }
@@ -166,10 +166,10 @@ void NotificationProcessor::handle_olp_switch_notify(
 
     json j = json::parse(data);
 
-    lai_object_id_t vid;
-    lai_object_id_t rid;
+    otai_object_id_t vid;
+    otai_object_id_t rid;
 
-    lai_deserialize_object_id(j["rid"], rid);
+    otai_deserialize_object_id(j["rid"], rid);
 
     if (!m_translator->tryTranslateRidToVid(rid, vid))
     {
@@ -177,11 +177,11 @@ void NotificationProcessor::handle_olp_switch_notify(
         return;
     }
     auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
-    std::string strVid = lai_serialize_object_id(vid);
-    auto key = counters_db->hget(COUNTERS_APS_NAME_MAP, strVid);
+    std::string strVid = otai_serialize_object_id(vid);
+    auto key = counters_db->hget(COUNTERS_OT_APS_NAME_MAP, strVid);
     if (key == nullptr)
     {
-        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_APS_NAME_MAP, strVid.c_str());
+        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OT_APS_NAME_MAP, strVid.c_str());
         return;
     }
     std::string strKey = *key;
@@ -201,17 +201,17 @@ void NotificationProcessor::handle_ocm_spectrum_power_notify(
 
     json j = json::parse(data);
 
-    lai_object_id_t vid;
-    lai_object_id_t rid;
-    lai_spectrum_power_list_t list;
+    otai_object_id_t vid;
+    otai_object_id_t rid;
+    otai_spectrum_power_list_t list;
 
-    lai_object_id_t linecard_vid;
-    lai_object_id_t linecard_rid;
+    otai_object_id_t linecard_vid;
+    otai_object_id_t linecard_rid;
 
-    lai_deserialize_object_id(j["ocm_id"], rid);
-    lai_deserialize_object_id(j["linecard_rid"], linecard_rid);
+    otai_deserialize_object_id(j["ocm_id"], rid);
+    otai_deserialize_object_id(j["linecard_rid"], linecard_rid);
     
-    lai_deserialize_ocm_spectrum_power_list(j["spectrum_power_list"], list);
+    otai_deserialize_ocm_spectrum_power_list(j["spectrum_power_list"], list);
 
     if (!m_translator->tryTranslateRidToVid(rid, vid))
     {
@@ -219,22 +219,22 @@ void NotificationProcessor::handle_ocm_spectrum_power_notify(
         return;
     }
 
-    linecard_vid = m_translator->translateRidToVid(linecard_rid, LAI_NULL_OBJECT_ID);
+    linecard_vid = m_translator->translateRidToVid(linecard_rid, OTAI_NULL_OBJECT_ID);
 
     auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
-    std::string strVid = lai_serialize_object_id(vid);
-    auto key = counters_db->hget(COUNTERS_OCM_NAME_MAP, strVid);
+    std::string strVid = otai_serialize_object_id(vid);
+    auto key = counters_db->hget(COUNTERS_OT_OCM_NAME_MAP, strVid);
     if (key == nullptr)
     {
-        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OCM_NAME_MAP, strVid.c_str());
+        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OT_OCM_NAME_MAP, strVid.c_str());
         return;
     }
 
     for (uint32_t i = 0 ; i < list.count; i++)
     {
-        std::string lowFreq = lai_serialize_number(list.list[i].lower_frequency);
-        std::string upFreq = lai_serialize_number(list.list[i].upper_frequency);
-        std::string power = lai_serialize_decimal(list.list[i].power);
+        std::string lowFreq = otai_serialize_number(list.list[i].lower_frequency);
+        std::string upFreq = otai_serialize_number(list.list[i].upper_frequency);
+        std::string power = otai_serialize_decimal(list.list[i].power);
 
         std::string tableKey = *key + '|' + lowFreq + '|' + upFreq;
 
@@ -246,10 +246,10 @@ void NotificationProcessor::handle_ocm_spectrum_power_notify(
 
     json j2;
 
-    j2["linecard_id"] = lai_serialize_object_id(linecard_vid);
-    j2["ocm_id"] = lai_serialize_object_id(vid);
+    j2["linecard_id"] = otai_serialize_object_id(linecard_vid);
+    j2["ocm_id"] = otai_serialize_object_id(vid);
 
-    sendNotification(LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY, j2.dump());
+    sendNotification(OTAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY, j2.dump());
 }
 
 void writeOtdrTable(
@@ -275,17 +275,17 @@ void writeOtdrTable(
 void writeOtdrEventTable(
         std::shared_ptr<Table> table,
         std::string &key,
-        lai_otdr_event_t &e,
+        otai_otdr_event_t &e,
         uint32_t index)
 {
     SWSS_LOG_ENTER();
 
-    table->hset(key, "index", lai_serialize_number(index));
-    table->hset(key, "length", lai_serialize_decimal(e.length));
-    table->hset(key, "loss", lai_serialize_decimal(e.loss));
-    table->hset(key, "accumulate-loss", lai_serialize_decimal(e.accumulate_loss));
-    table->hset(key, "type", lai_serialize_enum(e.type, &lai_metadata_enum_lai_otdr_event_type_t));
-    table->hset(key, "reflection", lai_serialize_decimal(e.reflection));
+    table->hset(key, "index", otai_serialize_number(index));
+    table->hset(key, "length", otai_serialize_decimal(e.length));
+    table->hset(key, "loss", otai_serialize_decimal(e.loss));
+    table->hset(key, "accumulate-loss", otai_serialize_decimal(e.accumulate_loss));
+    table->hset(key, "type", otai_serialize_enum(e.type, &otai_metadata_enum_otai_otdr_event_type_t));
+    table->hset(key, "reflection", otai_serialize_decimal(e.reflection));
 }
 
 void NotificationProcessor::handle_otdr_result_notify(
@@ -294,12 +294,12 @@ void NotificationProcessor::handle_otdr_result_notify(
 {
     SWSS_LOG_ENTER();
 
-    lai_object_id_t otdrVid;
-    lai_object_id_t otdrRid;
+    otai_object_id_t otdrVid;
+    otai_object_id_t otdrRid;
 
     json j = json::parse(data);
 
-    lai_deserialize_object_id(j["otdr_id"], otdrRid);
+    otai_deserialize_object_id(j["otdr_id"], otdrRid);
 
     if (!m_translator->tryTranslateRidToVid(otdrRid, otdrVid))
     {
@@ -309,13 +309,13 @@ void NotificationProcessor::handle_otdr_result_notify(
 
     auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
 
-    std::string strVid = lai_serialize_object_id(otdrVid);
+    std::string strVid = otai_serialize_object_id(otdrVid);
 
-    auto key = counters_db->hget(COUNTERS_OTDR_NAME_MAP, strVid);
+    auto key = counters_db->hget(COUNTERS_OT_OTDR_NAME_MAP, strVid);
 
     if (key == nullptr)
     {
-        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OTDR_NAME_MAP, strVid.c_str());
+        SWSS_LOG_ERROR("cannot get name map, %s %s", COUNTERS_OT_OTDR_NAME_MAP, strVid.c_str());
         return;
     }
 
@@ -323,15 +323,15 @@ void NotificationProcessor::handle_otdr_result_notify(
 
     writeOtdrTable(m_stateOtdrTable, stateTableKey, *key, j);
 
-    lai_otdr_event_list_t events;
+    otai_otdr_event_list_t events;
 
-    lai_deserialize_otdr_event_list(j["events"], events);
+    otai_deserialize_otdr_event_list(j["events"], events);
 
     for (uint32_t i = 0; i < events.count; i++)
     {
         uint32_t index = i + 1;
 
-        std::string eventKey = *key + "|CURRENT|" + lai_serialize_number(index);
+        std::string eventKey = *key + "|CURRENT|" + otai_serialize_number(index);
 
         writeOtdrEventTable(m_stateOtdrEventTable, eventKey, events.list[i], index);
     }
@@ -345,14 +345,14 @@ void NotificationProcessor::handle_otdr_result_notify(
     {
         uint32_t index = i + 1;
 
-        std::string eventKey = *key + "|" + strScanTime + "|" + lai_serialize_number(index);
+        std::string eventKey = *key + "|" + strScanTime + "|" + otai_serialize_number(index);
 
         writeOtdrEventTable(m_historyOtdrEventTable, eventKey, events.list[i], index);
     }
 
     uint64_t scanTime = 0;
 
-    lai_deserialize_number(j["scan-time"], scanTime);
+    otai_deserialize_number(j["scan-time"], scanTime);
 
     m_otdrScanTimeQueue[*key].push(scanTime);
 
@@ -363,14 +363,14 @@ void NotificationProcessor::handle_otdr_result_notify(
         m_otdrScanTimeQueue[*key].pop();
 
         std::string entry = m_historyOtdrTable->getTableName() + ":" +
-                            *key + "|" + lai_serialize_number(scanTime);
+                            *key + "|" + otai_serialize_number(scanTime);
 
         SWSS_LOG_INFO("Delete old otdr data, %s", entry.c_str());
 
         m_history_db->del(entry);
 
         std::string pattern = m_historyOtdrEventTable->getTableName() + ":" +
-                              *key + "|" + lai_serialize_number(scanTime) + "*";
+                              *key + "|" + otai_serialize_number(scanTime) + "*";
 
         auto keys = m_history_db->keys(pattern);
 
@@ -388,17 +388,17 @@ void NotificationProcessor::handle_linecard_alarm(
 {
     SWSS_LOG_ENTER();
 
-    lai_object_id_t linecard_id;
-    lai_alarm_type_t alarm_type;
-    lai_alarm_info_t alarm_info;
+    otai_object_id_t linecard_id;
+    otai_alarm_type_t alarm_type;
+    otai_alarm_info_t alarm_info;
 
-    lai_deserialize_linecard_alarm(data, linecard_id, alarm_type, alarm_info);
+    otai_deserialize_linecard_alarm(data, linecard_id, alarm_type, alarm_info);
     std::lock_guard<std::mutex> lock_alarm(m_mtxAlarmTable);
-    if (alarm_info.status == LAI_ALARM_STATUS_ACTIVE)
+    if (alarm_info.status == OTAI_ALARM_STATUS_ACTIVE)
     {
         handler_alarm_generated(data);
     }
-    else if (alarm_info.status == LAI_ALARM_STATUS_INACTIVE)
+    else if (alarm_info.status == OTAI_ALARM_STATUS_INACTIVE)
     {
         handler_alarm_cleared(data);
     }
@@ -409,11 +409,11 @@ void NotificationProcessor::handle_linecard_alarm(
 }
 
 std::string NotificationProcessor::get_resource_name_by_rid(
-        _In_ lai_object_id_t rid)
+        _In_ otai_object_id_t rid)
 {
     SWSS_LOG_ENTER();
 
-    lai_object_id_t vid;
+    otai_object_id_t vid;
 
     if (!m_translator->tryTranslateRidToVid(rid, vid))
     {
@@ -423,7 +423,7 @@ std::string NotificationProcessor::get_resource_name_by_rid(
     }
 
     auto counters_db = std::shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
-    std::string strVid = lai_serialize_object_id(vid);
+    std::string strVid = otai_serialize_object_id(vid);
     auto key = counters_db->hget("VID2NAME", strVid);
     if (key == NULL)
     {
@@ -451,8 +451,8 @@ void NotificationProcessor::handler_event_generated(
 
     std::string resource, timecreated, type_id;
 
-    lai_object_id_t rid;
-    lai_deserialize_object_id(j["resource_oid"], rid);
+    otai_object_id_t rid;
+    otai_deserialize_object_id(j["resource_oid"], rid);
     resource = get_resource_name_by_rid(rid);
 
     timecreated = j["time-created"];
@@ -493,8 +493,8 @@ void NotificationProcessor::handler_alarm_generated(
 
     std::string resource, type_id, timecreated;
 
-    lai_object_id_t rid;
-    lai_deserialize_object_id(j["resource_oid"], rid);
+    otai_object_id_t rid;
+    otai_deserialize_object_id(j["resource_oid"], rid);
     resource = get_resource_name_by_rid(rid);
 
     type_id = j["type-id"];
@@ -545,8 +545,8 @@ void NotificationProcessor::handler_alarm_cleared(
 
     json j = json::parse(data);
 
-    lai_object_id_t rid;
-    lai_deserialize_object_id(j["resource_oid"], rid);
+    otai_object_id_t rid;
+    otai_deserialize_object_id(j["resource_oid"], rid);
     resource = get_resource_name_by_rid(rid);
 
     type_id = j["type-id"];
@@ -587,23 +587,23 @@ void NotificationProcessor::syncProcessNotification(
     std::string data = kfvOp(item);
     std::vector<FieldValueTuple> fv = kfvFieldsValues(item);
 
-    if (notification == LAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE)
+    if (notification == OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE)
     {
         handle_linecard_state_change(data);
     }
-    else if (notification == LAI_LINECARD_NOTIFICATION_NAME_LINECARD_ALARM_NOTIFY)
+    else if (notification == OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_ALARM_NOTIFY)
     {
         handle_linecard_alarm(data);
     }
-    else if (notification == LAI_APS_NOTIFICATION_NAME_OLP_SWITCH_NOTIFY)
+    else if (notification == OTAI_APS_NOTIFICATION_NAME_OLP_SWITCH_NOTIFY)
     {
         handle_olp_switch_notify(data, fv);
     }
-    else if (notification == LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY)
+    else if (notification == OTAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY)
     {
         handle_ocm_spectrum_power_notify(data, fv);
     }
-    else if (notification == LAI_OTDR_NOTIFICATION_NAME_RESULT_NOTIFY)
+    else if (notification == OTAI_OTDR_NOTIFICATION_NAME_RESULT_NOTIFY)
     {
         handle_otdr_result_notify(data, fv);
     }
@@ -626,7 +626,7 @@ void NotificationProcessor::ntf_process_function()
         m_cv.wait(ulock);
 
         // this is notifications processing thread context, which is different
-        // from LAI notifications context, we can safe use syncd mutex here,
+        // from OTAI notifications context, we can safe use syncd mutex here,
         // processing each notification is under same mutex as processing main
         // events, counters and reinit
 

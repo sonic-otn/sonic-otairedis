@@ -7,9 +7,9 @@ using namespace syncd;
 #define MUTEX std::lock_guard<std::mutex> _lock(m_mutex);
 
 FlexCounterManager::FlexCounterManager(
-    _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai,
+    _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
     _In_ const std::string& dbCounters):
-    m_vendorLai(vendorLai),
+    m_vendorOtai(vendorOtai),
     m_dbCounters(dbCounters)
 {
     SWSS_LOG_ENTER();
@@ -26,7 +26,7 @@ std::shared_ptr<FlexCounter> FlexCounterManager::getInstance(
 
     if (m_flexCounters.count(instanceId) == 0)
     {
-        auto counter = std::make_shared<FlexCounter>(instanceId, m_vendorLai, m_dbCounters);
+        auto counter = std::make_shared<FlexCounter>(instanceId, m_vendorOtai, m_dbCounters);
 
         m_flexCounters[instanceId] = counter;
     }
@@ -80,8 +80,8 @@ void FlexCounterManager::addCounterPlugin(
 }
 
 void FlexCounterManager::addCounter(
-    _In_ lai_object_id_t vid,
-    _In_ lai_object_id_t rid,
+    _In_ otai_object_id_t vid,
+    _In_ otai_object_id_t rid,
     _In_ const std::string& instanceId,
     _In_ const std::vector<swss::FieldValueTuple>& values)
 {
@@ -98,7 +98,7 @@ void FlexCounterManager::addCounter(
 }
 
 void FlexCounterManager::removeCounter(
-    _In_ lai_object_id_t vid,
+    _In_ otai_object_id_t vid,
     _In_ const std::string& instanceId)
 {
     SWSS_LOG_ENTER();

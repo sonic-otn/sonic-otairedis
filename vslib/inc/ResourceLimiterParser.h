@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace laivs
+namespace otaivs
 {
     class ResourceLimiterParser
     {

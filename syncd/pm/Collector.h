@@ -3,11 +3,11 @@
 #include <memory>
 #include <string>
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 #include "swss/dbconnector.h"
 #include "swss/table.h"
 #include "swss/logger.h"
-#include "LaiInterface.h"
+#include "OtaiInterface.h"
 
 namespace syncd
 {
@@ -30,10 +30,10 @@ namespace syncd
     public:
 
         Collector(
-            _In_ lai_object_type_t objectType,
-            _In_ lai_object_id_t vid,
-            _In_ lai_object_id_t rid,
-            std::shared_ptr<lairedis::LaiInterface> vendorLai);
+            _In_ otai_object_type_t objectType,
+            _In_ otai_object_id_t vid,
+            _In_ otai_object_id_t rid,
+            std::shared_ptr<otairedis::OtaiInterface> vendorOtai);
 
         virtual ~Collector();
 
@@ -41,13 +41,13 @@ namespace syncd
 
     protected:
 
-        lai_object_type_t m_objectType;
+        otai_object_type_t m_objectType;
 
-        lai_object_id_t m_vid;
+        otai_object_id_t m_vid;
 
-        lai_object_id_t m_rid;
+        otai_object_id_t m_rid;
 
-        std::shared_ptr<lairedis::LaiInterface> m_vendorLai;         
+        std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;         
 
         std::shared_ptr<swss::DBConnector> m_stateDb;
 

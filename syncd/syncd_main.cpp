@@ -1,19 +1,19 @@
 #include "unistd.h"
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 
 #include "CommandLineOptionsParser.h"
 #include "Syncd.h"
 #include "MetadataLogger.h"
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
 #include <utility>
 #include <algorithm>
-#include <linecard_lai_rpc_server.h>
-#endif // LAITHRIFT
+#include <linecard_otai_rpc_server.h>
+#endif // OTAITHRIFT
 
-#ifdef LAITHRIFT
-#define LINECARD_LAI_THRIFT_RPC_SERVER_PORT 9092
-#endif // LAITHRIFT
+#ifdef OTAITHRIFT
+#define LINECARD_OTAI_THRIFT_RPC_SERVER_PORT 9092
+#endif // OTAITHRIFT
 
 using namespace syncd;
 
@@ -38,22 +38,22 @@ int syncd_main(int argc, char **argv)
 
     auto commandLineOptions = CommandLineOptionsParser::parseCommandLine(argc, argv);
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
 
     if (commandLineOptions->m_runRPCServer)
     {
-        start_lai_thrift_rpc_server(LINECARD_LAI_THRIFT_RPC_SERVER_PORT);
+        start_otai_thrift_rpc_server(LINECARD_OTAI_THRIFT_RPC_SERVER_PORT);
 
         SWSS_LOG_NOTICE("rpcserver started");
     }
 
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     SWSS_LOG_WARN("--- Starting Sync Daemon ---");
 
-    auto vendorLai = std::make_shared<VendorLai>();
+    auto vendorOtai = std::make_shared<VendorOtai>();
 
-    auto syncd = std::make_shared<Syncd>(vendorLai, commandLineOptions, true);
+    auto syncd = std::make_shared<Syncd>(vendorOtai, commandLineOptions, true);
 
     syncd->run();
 

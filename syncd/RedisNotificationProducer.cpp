@@ -1,6 +1,6 @@
 #include "RedisNotificationProducer.h"
 
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 
 #include "swss/logger.h"
 

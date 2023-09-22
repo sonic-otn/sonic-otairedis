@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 
-namespace laivs
+namespace otaivs
 {
     class LinecardConfigContainer
     {

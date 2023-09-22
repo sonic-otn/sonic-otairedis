@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace lairedis
+namespace otairedis
 {
     class NotificationFactory
     {

@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 
-namespace lairedis
+namespace otairedis
 {
     class LinecardConfig
     {

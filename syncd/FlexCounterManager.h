@@ -9,7 +9,7 @@ namespace syncd
     public:
 
         FlexCounterManager(
-            _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai,
+            _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
             _In_ const std::string& dbCounters);
 
         virtual ~FlexCounterManager() = default;
@@ -32,13 +32,13 @@ namespace syncd
             _In_ const std::vector<swss::FieldValueTuple>& values);
 
         void addCounter(
-            _In_ lai_object_id_t vid,
-            _In_ lai_object_id_t rid,
+            _In_ otai_object_id_t vid,
+            _In_ otai_object_id_t rid,
             _In_ const std::string& instanceId,
             _In_ const std::vector<swss::FieldValueTuple>& values);
 
         void removeCounter(
-            _In_ lai_object_id_t vid,
+            _In_ otai_object_id_t vid,
             _In_ const std::string& instanceId);
 
     private:
@@ -47,7 +47,7 @@ namespace syncd
 
         std::mutex m_mutex;
 
-        std::shared_ptr<lairedis::LaiInterface> m_vendorLai;
+        std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
         std::string m_dbCounters;
         std::string m_dbState;

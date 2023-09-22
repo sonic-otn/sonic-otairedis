@@ -1,6 +1,6 @@
 #include "CommandLineOptions.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include "swss/logger.h"
 
@@ -18,9 +18,9 @@ CommandLineOptions::CommandLineOptions()
     m_enableUnittests = false;
     m_enableConsistencyCheck = false;
     m_enableSyncMode = false;
-    m_enableLaiBulkSupport = false;
+    m_enableOtaiBulkSupport = false;
 
-    m_redisCommunicationMode = LAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
+    m_redisCommunicationMode = OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
 
     m_loglevel = swss::Logger::SWSS_INFO;
 
@@ -30,11 +30,11 @@ CommandLineOptions::CommandLineOptions()
 
     m_contextConfig = "";
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
 
     m_runRPCServer = false;
 
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
 }
 
@@ -48,16 +48,16 @@ std::string CommandLineOptions::getCommandLineString() const
     ss << " EnableUnittests=" << (m_enableUnittests ? "YES" : "NO");
     ss << " EnableConsistencyCheck=" << (m_enableConsistencyCheck ? "YES" : "NO");
     ss << " EnableSyncMode=" << (m_enableSyncMode ? "YES" : "NO");
-    ss << " RedisCommunicationMode=" << lai_serialize_redis_communication_mode(m_redisCommunicationMode);
-    ss << " EnableLaiBulkSuport=" << (m_enableLaiBulkSupport ? "YES" : "NO");
+    ss << " RedisCommunicationMode=" << otai_serialize_redis_communication_mode(m_redisCommunicationMode);
+    ss << " EnableOtaiBulkSuport=" << (m_enableOtaiBulkSupport ? "YES" : "NO");
     ss << " ProfileMapFile=" << m_profileMapFile;
     ss << " GlobalContext=" << m_globalContext;
     ss << " ContextConfig=" << m_contextConfig;
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
 
     ss << " RunRPCServer=" << (m_runRPCServer ? "YES" : "NO");
 
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     return ss.str();
 }

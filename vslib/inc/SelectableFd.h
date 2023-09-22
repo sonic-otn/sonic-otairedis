@@ -3,7 +3,7 @@
 #include "swss/sal.h"
 #include "swss/selectable.h"
 
-namespace laivs
+namespace otaivs
 {
     class SelectableFd :
         public swss::Selectable

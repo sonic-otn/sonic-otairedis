@@ -7,18 +7,18 @@
 
 #include "swss/logger.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include <netlink/route/link.h>
 #include <netlink/route/addr.h>
 #include <linux/if.h>
 
-using namespace laivs;
+using namespace otaivs;
 
 #define VS_COUNTERS_COUNT_MSB (0x80000000)
 
 LinecardState::LinecardState(
-        _In_ lai_object_id_t linecard_id,
+        _In_ otai_object_id_t linecard_id,
         _In_ std::shared_ptr<LinecardConfig> config):
     m_linecard_id(linecard_id),
     m_linkCallbackIndex(-1),
@@ -26,21 +26,21 @@ LinecardState::LinecardState(
 {
     SWSS_LOG_ENTER();
 
-    if (RealObjectIdManager::objectTypeQuery(linecard_id) != LAI_OBJECT_TYPE_LINECARD)
+    if (RealObjectIdManager::objectTypeQuery(linecard_id) != OTAI_OBJECT_TYPE_LINECARD)
     {
         SWSS_LOG_THROW("object %s is not LINECARD, its %s",
-                lai_serialize_object_id(linecard_id).c_str(),
-                lai_serialize_object_type(RealObjectIdManager::objectTypeQuery(linecard_id)).c_str());
+                otai_serialize_object_id(linecard_id).c_str(),
+                otai_serialize_object_type(RealObjectIdManager::objectTypeQuery(linecard_id)).c_str());
     }
 
-    for (int i = LAI_OBJECT_TYPE_NULL; i < (int)LAI_OBJECT_TYPE_EXTENSIONS_MAX; ++i)
+    for (int i = OTAI_OBJECT_TYPE_NULL; i < (int)OTAI_OBJECT_TYPE_EXTENSIONS_MAX; ++i)
     {
         /*
          * Populate empty maps for each object to avoid checking if
          * objecttype exists.
          */
 
-        m_objectHash[(lai_object_type_t)i] = { };
+        m_objectHash[(otai_object_type_t)i] = { };
     }
 
     /*
@@ -48,22 +48,22 @@ LinecardState::LinecardState(
      * creating.
      */
 
-    m_objectHash[LAI_OBJECT_TYPE_LINECARD][lai_serialize_object_id(linecard_id)] = {};
-    lai_attribute_t attr;
+    m_objectHash[OTAI_OBJECT_TYPE_LINECARD][otai_serialize_object_id(linecard_id)] = {};
+    otai_attribute_t attr;
     
-    attr.id = LAI_LINECARD_ATTR_SOFTWARE_VERSION;
+    attr.id = OTAI_LINECARD_ATTR_SOFTWARE_VERSION;
     strncpy(attr.value.chardata, "1.1.1", sizeof(attr.value.chardata) - 1);
-    auto a = std::make_shared<LaiAttrWrap>(LAI_OBJECT_TYPE_LINECARD, &attr);
-    m_objectHash[LAI_OBJECT_TYPE_LINECARD][lai_serialize_object_id(linecard_id)][a->getAttrMetadata()->attridname] = a;
+    auto a = std::make_shared<OtaiAttrWrap>(OTAI_OBJECT_TYPE_LINECARD, &attr);
+    m_objectHash[OTAI_OBJECT_TYPE_LINECARD][otai_serialize_object_id(linecard_id)][a->getAttrMetadata()->attridname] = a;
 
-    attr.id = LAI_LINECARD_ATTR_OPER_STATUS;
-    attr.value.s32 = LAI_OPER_STATUS_ACTIVE;
-    auto b = std::make_shared<LaiAttrWrap>(LAI_OBJECT_TYPE_LINECARD, &attr);
-    m_objectHash[LAI_OBJECT_TYPE_LINECARD][lai_serialize_object_id(linecard_id)][b->getAttrMetadata()->attridname] = b;
-    attr.id = LAI_LINECARD_ATTR_UPGRADE_STATE;
-    attr.value.s32 = LAI_LINECARD_UPGRADE_STATE_IDLE;
-    auto c = std::make_shared<LaiAttrWrap>(LAI_OBJECT_TYPE_LINECARD, &attr);
-    m_objectHash[LAI_OBJECT_TYPE_LINECARD][lai_serialize_object_id(linecard_id)][c->getAttrMetadata()->attridname] = c;
+    attr.id = OTAI_LINECARD_ATTR_OPER_STATUS;
+    attr.value.s32 = OTAI_OPER_STATUS_ACTIVE;
+    auto b = std::make_shared<OtaiAttrWrap>(OTAI_OBJECT_TYPE_LINECARD, &attr);
+    m_objectHash[OTAI_OBJECT_TYPE_LINECARD][otai_serialize_object_id(linecard_id)][b->getAttrMetadata()->attridname] = b;
+    attr.id = OTAI_LINECARD_ATTR_UPGRADE_STATE;
+    attr.value.s32 = OTAI_LINECARD_UPGRADE_STATE_IDLE;
+    auto c = std::make_shared<OtaiAttrWrap>(OTAI_OBJECT_TYPE_LINECARD, &attr);
+    m_objectHash[OTAI_OBJECT_TYPE_LINECARD][otai_serialize_object_id(linecard_id)][c->getAttrMetadata()->attridname] = c;
 
     if (m_linecardConfig->m_useTapDevice)
     {
@@ -74,7 +74,7 @@ LinecardState::LinecardState(
     if (m_linecardConfig->m_resourceLimiter)
     {
         SWSS_LOG_NOTICE("resource limiter is SET on linecard %s",
-                lai_serialize_object_id(linecard_id).c_str());
+                otai_serialize_object_id(linecard_id).c_str());
     }
 }
 
@@ -93,20 +93,20 @@ LinecardState::~LinecardState()
     }
 
     SWSS_LOG_NOTICE("linecard %s",
-            lai_serialize_object_id(m_linecard_id).c_str());
+            otai_serialize_object_id(m_linecard_id).c_str());
 
     SWSS_LOG_NOTICE("end");
 }
 
 void LinecardState::setMeta(
-        std::weak_ptr<laimeta::Meta> meta)
+        std::weak_ptr<otaimeta::Meta> meta)
 {
     SWSS_LOG_ENTER();
 
     m_meta = meta;
 }
 
-lai_object_id_t LinecardState::getLinecardId() const
+otai_object_id_t LinecardState::getLinecardId() const
 {
     SWSS_LOG_ENTER();
 
@@ -115,7 +115,7 @@ lai_object_id_t LinecardState::getLinecardId() const
 
 void LinecardState::setIfNameToPortId(
         _In_ const std::string& ifname,
-        _In_ lai_object_id_t port_id)
+        _In_ otai_object_id_t port_id)
 {
     SWSS_LOG_ENTER();
 
@@ -131,7 +131,7 @@ void LinecardState::removeIfNameToPortId(
     m_ifname_to_port_id_map.erase(ifname);
 }
 
-lai_object_id_t LinecardState::getPortIdFromIfName(
+otai_object_id_t LinecardState::getPortIdFromIfName(
         _In_ const std::string& ifname) const
 {
     SWSS_LOG_ENTER();
@@ -140,14 +140,14 @@ lai_object_id_t LinecardState::getPortIdFromIfName(
 
     if (it == m_ifname_to_port_id_map.end())
     {
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
     return it->second;
 }
 
 void LinecardState::setPortIdToTapName(
-        _In_ lai_object_id_t port_id,
+        _In_ otai_object_id_t port_id,
         _In_ const std::string& tapname)
 {
     SWSS_LOG_ENTER();
@@ -156,7 +156,7 @@ void LinecardState::setPortIdToTapName(
 }
 
 void LinecardState::removePortIdToTapName(
-        _In_ lai_object_id_t port_id)
+        _In_ otai_object_id_t port_id)
 {
     SWSS_LOG_ENTER();
 
@@ -164,7 +164,7 @@ void LinecardState::removePortIdToTapName(
 }
 
 bool LinecardState::getTapNameFromPortId(
-        _In_ const lai_object_id_t port_id,
+        _In_ const otai_object_id_t port_id,
         _Out_ std::string& if_name)
 {
     SWSS_LOG_ENTER();
@@ -215,19 +215,19 @@ void LinecardState::asyncOnLinkMsg(
 }
 
 
-lai_status_t LinecardState::getStatsExt(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t LinecardState::getStatsExt(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t* counter_ids,
-        _In_ lai_stats_mode_t mode,
-        _Out_ lai_stat_value_t *counters)
+        _In_ const otai_stat_id_t* counter_ids,
+        _In_ otai_stats_mode_t mode,
+        _Out_ otai_stat_value_t *counters)
 {
     SWSS_LOG_ENTER();
 
     bool perform_set = false;
 
-    auto info = lai_metadata_get_object_type_info(object_type);
+    auto info = otai_metadata_get_object_type_info(object_type);
 
     bool enabled = false;
 
@@ -247,13 +247,13 @@ lai_status_t LinecardState::getStatsExt(
         number_of_counters &= ~VS_COUNTERS_COUNT_MSB;
 
         SWSS_LOG_NOTICE("unittests are enabled and counters count MSB is set to 1, performing SET on %s counters (%s)",
-                lai_serialize_object_id(object_id).c_str(),
+                otai_serialize_object_id(object_id).c_str(),
                 info->statenum->name);
 
         perform_set = true;
     }
 
-    auto str_object_id = lai_serialize_object_id(object_id);
+    auto str_object_id = otai_serialize_object_id(object_id);
 
     auto mapit = m_countersMap.find(str_object_id);
 
@@ -266,9 +266,9 @@ lai_status_t LinecardState::getStatsExt(
     {
         int32_t id = counter_ids[i];
 
-        auto stat_metadata  = lai_metadata_get_stat_metadata(object_type, id);
+        auto stat_metadata  = otai_metadata_get_stat_metadata(object_type, id);
 
-        if (stat_metadata->statvaluetype == LAI_STAT_VALUE_TYPE_UINT64) {
+        if (stat_metadata->statvaluetype == OTAI_STAT_VALUE_TYPE_UINT64) {
             if (perform_set)
             {
                 localcounters[ id ] = counters[i].u64;
@@ -288,12 +288,12 @@ lai_status_t LinecardState::getStatsExt(
                     counters[i].u64 = it->second;
                 }
 
-                if (mode == LAI_STATS_MODE_READ_AND_CLEAR)
+                if (mode == OTAI_STATS_MODE_READ_AND_CLEAR)
                 {
                     localcounters[ id ] = 0;
                 }
             }
-        } else if (stat_metadata->statvaluetype == LAI_STAT_VALUE_TYPE_DOUBLE) {
+        } else if (stat_metadata->statvaluetype == OTAI_STAT_VALUE_TYPE_DOUBLE) {
             auto it = localcounters.find(id);
             if (it == localcounters.end())
             {
@@ -307,10 +307,10 @@ lai_status_t LinecardState::getStatsExt(
         }
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-std::shared_ptr<laimeta::Meta> LinecardState::getMeta()
+std::shared_ptr<otaimeta::Meta> LinecardState::getMeta()
 {
     SWSS_LOG_ENTER();
 

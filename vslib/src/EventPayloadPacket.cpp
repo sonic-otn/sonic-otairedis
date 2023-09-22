@@ -2,10 +2,10 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 EventPayloadPacket::EventPayloadPacket(
-        _In_ lai_object_id_t port,
+        _In_ otai_object_id_t port,
         _In_ int ifIndex,
         _In_ const std::string& ifName,
         _In_ const Buffer& buffer):
@@ -19,7 +19,7 @@ EventPayloadPacket::EventPayloadPacket(
     // empty
 }
 
-lai_object_id_t EventPayloadPacket::getPort() const
+otai_object_id_t EventPayloadPacket::getPort() const
 {
     SWSS_LOG_ENTER();
 
