@@ -38,7 +38,7 @@ Collector::Collector(
 
     m_stateDb = shared_ptr<swss::DBConnector>(new swss::DBConnector("STATE_DB", 0));
     m_countersDb = shared_ptr<swss::DBConnector>(new swss::DBConnector("COUNTERS_DB", 0));
-    m_historyDb = shared_ptr<swss::DBConnector>(new swss::DBConnector("HISTORY_DB", 0));
+    m_historyDb = shared_ptr<swss::DBConnector>(new swss::DBConnector(HISTORY_DB_NAME, 0));
 
     string strStateTable;
     string strCountersTable;

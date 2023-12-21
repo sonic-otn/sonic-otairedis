@@ -43,7 +43,7 @@ NotificationProcessor::NotificationProcessor(
     m_stateOtdrTable = std::make_shared<Table>(m_state_db.get(), STATE_OT_OTDR_TABLE_NAME);
     m_stateOtdrEventTable = std::make_shared<Table>(m_state_db.get(), "OTDR_EVENT");
 
-    m_history_db = std::shared_ptr<DBConnector>(new DBConnector("HISTORY_DB", 0));
+    m_history_db = std::shared_ptr<DBConnector>(new DBConnector(HISTORY_DB_NAME, 0));
     m_historyAlarmTable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISALARM"));
     m_historyEventTable = std::unique_ptr<Table>(new Table(m_history_db.get(), "HISEVENT"));
 
