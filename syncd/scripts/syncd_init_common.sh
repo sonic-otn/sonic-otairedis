@@ -35,6 +35,7 @@ fi
 
 config_syncd_vs()
 {
+    echo "OTAI_VS_LINECARD_TYPE=OTAI_VS_LINECARD_TYPE_P230C" >> $PROFILE_FILE
     CMD_ARGS+=" -p $PROFILE_FILE"
 }
 
