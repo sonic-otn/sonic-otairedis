@@ -7,7 +7,7 @@
 #include "swss/logger.h"
 #include "swss/notificationproducer.h"
 
-#include "swss/json.hpp"
+#include "nlohmann/json.hpp"
 #include <inttypes.h>
 #include "Common.h"
 

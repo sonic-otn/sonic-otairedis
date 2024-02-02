@@ -2,7 +2,7 @@
 #include "otairediscommon.h"
 
 #include "swss/logger.h"
-#include "swss/json.hpp"
+#include "nlohmann/json.hpp"
 
 #include "meta/otai_serialize.h"
 #include <chrono>
