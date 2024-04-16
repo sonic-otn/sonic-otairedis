@@ -7,7 +7,7 @@
 
 #include <memory>
 
-namespace lairedis
+namespace otairedis
 {
     class RedisVidIndexGenerator:
         public OidIndexGenerator

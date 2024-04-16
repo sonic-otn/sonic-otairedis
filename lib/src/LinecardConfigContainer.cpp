@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace lairedis;
+using namespace otairedis;
 
 void LinecardConfigContainer::insert(
         _In_ std::shared_ptr<LinecardConfig> config)

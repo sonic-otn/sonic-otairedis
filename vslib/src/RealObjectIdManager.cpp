@@ -1,49 +1,49 @@
 #include "RealObjectIdManager.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 #include "swss/logger.h"
 
 extern "C" {
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
-#define LAI_OBJECT_ID_BITS_SIZE (8 * sizeof(lai_object_id_t))
+#define OTAI_OBJECT_ID_BITS_SIZE (8 * sizeof(otai_object_id_t))
 
-static_assert(LAI_OBJECT_ID_BITS_SIZE == 64, "lai_object_id_t must have 64 bits");
-static_assert(sizeof(lai_object_id_t) == sizeof(uint64_t), "LAI object ID size should be uint64_t");
+static_assert(OTAI_OBJECT_ID_BITS_SIZE == 64, "otai_object_id_t must have 64 bits");
+static_assert(sizeof(otai_object_id_t) == sizeof(uint64_t), "OTAI object ID size should be uint64_t");
 
-#define LAI_VS_OID_RESERVED_BITS_SIZE ( 8 )
+#define OTAI_VS_OID_RESERVED_BITS_SIZE ( 8 )
 
-#define LAI_VS_LINECARD_INDEX_BITS_SIZE ( 8 )
-#define LAI_VS_LINECARD_INDEX_MAX ( (1ULL << LAI_VS_LINECARD_INDEX_BITS_SIZE) - 1 )
-#define LAI_VS_LINECARD_INDEX_MASK (LAI_VS_LINECARD_INDEX_MAX)
+#define OTAI_VS_LINECARD_INDEX_BITS_SIZE ( 8 )
+#define OTAI_VS_LINECARD_INDEX_MAX ( (1ULL << OTAI_VS_LINECARD_INDEX_BITS_SIZE) - 1 )
+#define OTAI_VS_LINECARD_INDEX_MASK (OTAI_VS_LINECARD_INDEX_MAX)
 
-#define LAI_VS_GLOBAL_CONTEXT_BITS_SIZE ( 8 )
-#define LAI_VS_GLOBAL_CONTEXT_MAX ( (1ULL << LAI_VS_GLOBAL_CONTEXT_BITS_SIZE) - 1 )
-#define LAI_VS_GLOBAL_CONTEXT_MASK (LAI_VS_GLOBAL_CONTEXT_MAX)
+#define OTAI_VS_GLOBAL_CONTEXT_BITS_SIZE ( 8 )
+#define OTAI_VS_GLOBAL_CONTEXT_MAX ( (1ULL << OTAI_VS_GLOBAL_CONTEXT_BITS_SIZE) - 1 )
+#define OTAI_VS_GLOBAL_CONTEXT_MASK (OTAI_VS_GLOBAL_CONTEXT_MAX)
 
-#define LAI_VS_OBJECT_TYPE_BITS_SIZE ( 8 )
-#define LAI_VS_OBJECT_TYPE_MAX ( (1ULL << LAI_VS_OBJECT_TYPE_BITS_SIZE) - 1 )
-#define LAI_VS_OBJECT_TYPE_MASK (LAI_VS_OBJECT_TYPE_MAX)
+#define OTAI_VS_OBJECT_TYPE_BITS_SIZE ( 8 )
+#define OTAI_VS_OBJECT_TYPE_MAX ( (1ULL << OTAI_VS_OBJECT_TYPE_BITS_SIZE) - 1 )
+#define OTAI_VS_OBJECT_TYPE_MASK (OTAI_VS_OBJECT_TYPE_MAX)
 
-#define LAI_VS_OBJECT_INDEX_BITS_SIZE ( 32 )
-#define LAI_VS_OBJECT_INDEX_MAX ( (1ULL << LAI_VS_OBJECT_INDEX_BITS_SIZE) - 1 )
-#define LAI_VS_OBJECT_INDEX_MASK (LAI_VS_OBJECT_INDEX_MAX)
+#define OTAI_VS_OBJECT_INDEX_BITS_SIZE ( 32 )
+#define OTAI_VS_OBJECT_INDEX_MAX ( (1ULL << OTAI_VS_OBJECT_INDEX_BITS_SIZE) - 1 )
+#define OTAI_VS_OBJECT_INDEX_MASK (OTAI_VS_OBJECT_INDEX_MAX)
 
-#define LAI_VS_OBJECT_ID_BITS_SIZE (      \
-        LAI_VS_OID_RESERVED_BITS_SIZE +   \
-        LAI_VS_GLOBAL_CONTEXT_BITS_SIZE + \
-        LAI_VS_LINECARD_INDEX_BITS_SIZE +   \
-        LAI_VS_OBJECT_TYPE_BITS_SIZE +    \
-        LAI_VS_OBJECT_INDEX_BITS_SIZE )
+#define OTAI_VS_OBJECT_ID_BITS_SIZE (      \
+        OTAI_VS_OID_RESERVED_BITS_SIZE +   \
+        OTAI_VS_GLOBAL_CONTEXT_BITS_SIZE + \
+        OTAI_VS_LINECARD_INDEX_BITS_SIZE +   \
+        OTAI_VS_OBJECT_TYPE_BITS_SIZE +    \
+        OTAI_VS_OBJECT_INDEX_BITS_SIZE )
 
-static_assert(LAI_VS_OBJECT_ID_BITS_SIZE == LAI_OBJECT_ID_BITS_SIZE, "vs object id size must be equal to LAI object id size");
+static_assert(OTAI_VS_OBJECT_ID_BITS_SIZE == OTAI_OBJECT_ID_BITS_SIZE, "vs object id size must be equal to OTAI object id size");
 
 /*
- * This condition must be met, since we need to be able to encode LAI object
+ * This condition must be met, since we need to be able to encode OTAI object
  * type in object id on defined number of bits.
  */
-static_assert(LAI_OBJECT_TYPE_EXTENSIONS_MAX < LAI_VS_OBJECT_TYPE_MAX, "vs max object type value must be greater than supported LAI max objeect type value");
+static_assert(OTAI_OBJECT_TYPE_EXTENSIONS_MAX < OTAI_VS_OBJECT_TYPE_MAX, "vs max object type value must be greater than supported OTAI max objeect type value");
 
 /*
  * Current OBJECT ID format:
@@ -51,7 +51,7 @@ static_assert(LAI_OBJECT_TYPE_EXTENSIONS_MAX < LAI_VS_OBJECT_TYPE_MAX, "vs max o
  * bits 63..56 - reserved (must be zero)
  * bits 55..48 - global context
  * bits 47..40 - linecard index
- * bits 49..32 - LAI object type
+ * bits 49..32 - OTAI object type
  * bits 31..0  - object index
  *
  * So large number of bits is required, otherwise we would need to have map of
@@ -59,26 +59,26 @@ static_assert(LAI_OBJECT_TYPE_EXTENSIONS_MAX < LAI_VS_OBJECT_TYPE_MAX, "vs max o
  * information in OID itself is more convenient.
  */
 
-#define LAI_VS_GET_OBJECT_INDEX(oid) \
-    ( ((uint64_t)oid) & ( LAI_VS_OBJECT_INDEX_MASK ) )
+#define OTAI_VS_GET_OBJECT_INDEX(oid) \
+    ( ((uint64_t)oid) & ( OTAI_VS_OBJECT_INDEX_MASK ) )
 
-#define LAI_VS_GET_OBJECT_TYPE(oid) \
-    ( (((uint64_t)oid) >> ( LAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( LAI_VS_OBJECT_TYPE_MASK ) )
+#define OTAI_VS_GET_OBJECT_TYPE(oid) \
+    ( (((uint64_t)oid) >> ( OTAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_VS_OBJECT_TYPE_MASK ) )
 
-#define LAI_VS_GET_LINECARD_INDEX(oid) \
-    ( (((uint64_t)oid) >> ( LAI_VS_OBJECT_TYPE_BITS_SIZE + LAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( LAI_VS_LINECARD_INDEX_MASK ) )
+#define OTAI_VS_GET_LINECARD_INDEX(oid) \
+    ( (((uint64_t)oid) >> ( OTAI_VS_OBJECT_TYPE_BITS_SIZE + OTAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_VS_LINECARD_INDEX_MASK ) )
 
-#define LAI_VS_GET_GLOBAL_CONTEXT(oid) \
-    ( (((uint64_t)oid) >> ( LAI_VS_LINECARD_INDEX_BITS_SIZE + LAI_VS_OBJECT_TYPE_BITS_SIZE + LAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( LAI_VS_GLOBAL_CONTEXT_MASK ) )
+#define OTAI_VS_GET_GLOBAL_CONTEXT(oid) \
+    ( (((uint64_t)oid) >> ( OTAI_VS_LINECARD_INDEX_BITS_SIZE + OTAI_VS_OBJECT_TYPE_BITS_SIZE + OTAI_VS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_VS_GLOBAL_CONTEXT_MASK ) )
 
-#define LAI_VS_TEST_OID (0x0123456789abcdef)
+#define OTAI_VS_TEST_OID (0x0123456789abcdef)
 
-static_assert(LAI_VS_GET_GLOBAL_CONTEXT(LAI_VS_TEST_OID) == 0x23, "test global context");
-static_assert(LAI_VS_GET_LINECARD_INDEX(LAI_VS_TEST_OID) == 0x45, "test linecard index");
-static_assert(LAI_VS_GET_OBJECT_TYPE(LAI_VS_TEST_OID) == 0x67, "test object type");
-static_assert(LAI_VS_GET_OBJECT_INDEX(LAI_VS_TEST_OID) == 0x89abcdef, "test object index");
+static_assert(OTAI_VS_GET_GLOBAL_CONTEXT(OTAI_VS_TEST_OID) == 0x23, "test global context");
+static_assert(OTAI_VS_GET_LINECARD_INDEX(OTAI_VS_TEST_OID) == 0x45, "test linecard index");
+static_assert(OTAI_VS_GET_OBJECT_TYPE(OTAI_VS_TEST_OID) == 0x67, "test object type");
+static_assert(OTAI_VS_GET_OBJECT_INDEX(OTAI_VS_TEST_OID) == 0x89abcdef, "test object index");
 
-using namespace laivs;
+using namespace otaivs;
 
 RealObjectIdManager::RealObjectIdManager(
         _In_ uint32_t globalContext,
@@ -88,33 +88,33 @@ RealObjectIdManager::RealObjectIdManager(
 {
     SWSS_LOG_ENTER();
 
-    if (globalContext > LAI_VS_GLOBAL_CONTEXT_MAX)
+    if (globalContext > OTAI_VS_GLOBAL_CONTEXT_MAX)
     {
         SWSS_LOG_THROW("specified globalContext(0x%x) > maximum global context 0x%llx",
                 globalContext,
-                LAI_VS_GLOBAL_CONTEXT_MAX);
+                OTAI_VS_GLOBAL_CONTEXT_MAX);
     }
 }
 
-lai_object_id_t RealObjectIdManager::laiLinecardIdQuery(
-        _In_ lai_object_id_t objectId) const
+otai_object_id_t RealObjectIdManager::otaiLinecardIdQuery(
+        _In_ otai_object_id_t objectId) const
 {
     SWSS_LOG_ENTER();
 
-    if (objectId == LAI_NULL_OBJECT_ID)
+    if (objectId == OTAI_NULL_OBJECT_ID)
     {
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
-    lai_object_type_t objectType = laiObjectTypeQuery(objectId);
+    otai_object_type_t objectType = otaiObjectTypeQuery(objectId);
 
-    if (objectType == LAI_OBJECT_TYPE_NULL)
+    if (objectType == OTAI_OBJECT_TYPE_NULL)
     {
         SWSS_LOG_THROW("invalid object type of oid %s",
-                lai_serialize_object_id(objectId).c_str());
+                otai_serialize_object_id(objectId).c_str());
     }
 
-    if (objectType == LAI_OBJECT_TYPE_LINECARD)
+    if (objectType == OTAI_OBJECT_TYPE_LINECARD)
     {
         return objectId;
     }
@@ -124,34 +124,34 @@ lai_object_id_t RealObjectIdManager::laiLinecardIdQuery(
     // - if object id has existing linecard index
     // but then this method can't be made static
 
-    uint32_t linecardIndex = (uint32_t)LAI_VS_GET_LINECARD_INDEX(objectId);
+    uint32_t linecardIndex = (uint32_t)OTAI_VS_GET_LINECARD_INDEX(objectId);
 
-    return constructObjectId(LAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
+    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
 }
 
-lai_object_type_t RealObjectIdManager::laiObjectTypeQuery(
-        _In_ lai_object_id_t objectId) const
+otai_object_type_t RealObjectIdManager::otaiObjectTypeQuery(
+        _In_ otai_object_id_t objectId) const
 {
     SWSS_LOG_ENTER();
 
-    if (objectId == LAI_NULL_OBJECT_ID)
+    if (objectId == OTAI_NULL_OBJECT_ID)
     {
-        return LAI_OBJECT_TYPE_NULL;
+        return OTAI_OBJECT_TYPE_NULL;
     }
 
-    lai_object_type_t objectType = (lai_object_type_t)(LAI_VS_GET_OBJECT_TYPE(objectId));
+    otai_object_type_t objectType = (otai_object_type_t)(OTAI_VS_GET_OBJECT_TYPE(objectId));
 
-    if (objectType == LAI_OBJECT_TYPE_NULL || objectType >= LAI_OBJECT_TYPE_EXTENSIONS_MAX)
+    if (objectType == OTAI_OBJECT_TYPE_NULL || objectType >= OTAI_OBJECT_TYPE_EXTENSIONS_MAX)
     {
         SWSS_LOG_ERROR("invalid object id %s",
-                lai_serialize_object_id(objectId).c_str());
+                otai_serialize_object_id(objectId).c_str());
 
         /*
          * We can't throw here, since it would give no meaningful message.
          * Throwing at one level up is better.
          */
 
-        return LAI_OBJECT_TYPE_NULL;
+        return OTAI_OBJECT_TYPE_NULL;
     }
 
     // NOTE: we could also check:
@@ -176,7 +176,7 @@ uint32_t RealObjectIdManager::allocateNewLinecardIndex()
 {
     SWSS_LOG_ENTER();
 
-    for (uint32_t index = 0; index < LAI_VS_LINECARD_INDEX_MAX; ++index)
+    for (uint32_t index = 0; index < OTAI_VS_LINECARD_INDEX_MAX; ++index)
     {
         if (m_linecardIndexes.find(index) != m_linecardIndexes.end())
             continue;
@@ -209,28 +209,28 @@ void RealObjectIdManager::releaseLinecardIndex(
 }
 
 uint64_t RealObjectIdManager::allocateNewObjectIndex(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     uint64_t objectIndex = 0;
 
-    if (objectType == LAI_OBJECT_TYPE_OCM)
+    if (objectType == OTAI_OBJECT_TYPE_OCM)
     {
         for (uint32_t i = 0; i < attr_count; i++)
         {
-            if (attr_list[i].id == LAI_OCM_ATTR_ID)
+            if (attr_list[i].id == OTAI_OCM_ATTR_ID)
             {
                 objectIndex = attr_list[i].value.u32;
                 break;
             }
         }        
     }
-    else if (objectType == LAI_OBJECT_TYPE_OTDR)
+    else if (objectType == OTAI_OBJECT_TYPE_OTDR)
     {
         for (uint32_t i = 0; i < attr_count; i++)
         {
-            if (attr_list[i].id == LAI_OTDR_ATTR_ID)
+            if (attr_list[i].id == OTAI_OTDR_ATTR_ID)
             {
                 objectIndex = attr_list[i].value.u32;
                 break;
@@ -246,54 +246,54 @@ uint64_t RealObjectIdManager::allocateNewObjectIndex(
     return objectIndex;
 }
 
-lai_object_id_t RealObjectIdManager::allocateNewObjectId(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t linecardId,
+otai_object_id_t RealObjectIdManager::allocateNewObjectId(
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t linecardId,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    if ((objectType <= LAI_OBJECT_TYPE_NULL) || (objectType >= LAI_OBJECT_TYPE_EXTENSIONS_MAX))
+    if ((objectType <= OTAI_OBJECT_TYPE_NULL) || (objectType >= OTAI_OBJECT_TYPE_EXTENSIONS_MAX))
     {
         SWSS_LOG_THROW("invalid objct type: %d", objectType);
     }
 
-    if (objectType == LAI_OBJECT_TYPE_LINECARD)
+    if (objectType == OTAI_OBJECT_TYPE_LINECARD)
     {
         SWSS_LOG_THROW("this function can't be used to allocate linecard id");
     }
 
-    lai_object_type_t linecardObjectType = laiObjectTypeQuery(linecardId);
+    otai_object_type_t linecardObjectType = otaiObjectTypeQuery(linecardId);
 
-    if (linecardObjectType != LAI_OBJECT_TYPE_LINECARD)
+    if (linecardObjectType != OTAI_OBJECT_TYPE_LINECARD)
     {
         SWSS_LOG_THROW("object type of linecard %s is %s, should be LINECARD",
-                lai_serialize_object_id(linecardId).c_str(),
-                lai_serialize_object_type(linecardObjectType).c_str());
+                otai_serialize_object_id(linecardId).c_str(),
+                otai_serialize_object_type(linecardObjectType).c_str());
     }
 
-    uint32_t linecardIndex = (uint32_t)LAI_VS_GET_LINECARD_INDEX(linecardId);
+    uint32_t linecardIndex = (uint32_t)OTAI_VS_GET_LINECARD_INDEX(linecardId);
 
     // count from zero
     uint64_t objectIndex = allocateNewObjectIndex(objectType, attr_count, attr_list);
 
-    if (objectIndex > LAI_VS_OBJECT_INDEX_MAX)
+    if (objectIndex > OTAI_VS_OBJECT_INDEX_MAX)
     {
         SWSS_LOG_THROW("no more object indexes available, given: 0x%" PRIx64 " but limit is 0x%llx",
                 objectIndex,
-                LAI_VS_OBJECT_INDEX_MAX);
+                OTAI_VS_OBJECT_INDEX_MAX);
     }
 
-    lai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex, m_globalContext);
+    otai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex, m_globalContext);
 
     SWSS_LOG_DEBUG("created RID %s",
-            lai_serialize_object_id(objectId).c_str());
+            otai_serialize_object_id(objectId).c_str());
 
     return objectId;
 }
 
-lai_object_id_t RealObjectIdManager::allocateNewLinecardObjectId(
+otai_object_id_t RealObjectIdManager::allocateNewLinecardObjectId(
         _In_ const std::string& hardwareInfo)
 {
     SWSS_LOG_ENTER();
@@ -304,120 +304,120 @@ lai_object_id_t RealObjectIdManager::allocateNewLinecardObjectId(
     {
         SWSS_LOG_ERROR("no linecard config for hardware info: '%s'", hardwareInfo.c_str());
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
     uint32_t linecardIndex = config->m_linecardIndex;
 
-    if (linecardIndex > LAI_VS_LINECARD_INDEX_MAX)
+    if (linecardIndex > OTAI_VS_LINECARD_INDEX_MAX)
     {
-        SWSS_LOG_THROW("linecard index %u > %llu (max)", linecardIndex, LAI_VS_LINECARD_INDEX_MAX);
+        SWSS_LOG_THROW("linecard index %u > %llu (max)", linecardIndex, OTAI_VS_LINECARD_INDEX_MAX);
     }
 
     m_linecardIndexes.insert(linecardIndex);
 
-    lai_object_id_t objectId = constructObjectId(LAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
+    otai_object_id_t objectId = constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
 
     SWSS_LOG_NOTICE("created LINECARD RID %s for hwinfo: '%s'",
-            lai_serialize_object_id(objectId).c_str(),
+            otai_serialize_object_id(objectId).c_str(),
             hardwareInfo.c_str());
 
     return objectId;
 }
 
 void RealObjectIdManager::releaseObjectId(
-        _In_ lai_object_id_t objectId)
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
-    if (laiObjectTypeQuery(objectId) == LAI_OBJECT_TYPE_LINECARD)
+    if (otaiObjectTypeQuery(objectId) == OTAI_OBJECT_TYPE_LINECARD)
     {
-        releaseLinecardIndex((uint32_t)LAI_VS_GET_LINECARD_INDEX(objectId));
+        releaseLinecardIndex((uint32_t)OTAI_VS_GET_LINECARD_INDEX(objectId));
     }
 }
 
-lai_object_id_t RealObjectIdManager::constructObjectId(
-        _In_ lai_object_type_t objectType,
+otai_object_id_t RealObjectIdManager::constructObjectId(
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t linecardIndex,
         _In_ uint64_t objectIndex,
         _In_ uint32_t globalContext)
 {
     SWSS_LOG_ENTER();
 
-    return (lai_object_id_t)(
-            ((uint64_t)globalContext << ( LAI_VS_LINECARD_INDEX_BITS_SIZE + LAI_VS_OBJECT_TYPE_BITS_SIZE + LAI_VS_OBJECT_INDEX_BITS_SIZE )) |
-            ((uint64_t)linecardIndex << ( LAI_VS_OBJECT_TYPE_BITS_SIZE + LAI_VS_OBJECT_INDEX_BITS_SIZE )) |
-            ((uint64_t)objectType << ( LAI_VS_OBJECT_INDEX_BITS_SIZE)) |
+    return (otai_object_id_t)(
+            ((uint64_t)globalContext << ( OTAI_VS_LINECARD_INDEX_BITS_SIZE + OTAI_VS_OBJECT_TYPE_BITS_SIZE + OTAI_VS_OBJECT_INDEX_BITS_SIZE )) |
+            ((uint64_t)linecardIndex << ( OTAI_VS_OBJECT_TYPE_BITS_SIZE + OTAI_VS_OBJECT_INDEX_BITS_SIZE )) |
+            ((uint64_t)objectType << ( OTAI_VS_OBJECT_INDEX_BITS_SIZE)) |
             objectIndex);
 }
 
-lai_object_id_t RealObjectIdManager::linecardIdQuery(
-        _In_ lai_object_id_t objectId)
+otai_object_id_t RealObjectIdManager::linecardIdQuery(
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
-    if (objectId == LAI_NULL_OBJECT_ID)
+    if (objectId == OTAI_NULL_OBJECT_ID)
     {
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
-    lai_object_type_t objectType = objectTypeQuery(objectId);
+    otai_object_type_t objectType = objectTypeQuery(objectId);
 
-    if (objectType == LAI_OBJECT_TYPE_NULL)
+    if (objectType == OTAI_OBJECT_TYPE_NULL)
     {
         SWSS_LOG_ERROR("invalid object type of oid %s",
-                lai_serialize_object_id(objectId).c_str());
+                otai_serialize_object_id(objectId).c_str());
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
-    if (objectType == LAI_OBJECT_TYPE_LINECARD)
+    if (objectType == OTAI_OBJECT_TYPE_LINECARD)
     {
         return objectId;
     }
 
-    uint32_t linecardIndex = (uint32_t)LAI_VS_GET_LINECARD_INDEX(objectId);
-    uint32_t globalContext = (uint32_t)LAI_VS_GET_GLOBAL_CONTEXT(objectId);
+    uint32_t linecardIndex = (uint32_t)OTAI_VS_GET_LINECARD_INDEX(objectId);
+    uint32_t globalContext = (uint32_t)OTAI_VS_GET_GLOBAL_CONTEXT(objectId);
 
-    return constructObjectId(LAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, globalContext);
+    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, globalContext);
 }
 
-lai_object_type_t RealObjectIdManager::objectTypeQuery(
-        _In_ lai_object_id_t objectId)
+otai_object_type_t RealObjectIdManager::objectTypeQuery(
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
-    if (objectId == LAI_NULL_OBJECT_ID)
+    if (objectId == OTAI_NULL_OBJECT_ID)
     {
-        return LAI_OBJECT_TYPE_NULL;
+        return OTAI_OBJECT_TYPE_NULL;
     }
 
-    lai_object_type_t objectType = (lai_object_type_t)(LAI_VS_GET_OBJECT_TYPE(objectId));
+    otai_object_type_t objectType = (otai_object_type_t)(OTAI_VS_GET_OBJECT_TYPE(objectId));
 
-    if (!lai_metadata_is_object_type_valid(objectType))
+    if (!otai_metadata_is_object_type_valid(objectType))
     {
         SWSS_LOG_ERROR("invalid object id %s",
-                lai_serialize_object_id(objectId).c_str());
+                otai_serialize_object_id(objectId).c_str());
 
-        return LAI_OBJECT_TYPE_NULL;
+        return OTAI_OBJECT_TYPE_NULL;
     }
 
     return objectType;
 }
 
 uint32_t RealObjectIdManager::getLinecardIndex(
-        _In_ lai_object_id_t objectId)
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
     auto linecardId = linecardIdQuery(objectId);
 
-    return LAI_VS_GET_LINECARD_INDEX(linecardId);
+    return OTAI_VS_GET_LINECARD_INDEX(linecardId);
 }
 
 uint32_t RealObjectIdManager::getObjectIndex(
-        _In_ lai_object_id_t objectId)
+        _In_ otai_object_id_t objectId)
 {
-    return LAI_VS_GET_OBJECT_INDEX(objectId);
+    return OTAI_VS_GET_OBJECT_INDEX(objectId);
 }
 

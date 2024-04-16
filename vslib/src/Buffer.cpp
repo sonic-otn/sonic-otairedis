@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-using namespace laivs;
+using namespace otaivs;
 
 Buffer::Buffer(
         _In_ const uint8_t* data,

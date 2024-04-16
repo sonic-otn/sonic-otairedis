@@ -1,12 +1,12 @@
 #pragma once
 
-#include "RedisRemoteLaiInterface.h"
+#include "RedisRemoteOtaiInterface.h"
 #include "Notification.h"
 #include "ContextConfig.h"
 
 #include "meta/Meta.h"
 
-namespace lairedis
+namespace otairedis
 {
     class Context
     {
@@ -15,13 +15,13 @@ namespace lairedis
             Context(
                     _In_ std::shared_ptr<ContextConfig> contextConfig,
                     _In_ std::shared_ptr<Recorder> recorder,
-                    _In_ std::function<lai_linecard_notifications_t(std::shared_ptr<Notification>, Context*)> notificationCallback);
+                    _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>, Context*)> notificationCallback);
 
             virtual ~Context();
 
         private:
 
-            lai_linecard_notifications_t handle_notification(
+            otai_linecard_notifications_t handle_notification(
                     _In_ std::shared_ptr<Notification> notification);
 
         private:
@@ -32,10 +32,10 @@ namespace lairedis
 
         public:
 
-            std::shared_ptr<laimeta::Meta> m_meta;
+            std::shared_ptr<otaimeta::Meta> m_meta;
 
-            std::shared_ptr<RedisRemoteLaiInterface> m_redisLai;
+            std::shared_ptr<RedisRemoteOtaiInterface> m_redisOtai;
 
-            std::function<lai_linecard_notifications_t(std::shared_ptr<Notification>, Context*)> m_notificationCallback;
+            std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>, Context*)> m_notificationCallback;
     };
 }

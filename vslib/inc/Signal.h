@@ -3,7 +3,7 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace laivs
+namespace otaivs
 {
     class Signal
     {

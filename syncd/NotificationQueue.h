@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include <lai.h>
+#include <otai.h>
 }
 
 #include "swss/table.h"

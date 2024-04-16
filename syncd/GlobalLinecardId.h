@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 namespace syncd
@@ -16,6 +16,6 @@ namespace syncd
         public:
 
             static void setLinecardId(
-                    _In_ lai_object_id_t linecardRid);
+                    _In_ otai_object_id_t linecardRid);
     };
 }

@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laimeta;
+using namespace otaimeta;
 
 NumberOidIndexGenerator::NumberOidIndexGenerator()
 {

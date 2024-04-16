@@ -1,3 +1,0 @@
-#! /usr/bin/dh-exec
-/usr/lib/${DEB_HOST_MULTIARCH}/liblaimetadata.so.0 /usr/lib/${DEB_HOST_MULTIARCH}/liblaimetadata.so
-/usr/lib/${DEB_HOST_MULTIARCH}/liblaimeta.so.0 /usr/lib/${DEB_HOST_MULTIARCH}/liblaimeta.so

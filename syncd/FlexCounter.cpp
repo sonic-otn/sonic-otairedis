@@ -6,8 +6,8 @@
 #include "FlexCounter.h"
 #include "VidManager.h"
 
-#include "meta/lai_serialize.h"
-#include "lib/inc/LaiInterface.h"
+#include "meta/otai_serialize.h"
+#include "lib/inc/OtaiInterface.h"
 
 #include "swss/redisapi.h"
 #include "swss/tokenize.h"
@@ -20,27 +20,27 @@ using namespace syncd;
 
 FlexCounter::FlexCounter(
     _In_ const std::string& instanceId,
-    _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai,
+    _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
     _In_ const std::string& dbCounters):
     m_pollInterval(0),
     m_instanceId(instanceId),
-    m_vendorLai(vendorLai)
+    m_vendorOtai(vendorOtai)
 {
     SWSS_LOG_ENTER();
 
-    m_propGroup = LAI_PROPERTY_GROUP_NULL;
+    m_propGroup = OTAI_PROPERTY_GROUP_NULL;
 
     if (string::npos != m_instanceId.find("1S_STAT_STATUS"))
     {
-        m_propGroup = LAI_PROPERTY_GROUP_ATTR;
+        m_propGroup = OTAI_PROPERTY_GROUP_ATTR;
     }
     else if (string::npos != m_instanceId.find("1S_STAT_GAUGE"))
     {
-        m_propGroup = LAI_PROPERTY_GROUP_GAUGE;
+        m_propGroup = OTAI_PROPERTY_GROUP_GAUGE;
     }
     else if (string::npos != m_instanceId.find("1S_STAT_COUNTER"))
     {
-        m_propGroup = LAI_PROPERTY_GROUP_STAT;
+        m_propGroup = OTAI_PROPERTY_GROUP_STAT;
     }
 
     m_enable = false;
@@ -98,13 +98,13 @@ void FlexCounter::setStatsMode(
 
     if (mode == STATS_MODE_READ)
     {
-        m_statsMode = LAI_STATS_MODE_READ;
+        m_statsMode = OTAI_STATS_MODE_READ;
 
         SWSS_LOG_DEBUG("Set STATS MODE %s for instance %s", mode.c_str(), m_instanceId.c_str());
     }
     else if (mode == STATS_MODE_READ_AND_CLEAR)
     {
-        m_statsMode = LAI_STATS_MODE_READ_AND_CLEAR;
+        m_statsMode = OTAI_STATS_MODE_READ_AND_CLEAR;
 
         SWSS_LOG_DEBUG("Set STATS MODE %s for instance %s", mode.c_str(), m_instanceId.c_str());
     }
@@ -307,7 +307,7 @@ void FlexCounter::endFlexCounterThread(void)
 }
 
 void FlexCounter::removeCounter(
-    _In_ lai_object_id_t vid)
+    _In_ otai_object_id_t vid)
 {
     MUTEX;
 
@@ -322,15 +322,15 @@ void FlexCounter::removeCounter(
 }
 
 void FlexCounter::addCounter(
-    _In_ lai_object_id_t vid,
-    _In_ lai_object_id_t rid,
+    _In_ otai_object_id_t vid,
+    _In_ otai_object_id_t rid,
     _In_ const std::vector<swss::FieldValueTuple>& values)
 {
     MUTEX;
 
     SWSS_LOG_ENTER();
 
-    lai_object_type_t objectType = VidManager::objectTypeQuery(vid); // VID and RID will have the same object type
+    otai_object_type_t objectType = VidManager::objectTypeQuery(vid); // VID and RID will have the same object type
 
     for (const auto& valuePair : values)
     {
@@ -342,21 +342,21 @@ void FlexCounter::addCounter(
         std::set<std::string> counterIds(idStrings.begin(), idStrings.end()); 
 
         SWSS_LOG_NOTICE("Object type %s rid 0x%" PRIx64 " m_propGroup %d",
-                        lai_serialize_object_type(objectType).c_str(), rid, (int)m_propGroup);
+                        otai_serialize_object_type(objectType).c_str(), rid, (int)m_propGroup);
         
         Collector *c = NULL;
 
-        if (m_propGroup == LAI_PROPERTY_GROUP_ATTR)
+        if (m_propGroup == OTAI_PROPERTY_GROUP_ATTR)
         {
-            c = new LaiAttrCollector(objectType, vid, rid, m_vendorLai, counterIds);
+            c = new OtaiAttrCollector(objectType, vid, rid, m_vendorOtai, counterIds);
         }
-        else if (m_propGroup == LAI_PROPERTY_GROUP_STAT)
+        else if (m_propGroup == OTAI_PROPERTY_GROUP_STAT)
         {
-            c = new LaiStatCollector(objectType, vid, rid, m_vendorLai, counterIds);
+            c = new OtaiStatCollector(objectType, vid, rid, m_vendorOtai, counterIds);
         }
-        else if (m_propGroup == LAI_PROPERTY_GROUP_GAUGE)
+        else if (m_propGroup == OTAI_PROPERTY_GROUP_GAUGE)
         {
-            c = new LaiGaugeCollector(objectType, vid, rid, m_vendorLai, counterIds);
+            c = new OtaiGaugeCollector(objectType, vid, rid, m_vendorOtai, counterIds);
         }
 
         if (c != NULL)

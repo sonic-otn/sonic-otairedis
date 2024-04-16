@@ -9,7 +9,7 @@
 #include <string>
 #include <memory>
 
-namespace laivs
+namespace otaivs
 {
     class CorePortIndexMap
     {

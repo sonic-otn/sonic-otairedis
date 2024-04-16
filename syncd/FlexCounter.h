@@ -9,29 +9,29 @@
 #include <mutex>
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
-#include "LaiInterface.h"
+#include "OtaiInterface.h"
 
 #include "swss/table.h"
 
 #include "pm/Collector.h"
-#include "pm/LaiAttrCollector.h"
-#include "pm/LaiStatCollector.h"
-#include "pm/LaiGaugeCollector.h"
+#include "pm/OtaiAttrCollector.h"
+#include "pm/OtaiStatCollector.h"
+#include "pm/OtaiGaugeCollector.h"
 
 using namespace std;
 
 namespace syncd
 {
-    enum lai_property_group_t
+    enum otai_property_group_t
     {
-        LAI_PROPERTY_GROUP_NULL,
-        LAI_PROPERTY_GROUP_ATTR,
-        LAI_PROPERTY_GROUP_GAUGE,
-        LAI_PROPERTY_GROUP_STAT,
-        LAI_PROPERTY_GROUP_MAX,
+        OTAI_PROPERTY_GROUP_NULL,
+        OTAI_PROPERTY_GROUP_ATTR,
+        OTAI_PROPERTY_GROUP_GAUGE,
+        OTAI_PROPERTY_GROUP_STAT,
+        OTAI_PROPERTY_GROUP_MAX,
     };
 
     class FlexCounter
@@ -44,7 +44,7 @@ namespace syncd
 
         FlexCounter(
             _In_ const std::string& instanceId,
-            _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai,
+            _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
             _In_ const std::string& dbCounters);
 
         virtual ~FlexCounter();
@@ -57,12 +57,12 @@ namespace syncd
         void removeCounterPlugins();
 
         void addCounter(
-            _In_ lai_object_id_t vid,
-            _In_ lai_object_id_t rid,
+            _In_ otai_object_id_t vid,
+            _In_ otai_object_id_t rid,
             _In_ const std::vector<swss::FieldValueTuple>& values);
 
         void removeCounter(
-            _In_ lai_object_id_t vid);
+            _In_ otai_object_id_t vid);
 
         bool isEmpty();
 
@@ -134,19 +134,19 @@ namespace syncd
 
         std::string m_instanceId;
 
-        lai_stats_mode_t m_statsMode;
+        otai_stats_mode_t m_statsMode;
 
         bool m_enable;
 
         collect_counters_handler_unordered_map_t m_collectCountersHandlers;
 
-        std::shared_ptr<lairedis::LaiInterface> m_vendorLai;
+        std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
-        map<lai_object_id_t, Collector*> m_collectors;
+        map<otai_object_id_t, Collector*> m_collectors;
 
         bool m_isDiscarded;
 
-        lai_property_group_t m_propGroup;
+        otai_property_group_t m_propGroup;
     };
 }
 

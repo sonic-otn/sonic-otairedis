@@ -1,14 +1,14 @@
-#include "laivs.h"
+#include "otaivs.h"
 #include "LinecardConfig.h"
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 LinecardConfig::LinecardConfig():
-    m_laiLinecardType("P230C"),
-    m_linecardType(LAI_VS_LINECARD_TYPE_NONE),
-    m_bootType(LAI_VS_BOOT_TYPE_COLD),
+    m_otaiLinecardType("P230C"),
+    m_linecardType(OTAI_VS_LINECARD_TYPE_NONE),
+    m_bootType(OTAI_VS_BOOT_TYPE_COLD),
     m_linecardIndex(0),
     m_hardwareInfo(""),
     m_useTapDevice(false)
@@ -19,24 +19,24 @@ LinecardConfig::LinecardConfig():
 }
 
 
-bool LinecardConfig::parseLaiLinecardType(
-        _In_ const char* laiLinecardTypeStr,
-        _Out_ std::string& laiLinecardType)
+bool LinecardConfig::parseOtaiLinecardType(
+        _In_ const char* otaiLinecardTypeStr,
+        _Out_ std::string& otaiLinecardType)
 {
     SWSS_LOG_ENTER();
 
-    std::string st = (laiLinecardTypeStr == NULL) ? "unknown" : laiLinecardTypeStr;
+    std::string st = (otaiLinecardTypeStr == NULL) ? "unknown" : otaiLinecardTypeStr;
 
-    if (st == LAI_VALUE_LAI_LINECARD_TYPE_P230C)
+    if (st == OTAI_VALUE_OTAI_LINECARD_TYPE_P230C)
     {
-        laiLinecardType = "P230C";
+        otaiLinecardType = "P230C";
     }
     else
     {
-        SWSS_LOG_ERROR("unknown LAI linecard type: '%s', expected (%s|%s)",
-                laiLinecardTypeStr,
-                LAI_VALUE_LAI_LINECARD_TYPE_NPU,
-                LAI_VALUE_LAI_LINECARD_TYPE_PHY);
+        SWSS_LOG_ERROR("unknown OTAI linecard type: '%s', expected (%s|%s)",
+                otaiLinecardTypeStr,
+                OTAI_VALUE_OTAI_LINECARD_TYPE_NPU,
+                OTAI_VALUE_OTAI_LINECARD_TYPE_PHY);
 
         return false;
     }
@@ -46,21 +46,21 @@ bool LinecardConfig::parseLaiLinecardType(
 
 bool LinecardConfig::parseLinecardType(
         _In_ const char* linecardTypeStr,
-        _Out_ lai_vs_linecard_type_t& linecardType)
+        _Out_ otai_vs_linecard_type_t& linecardType)
 {
     SWSS_LOG_ENTER();
 
     std::string st = (linecardTypeStr == NULL) ? "unknown" : linecardTypeStr;
 
-    if (st == LAI_VALUE_VS_LINECARD_TYPE_P230C)
+    if (st == OTAI_VALUE_VS_LINECARD_TYPE_P230C)
     {
-        linecardType = LAI_VS_LINECARD_TYPE_P230C;
+        linecardType = OTAI_VS_LINECARD_TYPE_P230C;
     }
     else
     {
         SWSS_LOG_ERROR("unknown linecard type: '%s', expected (%s)",
                 linecardTypeStr,
-                LAI_VALUE_VS_LINECARD_TYPE_P230C);
+                OTAI_VALUE_VS_LINECARD_TYPE_P230C);
 
         return false;
     }
@@ -70,15 +70,15 @@ bool LinecardConfig::parseLinecardType(
 
 bool LinecardConfig::parseBootType(
         _In_ const char* bootTypeStr,
-        _Out_ lai_vs_boot_type_t& bootType)
+        _Out_ otai_vs_boot_type_t& bootType)
 {
     SWSS_LOG_ENTER();
 
     std::string bt = (bootTypeStr == NULL) ? "cold" : bootTypeStr;
 
-    if (bt == "cold" || bt == LAI_VALUE_VS_BOOT_TYPE_COLD)
+    if (bt == "cold" || bt == OTAI_VALUE_VS_BOOT_TYPE_COLD)
     {
-        bootType = LAI_VS_BOOT_TYPE_COLD;
+        bootType = OTAI_VS_BOOT_TYPE_COLD;
     }
     else
     {

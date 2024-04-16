@@ -3,7 +3,7 @@
 #include "swss/logger.h"
 #include <inttypes.h>
 
-using namespace lairediscommon;
+using namespace otairediscommon;
 
 bool PerformanceIntervalTimer::m_enable = true;
 

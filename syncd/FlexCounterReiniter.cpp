@@ -6,13 +6,13 @@
 
 #include "swss/logger.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include <unistd.h>
 #include <inttypes.h>
 
 using namespace syncd;
-using namespace laimeta;
+using namespace otaimeta;
 
 FlexCounterReiniter::FlexCounterReiniter(
     _In_ std::shared_ptr<RedisClient> client,
@@ -31,8 +31,8 @@ FlexCounterReiniter::FlexCounterReiniter(
 {
     SWSS_LOG_ENTER();
 
-    m_linecard_rid = LAI_NULL_OBJECT_ID;
-    m_linecard_vid = LAI_NULL_OBJECT_ID;
+    m_linecard_rid = OTAI_NULL_OBJECT_ID;
+    m_linecard_vid = OTAI_NULL_OBJECT_ID;
 }
 
 FlexCounterReiniter::~FlexCounterReiniter()
@@ -43,7 +43,7 @@ FlexCounterReiniter::~FlexCounterReiniter()
 }
 
 void FlexCounterReiniter::getInfoFromFlexCounterKey(
-    _In_ const std::string& key, _Out_ std::string& instancdID, _Out_ lai_object_id_t& vid, _Out_ lai_object_id_t& rid)
+    _In_ const std::string& key, _Out_ std::string& instancdID, _Out_ otai_object_id_t& vid, _Out_ otai_object_id_t& rid)
 {
     SWSS_LOG_ENTER();
 
@@ -54,12 +54,12 @@ void FlexCounterReiniter::getInfoFromFlexCounterKey(
     instancdID = strObjectType;
     std::string strObjectId = key.substr(end + 1);
 
-    lai_deserialize_object_id(strObjectId, vid);
+    otai_deserialize_object_id(strObjectId, vid);
 
     if (!m_translator->tryTranslateVidToRid(vid, rid))
     {
         SWSS_LOG_WARN("port VID %s, was not found (probably port was removed/splitted) and will remove from counters now",
-            lai_serialize_object_id(vid).c_str());
+            otai_serialize_object_id(vid).c_str());
     }
 
     SWSS_LOG_NOTICE("FlexCounterReiniter getObjectTypeFromFlexCounterKey strObjectType is %s rid is 0x%" PRIx64 " vid is 0x%" PRIx64 "",
@@ -75,8 +75,8 @@ void FlexCounterReiniter::prepareFlexCounterState()
     SWSS_LOG_TIMER("read flexCounter state");
     for (auto& key : m_flexCounterKeys)
     {
-        lai_object_id_t rid;
-        lai_object_id_t vid;
+        otai_object_id_t rid;
+        otai_object_id_t vid;
         std::string instancdID;
         m_values = redisGetAttributesFromKey(key);
         getInfoFromFlexCounterKey(key, instancdID, vid, rid);

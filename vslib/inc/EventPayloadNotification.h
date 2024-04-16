@@ -1,14 +1,14 @@
 #pragma once
 
 extern "C"{
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
 #include "EventPayload.h"
 
 #include "lib/inc/Notification.h"
 
-namespace laivs
+namespace otaivs
 {
     class EventPayloadNotification:
         public EventPayload
@@ -16,21 +16,21 @@ namespace laivs
         public:
 
             EventPayloadNotification(
-                    _In_ std::shared_ptr<lairedis::Notification> ntf,
-                    _In_ const lai_linecard_notifications_t& linecardNotifications);
+                    _In_ std::shared_ptr<otairedis::Notification> ntf,
+                    _In_ const otai_linecard_notifications_t& linecardNotifications);
 
             virtual ~EventPayloadNotification() = default;
 
         public:
 
-            std::shared_ptr<lairedis::Notification> getNotification() const;
+            std::shared_ptr<otairedis::Notification> getNotification() const;
 
-            const lai_linecard_notifications_t& getLinecardNotifications() const;
+            const otai_linecard_notifications_t& getLinecardNotifications() const;
 
         private:
 
-            std::shared_ptr<lairedis::Notification> m_ntf;
+            std::shared_ptr<otairedis::Notification> m_ntf;
 
-            lai_linecard_notifications_t m_linecardNotifications;
+            otai_linecard_notifications_t m_linecardNotifications;
     };
 }

@@ -1,8 +1,8 @@
 #include "AttrKeyMap.h"
 
-#include "lai_serialize.h"
+#include "otai_serialize.h"
 
-using namespace laimeta;
+using namespace otaimeta;
 
 void AttrKeyMap::clear()
 {
@@ -53,9 +53,9 @@ bool AttrKeyMap::attrKeyExists(
 }
 
 std::string AttrKeyMap::constructKey(
-        _In_ const lai_object_meta_key_t& metaKey,
+        _In_ const otai_object_meta_key_t& metaKey,
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t* attrList)
+        _In_ const otai_attribute_t* attrList)
 {
     SWSS_LOG_ENTER();
 
@@ -67,18 +67,18 @@ std::string AttrKeyMap::constructKey(
     {
         const auto& attr = attrList[idx];
 
-        auto* md = lai_metadata_get_attr_metadata(metaKey.objecttype, attr.id);
+        auto* md = otai_metadata_get_attr_metadata(metaKey.objecttype, attr.id);
 
         if (!md)
         {
             SWSS_LOG_THROW("failed to get metadata for object type: %s and attr id: %d",
-                    lai_serialize_object_id(metaKey.objecttype).c_str(),
+                    otai_serialize_object_id(metaKey.objecttype).c_str(),
                     attr.id);
         }
 
         const auto& value = attr.value;
 
-        if (!LAI_HAS_FLAG_KEY(md->flags))
+        if (!OTAI_HAS_FLAG_KEY(md->flags))
         {
             continue;
         }
@@ -87,7 +87,7 @@ std::string AttrKeyMap::constructKey(
 
         switch (md->attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST: // only for port lanes
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST: // only for port lanes
 
                 // NOTE: this list should be sorted
 
@@ -103,24 +103,24 @@ std::string AttrKeyMap::constructKey(
 
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
                 name += std::to_string(value.s32); // if enum then get enum name?
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
                 name += std::to_string(value.u32);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
                 name += std::to_string(value.u8);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
                 name += std::to_string(value.u16);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
-                name += lai_serialize_object_id(value.oid);
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
+                name += otai_serialize_object_id(value.oid);
                 break;
 
             default:

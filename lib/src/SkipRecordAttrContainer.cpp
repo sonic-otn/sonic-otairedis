@@ -1,12 +1,12 @@
 #include "SkipRecordAttrContainer.h"
 
 extern "C" {
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
 #include "swss/logger.h"
 
-using namespace lairedis;
+using namespace otairedis;
 
 SkipRecordAttrContainer::SkipRecordAttrContainer()
 {
@@ -17,12 +17,12 @@ SkipRecordAttrContainer::SkipRecordAttrContainer()
 }
 
 bool SkipRecordAttrContainer::add(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId)
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId)
 {
     SWSS_LOG_ENTER();
 
-    auto md = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto md = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (md == NULL)
     {
@@ -46,8 +46,8 @@ bool SkipRecordAttrContainer::add(
 }
 
 bool SkipRecordAttrContainer::remove(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId)
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId)
 {
     SWSS_LOG_ENTER();
 
@@ -78,9 +78,9 @@ void SkipRecordAttrContainer::clear()
 }
 
 bool SkipRecordAttrContainer::canSkipRecording(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t count,
-        _In_ lai_attribute_t* attrList) const
+        _In_ otai_attribute_t* attrList) const
 {
     SWSS_LOG_ENTER();
 

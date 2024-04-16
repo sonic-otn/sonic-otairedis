@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lairedis.h"
+#include "otairedis.h"
 
 #include "swss/sal.h"
 
@@ -33,9 +33,9 @@ namespace syncd
 
             bool m_enableSyncMode;
 
-            bool m_enableLaiBulkSupport;
+            bool m_enableOtaiBulkSupport;
 
-            lai_redis_communication_mode_t m_redisCommunicationMode;
+            otai_redis_communication_mode_t m_redisCommunicationMode;
 
             std::string m_profileMapFile;
 
@@ -44,9 +44,9 @@ namespace syncd
 
             std::string m_contextConfig;
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
             bool m_runRPCServer;
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     };
 }

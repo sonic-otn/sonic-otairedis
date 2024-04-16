@@ -8,7 +8,7 @@
 #include <map>
 #include <set>
 
-namespace lairedis
+namespace otairedis
 {
     class ContextConfigContainer
     {

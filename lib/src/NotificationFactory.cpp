@@ -1,11 +1,11 @@
 #include "NotificationFactory.h"
 #include "NotificationLinecardStateChange.h"
 #include "NotificationOcmNotify.h"
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 
 #include "swss/logger.h"
 
-using namespace lairedis;
+using namespace otairedis;
 
 std::shared_ptr<Notification> NotificationFactory::deserialize(
         _In_ const std::string& name,
@@ -13,10 +13,10 @@ std::shared_ptr<Notification> NotificationFactory::deserialize(
 {
     SWSS_LOG_ENTER();
 
-    if (name == LAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE)
+    if (name == OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE)
         return std::make_shared<NotificationLinecardStateChange>(serializedNotification);
 
-    if (name == LAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY)
+    if (name == OTAI_OCM_NOTIFICATION_NAME_SPECTRUM_POWER_NOTIFY)
         return std::make_shared<NotificationOcmNotify>(serializedNotification);
 
     SWSS_LOG_ERROR("unknown notification: '%s', FIXME", name.c_str());

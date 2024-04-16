@@ -1,5 +1,5 @@
-# since we have LAI sumbodule we will use submodule headers
-AM_CPPFLAGS = -I$(top_srcdir)/LAI/inc -I$(top_srcdir)/LAI/meta -I$(top_srcdir)/lib/inc
+# since we have OTAI sumbodule we will use submodule headers
+AM_CPPFLAGS = -I$(top_srcdir)/OTAI/inc -I$(top_srcdir)/OTAI/meta -I$(top_srcdir)/lib/inc
 
 if DEBUG
 DBGFLAGS = -ggdb -D_DEBUG_
@@ -7,7 +7,7 @@ else
 DBGFLAGS = -g
 endif
 
-lib_LTLIBRARIES = liblaimeta.la liblaimetadata.la
+lib_LTLIBRARIES = libotaimeta.la libotaimetadata.la
 
 WARN = \
 	-ansi \
@@ -53,43 +53,43 @@ WARN = \
 # automatic to each C preprocessor, and currently
 # we add -std=c++11 flag to CFLAGS_COMMON which
 # will cause compilaton error on C files
-# and we already confirmed that LAI/meta files
+# and we already confirmed that OTAI/meta files
 # can be compiled with success
 #
 # NOTE: this compilation could be moved to configure.ac
 
-liblaimeta_la_SOURCES =  \
-					  $(top_srcdir)/LAI/meta/laimetadata.c \
-					  $(top_srcdir)/LAI/meta/laimetadatautils.c \
-					  $(top_srcdir)/LAI/meta/laiserialize.c
+libotaimeta_la_SOURCES =  \
+					  $(top_srcdir)/OTAI/meta/otaimetadata.c \
+					  $(top_srcdir)/OTAI/meta/otaimetadatautils.c \
+					  $(top_srcdir)/OTAI/meta/otaiserialize.c
 
-liblaimeta_la_CFLAGS = $(DBGFLAGS) $(WARN)
+libotaimeta_la_CFLAGS = $(DBGFLAGS) $(WARN)
 
-$(top_srcdir)/LAI/meta/laimetadata.h $(top_srcdir)/LAI/meta/laimetadata.c: laimeta-gen
+$(top_srcdir)/OTAI/meta/otaimetadata.h $(top_srcdir)/OTAI/meta/otaimetadata.c: otaimeta-gen
 
-laimeta-gen:
-	make -C $(top_srcdir)/LAI/meta
+otaimeta-gen:
+	make -C $(top_srcdir)/OTAI/meta
 
 clean-local:
-	make -C $(top_srcdir)/LAI/meta clean
+	make -C $(top_srcdir)/OTAI/meta clean
 
-liblaimetadata_la_SOURCES = \
-							../lib/src/LaiInterface.cpp \
-							LaiAttributeList.cpp \
-							laiserialize.cpp \
-							LaiAttrWrapper.cpp \
+libotaimetadata_la_SOURCES = \
+							../lib/src/OtaiInterface.cpp \
+							OtaiAttributeList.cpp \
+							otaiserialize.cpp \
+							OtaiAttrWrapper.cpp \
 							OidRefCounter.cpp \
 							AttrKeyMap.cpp \
 							Globals.cpp \
-							LaiObject.cpp \
-							LaiObjectCollection.cpp \
+							OtaiObject.cpp \
+							OtaiObjectCollection.cpp \
 							PortRelatedSet.cpp \
                                                         MetaKeyHasher.cpp \
 							Meta.cpp
 
 
-BUILT_SOURCES = $(top_srcdir)/LAI/meta/laimetadata.h $(top_srcdir)/LAI/meta/laimetadata.c
+BUILT_SOURCES = $(top_srcdir)/OTAI/meta/otaimetadata.h $(top_srcdir)/OTAI/meta/otaimetadata.c
 
-liblaimetadata_la_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
-liblaimetadata_la_LIBADD = -lhiredis -lswsscommon liblaimeta.la
+libotaimetadata_la_CPPFLAGS = $(DBGFLAGS) $(AM_CPPFLAGS) $(CFLAGS_COMMON)
+libotaimetadata_la_LIBADD = -lhiredis -lswsscommon libotaimeta.la
 

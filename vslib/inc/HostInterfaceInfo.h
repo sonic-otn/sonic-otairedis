@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 #include "EventQueue.h"
@@ -14,7 +14,7 @@ extern "C" {
 #include <thread>
 #include <string.h>
 
-namespace laivs
+namespace otaivs
 {
     class HostInterfaceInfo :
         public TrafficForwarder
@@ -30,7 +30,7 @@ namespace laivs
                     _In_ int socket,
                     _In_ int tapfd,
                     _In_ const std::string& tapname,
-                    _In_ lai_object_id_t portId,
+                    _In_ otai_object_id_t portId,
                     _In_ std::shared_ptr<EventQueue> eventQueue);
 
             virtual ~HostInterfaceInfo();
@@ -65,7 +65,7 @@ namespace laivs
 
             std::string m_name;
 
-            lai_object_id_t m_portId;
+            otai_object_id_t m_portId;
 
             bool m_run_thread;
 

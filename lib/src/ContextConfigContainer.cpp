@@ -1,14 +1,14 @@
 #include "ContextConfigContainer.h"
 
 #include "swss/logger.h"
-#include "swss/json.hpp"
+#include "nlohmann/json.hpp"
 
 #include <cstring>
 #include <fstream>
 
 using json = nlohmann::json;
 
-using namespace lairedis;
+using namespace otairedis;
 
 ContextConfigContainer::ContextConfigContainer()
 {

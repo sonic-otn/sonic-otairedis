@@ -1,6 +1,6 @@
 #include "CommandLineOptionsParser.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include "swss/logger.h"
 
@@ -18,11 +18,11 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
 
     auto options = std::make_shared<CommandLineOptions>();
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
     const char* const optstring = "dp:f:g:x:UCsz:lr:h";
 #else
     const char* const optstring = "dp:f:g:x:UCsz:lh";
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     while (true)
     {
@@ -34,12 +34,12 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
             { "enableConsistencyCheck",  no_argument,       0, 'C' },
             { "syncMode",                no_argument,       0, 's' },
             { "redisCommunicationMode",  required_argument, 0, 'z' },
-            { "enableLaiBulkSupport",    no_argument,       0, 'l' },
+            { "enableOtaiBulkSupport",    no_argument,       0, 'l' },
             { "globalContext",           required_argument, 0, 'g' },
             { "contextContig",           required_argument, 0, 'x' },
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
             { "rpcserver",               no_argument,       0, 'r' },
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
             { "help",                    no_argument,       0, 'h' },
             { "fordebug",                no_argument,       0, 'f' },
             { 0,                         0,                 0,  0  }
@@ -78,11 +78,11 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
                 break;
 
             case 'z':
-                lai_deserialize_redis_communication_mode(optarg, options->m_redisCommunicationMode);
+                otai_deserialize_redis_communication_mode(optarg, options->m_redisCommunicationMode);
                 break;
 
             case 'l':
-                options->m_enableLaiBulkSupport = true;
+                options->m_enableOtaiBulkSupport = true;
                 break;
 
             case 'g':
@@ -97,11 +97,11 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
                 options->m_loglevel = (uint32_t)std::stoul(optarg);
                 break;
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
             case 'r':
                 options->m_runRPCServer = true;
                 break;
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
             case 'h':
                 printUsage();
@@ -126,11 +126,11 @@ void CommandLineOptionsParser::printUsage()
 {
     SWSS_LOG_ENTER();
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
     std::cout << "Usage: syncd [-d] [-p profile] [-U] [-C] [-s] [-z mode] [-l] [-g idx] [-x contextConfig] [-r] [-h]" << std::endl;
 #else
     std::cout << "Usage: syncd [-d] [-p profile] [-U] [-C] [-s] [-z mode] [-l] [-g idx] [-x contextConfig] [-f fordebug] [-h]" << std::endl;
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     std::cout << "    -d --diag" << std::endl;
     std::cout << "        Enable diagnostic shell" << std::endl;
@@ -145,7 +145,7 @@ void CommandLineOptionsParser::printUsage()
     std::cout << "    -z --redisCommunicationMode" << std::endl;
     std::cout << "        Redis communication mode (redis_async|redis_sync), default: redis_async" << std::endl;
     std::cout << "    -l --enableBulk" << std::endl;
-    std::cout << "        Enable LAI Bulk support" << std::endl;
+    std::cout << "        Enable OTAI Bulk support" << std::endl;
     std::cout << "    -g --globalContext" << std::endl;
     std::cout << "        Global context index to load from context config file" << std::endl;
     std::cout << "    -x --contextConfig" << std::endl;
@@ -153,12 +153,12 @@ void CommandLineOptionsParser::printUsage()
     std::cout << "    -f --fordebug" << std::endl;
     std::cout << "        debug level(0-EMERGE,1-ALERT,2-CRIT,3-ERROR,4-WARN,5-NOTICE,6-INFO,7-DEBUG)" << std::endl;
 
-#ifdef LAITHRIFT
+#ifdef OTAITHRIFT
 
     std::cout << "    -r --rpcserver" << std::endl;
     std::cout << "        Enable rpcserver" << std::endl;
 
-#endif // LAITHRIFT
+#endif // OTAITHRIFT
 
     std::cout << "    -h --help" << std::endl;
     std::cout << "        Print out this message" << std::endl;

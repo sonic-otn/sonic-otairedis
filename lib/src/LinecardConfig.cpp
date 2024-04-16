@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace lairedis;
+using namespace otairedis;
 
 LinecardConfig::LinecardConfig():
     m_linecardIndex(0),

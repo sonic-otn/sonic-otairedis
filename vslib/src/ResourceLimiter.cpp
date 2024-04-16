@@ -1,9 +1,9 @@
 #include "ResourceLimiter.h"
 
 #include "swss/logger.h"
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 ResourceLimiter::ResourceLimiter(
         _In_ uint32_t linecardIndex):
@@ -15,7 +15,7 @@ ResourceLimiter::ResourceLimiter(
 }
 
 size_t ResourceLimiter::getObjectTypeLimit(
-        _In_ lai_object_type_t objectType) const
+        _In_ otai_object_type_t objectType) const
 {
     SWSS_LOG_ENTER();
 
@@ -32,20 +32,20 @@ size_t ResourceLimiter::getObjectTypeLimit(
 }
 
 void ResourceLimiter::setObjectTypeLimit(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ size_t limit)
 {
     SWSS_LOG_ENTER();
 
     SWSS_LOG_INFO("setting %s limit to %zu",
-            lai_serialize_object_type(objectType).c_str(),
+            otai_serialize_object_type(objectType).c_str(),
             limit);
 
     m_objectTypeLimits[objectType] = limit;
 }
 
 void ResourceLimiter::removeObjectTypeLimit(
-        _In_ lai_object_type_t objectType)
+        _In_ otai_object_type_t objectType)
 {
     SWSS_LOG_ENTER();
 

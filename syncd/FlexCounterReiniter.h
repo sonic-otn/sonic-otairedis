@@ -1,13 +1,13 @@
 #pragma once
 
-#include "LaiLinecard.h"
+#include "OtaiLinecard.h"
 #include "VirtualOidTranslator.h"
 #include "RedisClient.h"
 #include "NotificationHandler.h"
 
-#include "lib/inc/LaiInterface.h"
+#include "lib/inc/OtaiInterface.h"
 
-#include "meta/LaiAttributeList.h"
+#include "meta/OtaiAttributeList.h"
 #include "FlexCounterManager.h"
 
 #include <string>
@@ -22,7 +22,7 @@ namespace syncd
     {
     public:
         typedef std::unordered_map<std::string, std::string> StringHash;
-        typedef std::unordered_map<lai_object_id_t, lai_object_id_t> ObjectIdMap;
+        typedef std::unordered_map<otai_object_id_t, otai_object_id_t> ObjectIdMap;
     public:
         FlexCounterReiniter(
             _In_ std::shared_ptr<RedisClient> client,
@@ -35,7 +35,7 @@ namespace syncd
         virtual ~FlexCounterReiniter();
     private:
         void prepareFlexCounterState();
-        void getInfoFromFlexCounterKey(_In_ const std::string& key, _Out_ std::string& instancdID, _Out_ lai_object_id_t& vid, _Out_ lai_object_id_t& rid);
+        void getInfoFromFlexCounterKey(_In_ const std::string& key, _Out_ std::string& instancdID, _Out_ otai_object_id_t& vid, _Out_ otai_object_id_t& rid);
         std::vector<swss::FieldValueTuple> redisGetAttributesFromKey(_In_ const std::string& key);
     public:
         void hardReinit();
@@ -46,8 +46,8 @@ namespace syncd
         ObjectIdMap m_vidToRidMap;
         ObjectIdMap m_ridToVidMap;
         std::vector<std::string> m_flexCounterKeys;
-        lai_object_id_t m_linecard_rid;
-        lai_object_id_t m_linecard_vid;
+        otai_object_id_t m_linecard_rid;
+        otai_object_id_t m_linecard_vid;
         std::vector<swss::FieldValueTuple> m_values;
     };
 

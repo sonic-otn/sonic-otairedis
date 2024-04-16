@@ -1,11 +1,11 @@
 #include "Globals.h"
 
-#include "lai_serialize.h"
+#include "otai_serialize.h"
 
-using namespace laimeta;
+using namespace otaimeta;
 
 std::string Globals::getAttrInfo(
-        _In_ const lai_attr_metadata_t& md)
+        _In_ const otai_attr_metadata_t& md)
 {
     SWSS_LOG_ENTER();
 
@@ -14,7 +14,7 @@ std::string Globals::getAttrInfo(
      * serialize object type separately.
      */
 
-    return std::string(md.attridname) + ":" + lai_serialize_attr_value_type(md.attrvaluetype);
+    return std::string(md.attridname) + ":" + otai_serialize_attr_value_type(md.attrvaluetype);
 }
 
 

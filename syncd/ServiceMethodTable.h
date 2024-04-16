@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C"{
-#include "lai.h"
+#include "otai.h"
 }
 
 #include "swss/logger.h"
@@ -20,7 +20,7 @@ namespace syncd
                 public:
 
                     SlotBase(
-                            _In_ lai_service_method_table_t smt);
+                            _In_ otai_service_method_table_t smt);
 
                     virtual ~SlotBase();
 
@@ -31,18 +31,18 @@ namespace syncd
 
                     ServiceMethodTable* getHandler() const;
 
-                    const lai_service_method_table_t& getServiceMethodTable() const;
+                    const otai_service_method_table_t& getServiceMethodTable() const;
 
                 protected:
 
                     static const char* profileGetValue(
                             _In_ int context,
-                            _In_ lai_linecard_profile_id_t profile_id,
+                            _In_ otai_linecard_profile_id_t profile_id,
                             _In_ const char* variable);
 
                     static int profileGetNextValue(
                             _In_ int context,
-                            _In_ lai_linecard_profile_id_t profile_id,
+                            _In_ otai_linecard_profile_id_t profile_id,
                             _Out_ const char** variable,
                             _Out_ const char** value);
 
@@ -50,7 +50,7 @@ namespace syncd
 
                     ServiceMethodTable* m_handler;
 
-                    lai_service_method_table_t m_smt;
+                    otai_service_method_table_t m_smt;
             };
 
             template<size_t context>
@@ -70,7 +70,7 @@ namespace syncd
             private:
 
                 static const char* profileGetValue(
-                        _In_ lai_linecard_profile_id_t profile_id,
+                        _In_ otai_linecard_profile_id_t profile_id,
                         _In_ const char* variable)
                 {
                     SWSS_LOG_ENTER();
@@ -79,7 +79,7 @@ namespace syncd
                 }
 
                 static int profileGetNextValue(
-                        _In_ lai_linecard_profile_id_t profile_id,
+                        _In_ otai_linecard_profile_id_t profile_id,
                         _Out_ const char** variable,
                         _Out_ const char** value)
                 {
@@ -99,13 +99,13 @@ namespace syncd
 
         public:
 
-            const lai_service_method_table_t& getServiceMethodTable() const;
+            const otai_service_method_table_t& getServiceMethodTable() const;
 
         public: // wrapped methods
 
-            std::function<const char*(lai_linecard_profile_id_t, const char*)> profileGetValue;
+            std::function<const char*(otai_linecard_profile_id_t, const char*)> profileGetValue;
 
-            std::function<int(lai_linecard_profile_id_t, const char**, const char**)> profileGetNextValue;
+            std::function<int(otai_linecard_profile_id_t, const char**, const char**)> profileGetNextValue;
 
         private:
 

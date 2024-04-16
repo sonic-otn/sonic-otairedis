@@ -1,7 +1,7 @@
 #include "Recorder.h"
 
-#include "meta/lai_serialize.h"
-#include "meta/LaiAttributeList.h"
+#include "meta/otai_serialize.h"
+#include "meta/OtaiAttributeList.h"
 
 #include <unistd.h>
 #include <inttypes.h>
@@ -10,19 +10,19 @@
 #include <vector>
 #include <fstream>
 
-using namespace lairedis;
-using namespace laimeta;
+using namespace otairedis;
+using namespace otaimeta;
 
 std::string joinFieldValues(
         _In_ const std::vector<swss::FieldValueTuple> &values);
 
 std::vector<swss::FieldValueTuple> serialize_counter_id_list(
-        _In_ const lai_enum_metadata_t *stats_enum,
+        _In_ const otai_enum_metadata_t *stats_enum,
         _In_ uint32_t count,
-        _In_ const lai_stat_id_t *counter_id_list);
+        _In_ const otai_stat_id_t *counter_id_list);
 
 #define MUTEX() std::lock_guard<std::mutex> _lock(m_mutex)
-#define DEFAULT_RECORDING_FILE_NAME "lairedis.rec"
+#define DEFAULT_RECORDING_FILE_NAME "otairedis.rec"
 Recorder::Recorder()
 {
     SWSS_LOG_ENTER();
@@ -48,7 +48,7 @@ Recorder::~Recorder()
 }
 
 bool Recorder::setRecordingOutputDirectory(
-        _In_ const lai_attribute_t &attr)
+        _In_ const otai_attribute_t &attr)
 {
     SWSS_LOG_ENTER();
 
@@ -100,7 +100,7 @@ bool Recorder::setRecordingOutputDirectory(
 }
 
 bool Recorder::setRecordingFilename(
-    _In_ const lai_attribute_t &attr)
+    _In_ const otai_attribute_t &attr)
 {
     SWSS_LOG_ENTER();
 
@@ -288,12 +288,12 @@ void Recorder::recordQueryAttributeCapability(
 }
 
 void Recorder::recordQueryAttributeCapabilityResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ const std::vector<swss::FieldValueTuple>& arguments)
 {
     SWSS_LOG_ENTER();
 
-    recordLine("Q|attribute_capability|" + lai_serialize_status(status) + "|" + joinFieldValues(arguments));
+    recordLine("Q|attribute_capability|" + otai_serialize_status(status) + "|" + joinFieldValues(arguments));
 }
 
 void Recorder::recordQueryAttributeEnumValuesCapability(
@@ -306,12 +306,12 @@ void Recorder::recordQueryAttributeEnumValuesCapability(
 }
 
 void Recorder::recordQueryAttributeEnumValuesCapabilityResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ const std::vector<swss::FieldValueTuple>& arguments)
 {
     SWSS_LOG_ENTER();
 
-    recordLine("Q|attribute_enum_values_capability|" + lai_serialize_status(status) + "|" + joinFieldValues(arguments));
+    recordLine("Q|attribute_enum_values_capability|" + otai_serialize_status(status) + "|" + joinFieldValues(arguments));
 }
 
 void Recorder::recordObjectTypeGetAvailability(
@@ -324,12 +324,12 @@ void Recorder::recordObjectTypeGetAvailability(
 }
 
 void Recorder::recordObjectTypeGetAvailabilityResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ const std::vector<swss::FieldValueTuple>& arguments)
 {
     SWSS_LOG_ENTER();
 
-    recordLine("Q|object_type_get_availability|" + lai_serialize_status(status) + "|" + joinFieldValues(arguments));
+    recordLine("Q|object_type_get_availability|" + otai_serialize_status(status) + "|" + joinFieldValues(arguments));
 }
 
 void Recorder::recordNotifySyncd(
@@ -343,13 +343,13 @@ void Recorder::recordNotifySyncd(
 }
 
 void Recorder::recordNotifySyncdResponse(
-        _In_ lai_status_t status)
+        _In_ otai_status_t status)
 {
     SWSS_LOG_ENTER();
 
     // capital 'A' stands for notify syncd response
 
-    recordLine("A|" + lai_serialize_status(status));
+    recordLine("A|" + otai_serialize_status(status));
 }
 
 void Recorder::recordGenericCreate(
@@ -364,7 +364,7 @@ void Recorder::recordGenericCreate(
 }
 
 void Recorder::recordGenericCreateResponse(
-        _In_ lai_status_t status)
+        _In_ otai_status_t status)
 {
     SWSS_LOG_ENTER();
 
@@ -373,8 +373,8 @@ void Recorder::recordGenericCreateResponse(
 }
 
 void Recorder::recordGenericCreateResponse(
-        _In_ lai_status_t status,
-        _In_ lai_object_id_t objectId)
+        _In_ otai_status_t status,
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
@@ -403,9 +403,9 @@ void Recorder::recordBulkGenericCreate(
 }
 
 void Recorder::recordBulkGenericCreateResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ uint32_t objectCount,
-        _In_ const lai_status_t *objectStatuses)
+        _In_ const otai_status_t *objectStatuses)
 {
     SWSS_LOG_ENTER();
 
@@ -414,12 +414,12 @@ void Recorder::recordBulkGenericCreateResponse(
 }
 
 void Recorder::recordGenericRemove(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t objectId)
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
-    auto key = lai_serialize_object_type(objectType) + ":" + lai_serialize_object_id(objectId);
+    auto key = otai_serialize_object_type(objectType) + ":" + otai_serialize_object_id(objectId);
 
     // lower case 'r' stands for REMOVE api
     recordLine("r|" + key);
@@ -435,7 +435,7 @@ void Recorder::recordGenericRemove(
 }
 
 void Recorder::recordGenericRemoveResponse(
-        _In_ lai_status_t status)
+        _In_ otai_status_t status)
 {
     SWSS_LOG_ENTER();
 
@@ -466,9 +466,9 @@ void Recorder::recordBulkGenericRemove(
 }
 
 void Recorder::recordBulkGenericRemoveResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ uint32_t objectCount,
-        _In_ const lai_status_t *objectStatuses)
+        _In_ const otai_status_t *objectStatuses)
 {
     SWSS_LOG_ENTER();
 
@@ -477,13 +477,13 @@ void Recorder::recordBulkGenericRemoveResponse(
 }
 
 void Recorder::recordGenericSet(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t objectId,
-        _In_ const lai_attribute_t *attr)
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t objectId,
+        _In_ const otai_attribute_t *attr)
 {
     SWSS_LOG_ENTER();
 
-    recordSet(objectType, lai_serialize_object_id(objectId), attr);
+    recordSet(objectType, otai_serialize_object_id(objectId), attr);
 }
 
 void Recorder::recordGenericSet(
@@ -498,7 +498,7 @@ void Recorder::recordGenericSet(
 }
 
 void Recorder::recordGenericSetResponse(
-        _In_ lai_status_t status)
+        _In_ otai_status_t status)
 {
     SWSS_LOG_ENTER();
 
@@ -527,9 +527,9 @@ void Recorder::recordBulkGenericSet(
 }
 
 void Recorder::recordBulkGenericSetResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ uint32_t objectCount,
-        _In_ const lai_status_t *objectStatuses)
+        _In_ const otai_status_t *objectStatuses)
 {
     SWSS_LOG_ENTER();
 
@@ -538,16 +538,16 @@ void Recorder::recordBulkGenericSetResponse(
 }
 
 void Recorder::recordGenericGet(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t objectId,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t objectId,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
     recordGet(
             objectType,
-            lai_serialize_object_id(objectId),
+            otai_serialize_object_id(objectId),
             attr_count,
             attr_list);
 }
@@ -564,34 +564,34 @@ void Recorder::recordGenericGet(
 }
 
 void Recorder::recordGenericGetResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ const std::vector<swss::FieldValueTuple>& arguments)
 {
     SWSS_LOG_ENTER();
 
     // capital 'G' stands for GET api response
 
-    recordLine("G|" + lai_serialize_status(status) + "|" + joinFieldValues(arguments));
+    recordLine("G|" + otai_serialize_status(status) + "|" + joinFieldValues(arguments));
 }
 
 void Recorder::recordGenericGetStats(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids)
+        _In_ const otai_stat_id_t *counter_ids)
 {
     SWSS_LOG_ENTER();
 
     if (!m_recordStats)
         return;
 
-    auto stats_enum = lai_metadata_get_object_type_info(object_type)->statenum;
+    auto stats_enum = otai_metadata_get_object_type_info(object_type)->statenum;
 
     auto entry = serialize_counter_id_list(stats_enum, number_of_counters, counter_ids);
 
-    std::string str_object_type = lai_serialize_object_type(object_type);
+    std::string str_object_type = otai_serialize_object_type(object_type);
 
-    std::string key = str_object_type + ":" + lai_serialize_object_id(object_id);
+    std::string key = str_object_type + ":" + otai_serialize_object_id(object_id);
 
     SWSS_LOG_DEBUG("generic get stats key: %s, fields: %zu", key.c_str(), entry.size());
 
@@ -611,7 +611,7 @@ void Recorder::recordGenericGetStats(
 }
 
 void Recorder::recordGenericGetStatsResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ uint32_t count,
         _In_ const uint64_t *counters)
 {
@@ -627,26 +627,26 @@ void Recorder::recordGenericGetStatsResponse(
         joined += "|" + std::to_string(counters[idx]);
     }
 
-    recordLine("Q|get_stats|" + lai_serialize_status(status) + joined);
+    recordLine("Q|get_stats|" + otai_serialize_status(status) + joined);
 }
 
 void Recorder::recordGenericClearStats(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids)
+        _In_ const otai_stat_id_t *counter_ids)
 {
     SWSS_LOG_ENTER();
 
     if (!m_recordStats)
         return;
 
-    auto stats_enum = lai_metadata_get_object_type_info(object_type)->statenum;
+    auto stats_enum = otai_metadata_get_object_type_info(object_type)->statenum;
 
     auto values = serialize_counter_id_list(stats_enum, number_of_counters, counter_ids);
 
-    std::string str_object_type = lai_serialize_object_type(object_type);
-    std::string key = str_object_type + ":" + lai_serialize_object_id(object_id);
+    std::string str_object_type = otai_serialize_object_type(object_type);
+    std::string key = str_object_type + ":" + otai_serialize_object_id(object_id);
 
     SWSS_LOG_DEBUG("generic clear stats key: %s, fields: %zu", key.c_str(), values.size());
 
@@ -666,14 +666,14 @@ void Recorder::recordGenericClearStats(
 }
 
 void Recorder::recordGenericClearStatsResponse(
-        _In_ lai_status_t status)
+        _In_ otai_status_t status)
 {
     SWSS_LOG_ENTER();
 
     if (!m_recordStats)
         return;
 
-    recordLine("Q|clear_stats|" + lai_serialize_status(status));
+    recordLine("Q|clear_stats|" + otai_serialize_status(status));
 }
 
 void Recorder::recordNotification(
@@ -687,40 +687,40 @@ void Recorder::recordNotification(
 }
 
 void Recorder::recordRemove(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ const std::string& serializedObjectId)
 {
     SWSS_LOG_ENTER();
 
-    auto key = lai_serialize_object_type(objectType) + ":" + serializedObjectId;
+    auto key = otai_serialize_object_type(objectType) + ":" + serializedObjectId;
 
     recordGenericRemove(key);
 }
 
 void Recorder::recordGenericCreate(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t objectId, // already allocated
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t objectId, // already allocated
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
     recordCreate(
             objectType,
-            lai_serialize_object_id(objectId),
+            otai_serialize_object_id(objectId),
             attr_count,
             attr_list);
 }
 
 void Recorder::recordCreate(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ const std::string& serializedObjectId,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<swss::FieldValueTuple> entry = LaiAttributeList::serialize_attr_list(
+    std::vector<swss::FieldValueTuple> entry = OtaiAttributeList::serialize_attr_list(
             objectType,
             attr_count,
             attr_list,
@@ -735,7 +735,7 @@ void Recorder::recordCreate(
         entry.push_back(null);
     }
 
-    std::string serializedObjectType = lai_serialize_object_type(objectType);
+    std::string serializedObjectType = otai_serialize_object_type(objectType);
 
     std::string key = serializedObjectType + ":" + serializedObjectId;
 
@@ -745,19 +745,19 @@ void Recorder::recordCreate(
 }
 
 void Recorder::recordSet(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ const std::string &serializedObjectId,
-        _In_ const lai_attribute_t *attr)
+        _In_ const otai_attribute_t *attr)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<swss::FieldValueTuple> entry = LaiAttributeList::serialize_attr_list(
+    std::vector<swss::FieldValueTuple> entry = OtaiAttributeList::serialize_attr_list(
             objectType,
             1,
             attr,
             false);
 
-    auto serializedObjectType  = lai_serialize_object_type(objectType);
+    auto serializedObjectType  = otai_serialize_object_type(objectType);
 
     auto key = serializedObjectType + ":" + serializedObjectId;
 
@@ -767,20 +767,20 @@ void Recorder::recordSet(
 }
 
 void Recorder::recordGet(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ const std::string &serializedObjectId,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    std::vector<swss::FieldValueTuple> entry = LaiAttributeList::serialize_attr_list(
+    std::vector<swss::FieldValueTuple> entry = OtaiAttributeList::serialize_attr_list(
             objectType,
             attr_count,
             attr_list,
             false);
 
-    std::string serializedObjectType = lai_serialize_object_type(objectType);
+    std::string serializedObjectType = otai_serialize_object_type(objectType);
 
     std::string key = serializedObjectType + ":" + serializedObjectId;
 
@@ -790,16 +790,16 @@ void Recorder::recordGet(
 }
 
 void Recorder::recordGenericGetResponse(
-        _In_ lai_status_t status,
-        _In_ lai_object_type_t objectType,
+        _In_ otai_status_t status,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        auto entry = LaiAttributeList::serialize_attr_list(
+        auto entry = OtaiAttributeList::serialize_attr_list(
             objectType,
             attr_count,
             attr_list,
@@ -807,12 +807,12 @@ void Recorder::recordGenericGetResponse(
 
         recordGenericGetResponse(status, entry);
     }
-    else if (status == LAI_STATUS_BUFFER_OVERFLOW)
+    else if (status == OTAI_STATUS_BUFFER_OVERFLOW)
     {
         // will only record COUNT values for lists, since count is expected
-        // values, and user buffer is not enough to return all from LAI
+        // values, and user buffer is not enough to return all from OTAI
 
-        auto entry = LaiAttributeList::serialize_attr_list(
+        auto entry = OtaiAttributeList::serialize_attr_list(
             objectType,
             attr_count,
             attr_list,
@@ -827,16 +827,16 @@ void Recorder::recordGenericGetResponse(
 }
 
 void Recorder::recordObjectTypeGetAvailability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t *attrList)
+        _In_ const otai_attribute_t *attrList)
 {
     SWSS_LOG_ENTER();
 
-    auto key = lai_serialize_object_type(LAI_OBJECT_TYPE_LINECARD) + ":" + lai_serialize_object_id(linecardId);
+    auto key = otai_serialize_object_type(OTAI_OBJECT_TYPE_LINECARD) + ":" + otai_serialize_object_id(linecardId);
 
-    auto values = LaiAttributeList::serialize_attr_list(
+    auto values = OtaiAttributeList::serialize_attr_list(
         objectType,
         attrCount,
         attrList,
@@ -848,7 +848,7 @@ void Recorder::recordObjectTypeGetAvailability(
 }
 
 void Recorder::recordObjectTypeGetAvailabilityResponse(
-        _In_ lai_status_t status,
+        _In_ otai_status_t status,
         _In_ const uint64_t *count)
 {
     SWSS_LOG_ENTER();
@@ -861,25 +861,25 @@ void Recorder::recordObjectTypeGetAvailabilityResponse(
 }
 
 void Recorder::recordQueryAttributeCapability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _Out_ lai_attr_capability_t *Capability)
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _Out_ otai_attr_capability_t *Capability)
 {
     SWSS_LOG_ENTER();
 
-    auto meta = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto meta = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (meta == NULL)
     {
         SWSS_LOG_ERROR("Failed to find attribute metadata: object type %s, attr id %d",
-                lai_serialize_object_type(objectType).c_str(), attrId);
+                otai_serialize_object_type(objectType).c_str(), attrId);
         return;
     }
 
-    auto key = lai_serialize_object_type(LAI_OBJECT_TYPE_LINECARD) + ":" + lai_serialize_object_id(linecardId);
+    auto key = otai_serialize_object_type(OTAI_OBJECT_TYPE_LINECARD) + ":" + otai_serialize_object_id(linecardId);
 
-    auto object_type_str = lai_serialize_object_type(objectType);
+    auto object_type_str = otai_serialize_object_type(objectType);
     const std::string attr_id_str = meta->attridname;
     const std::vector<swss::FieldValueTuple> values =
     {
@@ -896,27 +896,27 @@ void Recorder::recordQueryAttributeCapability(
 }
 
 void Recorder::recordQueryAttributeCapabilityResponse(
-        _In_ lai_status_t status,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _In_ const lai_attr_capability_t* capability)
+        _In_ otai_status_t status,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _In_ const otai_attr_capability_t* capability)
 {
     SWSS_LOG_ENTER();
 
-    auto meta = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto meta = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (meta == NULL)
     {
         SWSS_LOG_ERROR("Failed to find attribute metadata: object type %s, attr id %d",
-                lai_serialize_object_type(objectType).c_str(), attrId);
+                otai_serialize_object_type(objectType).c_str(), attrId);
         return;
     }
 
-    auto object_type_str = lai_serialize_object_type(objectType);
+    auto object_type_str = otai_serialize_object_type(objectType);
     const std::string attr_id_str = meta->attridname;
-    const std::string create_str = (status == LAI_STATUS_SUCCESS ? (capability->create_implemented? "true":"false"): "false");
-    const std::string set_str    = (status == LAI_STATUS_SUCCESS ? (capability->set_implemented? "true":"false"): "false");
-    const std::string get_str    = (status == LAI_STATUS_SUCCESS ? (capability->get_implemented? "true":"false"): "false");
+    const std::string create_str = (status == OTAI_STATUS_SUCCESS ? (capability->create_implemented? "true":"false"): "false");
+    const std::string set_str    = (status == OTAI_STATUS_SUCCESS ? (capability->set_implemented? "true":"false"): "false");
+    const std::string get_str    = (status == OTAI_STATUS_SUCCESS ? (capability->get_implemented? "true":"false"): "false");
     const std::vector<swss::FieldValueTuple> values =
     {
         swss::FieldValueTuple("OBJECT_TYPE", object_type_str),
@@ -930,30 +930,30 @@ void Recorder::recordQueryAttributeCapabilityResponse(
 }
 
 void Recorder::recordQueryAattributeEnumValuesCapability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _Inout_ lai_s32_list_t *enumValuesCapability)
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _Inout_ otai_s32_list_t *enumValuesCapability)
 {
     SWSS_LOG_ENTER();
 
-    auto meta = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto meta = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (meta == NULL)
     {
         SWSS_LOG_ERROR("Failed to find attribute metadata: object type %s, attr id %d",
-                lai_serialize_object_type(objectType).c_str(), attrId);
+                otai_serialize_object_type(objectType).c_str(), attrId);
         return;
     }
 
-    auto key = lai_serialize_object_type(LAI_OBJECT_TYPE_LINECARD) + ":" + lai_serialize_object_id(linecardId);
+    auto key = otai_serialize_object_type(OTAI_OBJECT_TYPE_LINECARD) + ":" + otai_serialize_object_id(linecardId);
 
-    lai_attribute_t attr;
+    otai_attribute_t attr;
 
     attr.id = attrId;
     attr.value.s32list = *enumValuesCapability;
 
-    auto values = LaiAttributeList::serialize_attr_list(objectType, 1, &attr, true); // we only need to serialize count
+    auto values = OtaiAttributeList::serialize_attr_list(objectType, 1, &attr, true); // we only need to serialize count
 
     SWSS_LOG_DEBUG("Query arguments: linecard %s, attribute: %s, count: %u", key.c_str(), meta->attridname, enumValuesCapability->count);
 
@@ -961,19 +961,19 @@ void Recorder::recordQueryAattributeEnumValuesCapability(
 }
 
 void Recorder::recordQueryAattributeEnumValuesCapabilityResponse(
-        _In_ lai_status_t status,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _In_ const lai_s32_list_t* enumValuesCapability)
+        _In_ otai_status_t status,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _In_ const otai_s32_list_t* enumValuesCapability)
 {
     SWSS_LOG_ENTER();
 
-    auto meta = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto meta = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (meta == NULL)
     {
         SWSS_LOG_ERROR("Failed to find attribute metadata: object type %s, attr id %d",
-                lai_serialize_object_type(objectType).c_str(), attrId);
+                otai_serialize_object_type(objectType).c_str(), attrId);
         return;
     }
 
@@ -985,30 +985,30 @@ void Recorder::recordQueryAattributeEnumValuesCapabilityResponse(
 
     std::vector<swss::FieldValueTuple> values;
 
-    lai_attribute_t attr;
+    otai_attribute_t attr;
 
     attr.id = attrId;
     attr.value.s32list = *enumValuesCapability;
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        values = LaiAttributeList::serialize_attr_list(objectType, 1, &attr, false);
+        values = OtaiAttributeList::serialize_attr_list(objectType, 1, &attr, false);
     }
-    else if (status == LAI_STATUS_BUFFER_OVERFLOW)
+    else if (status == OTAI_STATUS_BUFFER_OVERFLOW)
     {
-        values = LaiAttributeList::serialize_attr_list(objectType, 1, &attr, true);
+        values = OtaiAttributeList::serialize_attr_list(objectType, 1, &attr, true);
     }
 
     recordQueryAttributeEnumValuesCapabilityResponse(status, values);
 }
 
 void Recorder::recordNotifySyncd(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_redis_notify_syncd_t redisNotifySyncd)
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_redis_notify_syncd_t redisNotifySyncd)
 {
     SWSS_LOG_ENTER();
 
-    recordNotifySyncd(lai_serialize(redisNotifySyncd));
+    recordNotifySyncd(otai_serialize(redisNotifySyncd));
 }
 
 void Recorder::recordStats(

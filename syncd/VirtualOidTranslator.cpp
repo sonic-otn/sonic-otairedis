@@ -3,7 +3,7 @@
 #include "RedisClient.h"
 
 #include "swss/logger.h"
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include <inttypes.h>
 
@@ -11,10 +11,10 @@ using namespace syncd;
 
 VirtualOidTranslator::VirtualOidTranslator(
         _In_ std::shared_ptr<RedisClient> client,
-        _In_ std::shared_ptr<lairedis::VirtualObjectIdManager> virtualObjectIdManager,
-        _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai):
+        _In_ std::shared_ptr<otairedis::VirtualObjectIdManager> virtualObjectIdManager,
+        _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai):
     m_virtualObjectIdManager(virtualObjectIdManager),
-    m_vendorLai(vendorLai),
+    m_vendorOtai(vendorOtai),
     m_client(client)
 {
     SWSS_LOG_ENTER();
@@ -23,18 +23,18 @@ VirtualOidTranslator::VirtualOidTranslator(
 }
 
 bool VirtualOidTranslator::tryTranslateRidToVid(
-        _In_ lai_object_id_t rid,
-        _Out_ lai_object_id_t &vid)
+        _In_ otai_object_id_t rid,
+        _Out_ otai_object_id_t &vid)
 {
     SWSS_LOG_ENTER();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (rid == LAI_NULL_OBJECT_ID)
+    if (rid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_DEBUG("translated RID null to VID null");
 
-        vid = LAI_NULL_OBJECT_ID;
+        vid = OTAI_NULL_OBJECT_ID;
         return true;
     }
 
@@ -48,18 +48,18 @@ bool VirtualOidTranslator::tryTranslateRidToVid(
 
     vid = m_client->getVidForRid(rid);
 
-    if (vid == LAI_NULL_OBJECT_ID)
+    if (vid == OTAI_NULL_OBJECT_ID)
     {
-        SWSS_LOG_DEBUG("translated RID %s to VID null", lai_serialize_object_id(rid).c_str());
+        SWSS_LOG_DEBUG("translated RID %s to VID null", otai_serialize_object_id(rid).c_str());
         return false;
     }
 
     return true;
 }
 
-lai_object_id_t VirtualOidTranslator::translateRidToVid(
-        _In_ lai_object_id_t rid,
-        _In_ lai_object_id_t linecardVid,
+otai_object_id_t VirtualOidTranslator::translateRidToVid(
+        _In_ otai_object_id_t rid,
+        _In_ otai_object_id_t linecardVid,
         _In_ bool translateRemoved)
 {
     SWSS_LOG_ENTER();
@@ -71,11 +71,11 @@ lai_object_id_t VirtualOidTranslator::translateRidToVid(
      * create VID for given RID.
      */
 
-    if (rid == LAI_NULL_OBJECT_ID)
+    if (rid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_DEBUG("translated RID null to VID null");
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
     auto it = m_rid2vid.find(rid);
@@ -85,17 +85,17 @@ lai_object_id_t VirtualOidTranslator::translateRidToVid(
         return it->second;
     }
 
-    std::string strRid = lai_serialize_object_id(rid);
+    std::string strRid = otai_serialize_object_id(rid);
 
     auto vid = m_client->getVidForRid(rid);
 
-    if (vid != LAI_NULL_OBJECT_ID)
+    if (vid != OTAI_NULL_OBJECT_ID)
     {
         // object exists
 
         SWSS_LOG_DEBUG("translated RID %s to VID %s",
-                lai_serialize_object_id(rid).c_str(),
-                lai_serialize_object_id(vid).c_str());
+                otai_serialize_object_id(rid).c_str(),
+                otai_serialize_object_id(vid).c_str());
 
         return vid;
     }
@@ -107,23 +107,23 @@ lai_object_id_t VirtualOidTranslator::translateRidToVid(
         if (itr !=  m_removedRid2vid.end())
         {
             SWSS_LOG_WARN("translating removed RID %s, to VID %s",
-                    lai_serialize_object_id(rid).c_str(),
-                    lai_serialize_object_id(itr->second).c_str());
+                    otai_serialize_object_id(rid).c_str(),
+                    otai_serialize_object_id(itr->second).c_str());
 
             return itr->second;
         }
     }
 
-    SWSS_LOG_DEBUG("spotted new RID %s", lai_serialize_object_id(rid).c_str());
+    SWSS_LOG_DEBUG("spotted new RID %s", otai_serialize_object_id(rid).c_str());
 
-    lai_object_type_t object_type = m_vendorLai->objectTypeQuery(rid); // TODO move to std::function or wrapper class
+    otai_object_type_t object_type = m_vendorOtai->objectTypeQuery(rid); // TODO move to std::function or wrapper class
 
-    if (object_type == LAI_OBJECT_TYPE_NULL)
+    if (object_type == OTAI_OBJECT_TYPE_NULL)
     {
-        SWSS_LOG_THROW("vendorLai->objectTypeQuery returned NULL type for RID 0x%" PRIx64, rid);
+        SWSS_LOG_THROW("vendorOtai->objectTypeQuery returned NULL type for RID 0x%" PRIx64, rid);
     }
 
-    if (object_type == LAI_OBJECT_TYPE_LINECARD)
+    if (object_type == OTAI_OBJECT_TYPE_LINECARD)
     {
         /*
          * Linecard ID should be already inside local db or redis db when we
@@ -136,8 +136,8 @@ lai_object_id_t VirtualOidTranslator::translateRidToVid(
     vid = m_virtualObjectIdManager->allocateNewObjectId(object_type, linecardVid); // TODO to std::function or separate object
 
     SWSS_LOG_DEBUG("translated RID %s to VID %s",
-            lai_serialize_object_id(rid).c_str(),
-            lai_serialize_object_id(vid).c_str());
+            otai_serialize_object_id(rid).c_str(),
+            otai_serialize_object_id(vid).c_str());
 
     m_client->insertVidAndRid(vid, rid);
 
@@ -148,14 +148,14 @@ lai_object_id_t VirtualOidTranslator::translateRidToVid(
 }
 
 bool VirtualOidTranslator::checkRidExists(
-        _In_ lai_object_id_t rid,
+        _In_ otai_object_id_t rid,
         _In_ bool checkRemoved)
 {
     SWSS_LOG_ENTER();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (rid == LAI_NULL_OBJECT_ID)
+    if (rid == OTAI_NULL_OBJECT_ID)
         return true;
 
     if (m_rid2vid.find(rid) != m_rid2vid.end())
@@ -163,12 +163,12 @@ bool VirtualOidTranslator::checkRidExists(
 
     auto vid = m_client->getVidForRid(rid);
 
-    if (vid != LAI_NULL_OBJECT_ID)
+    if (vid != OTAI_NULL_OBJECT_ID)
         return true;
 
     if (checkRemoved && (m_removedRid2vid.find(rid) != m_removedRid2vid.end()))
     {
-        SWSS_LOG_WARN("removed RID %s exists", lai_serialize_object_id(rid).c_str());
+        SWSS_LOG_WARN("removed RID %s exists", otai_serialize_object_id(rid).c_str());
         return true;
     }
 
@@ -176,8 +176,8 @@ bool VirtualOidTranslator::checkRidExists(
 }
 
 void VirtualOidTranslator::translateRidToVid(
-        _Inout_ lai_object_list_t &element,
-        _In_ lai_object_id_t linecardVid,
+        _Inout_ otai_object_list_t &element,
+        _In_ otai_object_id_t linecardVid,
         _In_ bool translateRemoved)
 {
     SWSS_LOG_ENTER();
@@ -189,10 +189,10 @@ void VirtualOidTranslator::translateRidToVid(
 }
 
 void VirtualOidTranslator::translateRidToVid(
-        _In_ lai_object_type_t objectType,
-        _In_ lai_object_id_t linecardVid,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_object_id_t linecardVid,
         _In_ uint32_t attr_count,
-        _Inout_ lai_attribute_t *attrList,
+        _Inout_ otai_attribute_t *attrList,
         _In_ bool translateRemoved)
 {
     SWSS_LOG_ENTER();
@@ -206,9 +206,9 @@ void VirtualOidTranslator::translateRidToVid(
 
     for (uint32_t i = 0; i < attr_count; i++)
     {
-        lai_attribute_t &attr = attrList[i];
+        otai_attribute_t &attr = attrList[i];
 
-        auto meta = lai_metadata_get_attr_metadata(objectType, attr.id);
+        auto meta = otai_metadata_get_attr_metadata(objectType, attr.id);
 
         if (meta == NULL)
         {
@@ -218,16 +218,16 @@ void VirtualOidTranslator::translateRidToVid(
         /*
          * TODO: Many times we do linecard for list of attributes to perform some
          * operation on each oid from that attribute, we should provide clever
-         * way via lai metadata utils to get that.
+         * way via otai metadata utils to get that.
          */
 
         switch (meta->attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 attr.value.oid = translateRidToVid(attr.value.oid, linecardVid, translateRemoved);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 translateRidToVid(attr.value.objlist, linecardVid, translateRemoved);
                 break;
 
@@ -248,18 +248,18 @@ void VirtualOidTranslator::translateRidToVid(
     }
 }
 
-lai_object_id_t VirtualOidTranslator::translateVidToRid(
-        _In_ lai_object_id_t vid)
+otai_object_id_t VirtualOidTranslator::translateVidToRid(
+        _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (vid == LAI_NULL_OBJECT_ID)
+    if (vid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_DEBUG("translated VID null to RID null");
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
     auto it = m_vid2rid.find(vid);
@@ -271,7 +271,7 @@ lai_object_id_t VirtualOidTranslator::translateVidToRid(
 
     auto rid = m_client->getRidForVid(vid);
 
-    if (rid == LAI_NULL_OBJECT_ID)
+    if (rid == OTAI_NULL_OBJECT_ID)
     {
             /*
              * If user created object that is object id, then it should not
@@ -279,7 +279,7 @@ lai_object_id_t VirtualOidTranslator::translateVidToRid(
              * knows all attributes passed to that object.
              *
              * NOTE: This may be a problem for some objects in init view mode.
-             * We will need to revisit this after checking with real LAI
+             * We will need to revisit this after checking with real OTAI
              * implementation.  Problem here may be that user will create some
              * object and actually will need to to query some of it's values,
              * like buffer limitations etc, mostly probably this will happen on
@@ -289,7 +289,7 @@ lai_object_id_t VirtualOidTranslator::translateVidToRid(
             // SWSS_LOG_THROW("can't get RID in init view mode - don't query created objects");
 
         SWSS_LOG_THROW("unable to get RID for VID %s",
-                lai_serialize_object_id(vid).c_str());
+                otai_serialize_object_id(vid).c_str());
     }
 
     /*
@@ -300,8 +300,8 @@ lai_object_id_t VirtualOidTranslator::translateVidToRid(
     m_vid2rid[vid] = rid;
 
     SWSS_LOG_DEBUG("translated VID %s to RID %s",
-            lai_serialize_object_id(vid).c_str(),
-            lai_serialize_object_id(rid).c_str());
+            otai_serialize_object_id(vid).c_str(),
+            otai_serialize_object_id(rid).c_str());
 
     return rid;
 }
@@ -313,8 +313,8 @@ lai_object_id_t VirtualOidTranslator::translateVidToRid(
  */
 
 bool VirtualOidTranslator::tryTranslateVidToRid(
-        _In_ lai_object_id_t vid,
-        _Out_ lai_object_id_t& rid)
+        _In_ otai_object_id_t vid,
+        _Out_ otai_object_id_t& rid)
 {
     SWSS_LOG_ENTER();
 
@@ -331,7 +331,7 @@ bool VirtualOidTranslator::tryTranslateVidToRid(
 }
 
 bool VirtualOidTranslator::tryTranslateVidToRid(
-        _Inout_ lai_object_meta_key_t &metaKey)
+        _Inout_ otai_object_meta_key_t &metaKey)
 {
     SWSS_LOG_ENTER();
 
@@ -348,7 +348,7 @@ bool VirtualOidTranslator::tryTranslateVidToRid(
 }
 
 void VirtualOidTranslator::translateVidToRid(
-        _Inout_ lai_object_list_t &element)
+        _Inout_ otai_object_list_t &element)
 {
     SWSS_LOG_ENTER();
 
@@ -359,22 +359,22 @@ void VirtualOidTranslator::translateVidToRid(
 }
 
 void VirtualOidTranslator::translateVidToRid(
-        _In_ lai_object_type_t objectType,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t attr_count,
-        _Inout_ lai_attribute_t *attrList)
+        _Inout_ otai_attribute_t *attrList)
 {
     SWSS_LOG_ENTER();
 
     /*
-     * All id's received from lairedis should be virtual, so lets translate
+     * All id's received from otairedis should be virtual, so lets translate
      * them to real id's before we execute actual api.
      */
 
     for (uint32_t i = 0; i < attr_count; i++)
     {
-        lai_attribute_t &attr = attrList[i];
+        otai_attribute_t &attr = attrList[i];
 
-        auto meta = lai_metadata_get_attr_metadata(objectType, attr.id);
+        auto meta = otai_metadata_get_attr_metadata(objectType, attr.id);
 
         if (meta == NULL)
         {
@@ -383,11 +383,11 @@ void VirtualOidTranslator::translateVidToRid(
 
         switch (meta->attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 attr.value.oid = translateVidToRid(attr.value.oid);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 translateVidToRid(attr.value.objlist);
                 break;
 
@@ -409,11 +409,11 @@ void VirtualOidTranslator::translateVidToRid(
 }
 
 void VirtualOidTranslator::translateVidToRid(
-        _Inout_ lai_object_meta_key_t &metaKey)
+        _Inout_ otai_object_meta_key_t &metaKey)
 {
     SWSS_LOG_ENTER();
 
-    auto info = lai_metadata_get_object_type_info(metaKey.objecttype);
+    auto info = otai_metadata_get_object_type_info(metaKey.objecttype);
 
     if (info->isobjectid)
     {
@@ -425,13 +425,13 @@ void VirtualOidTranslator::translateVidToRid(
 
     for (size_t j = 0; j < info->structmemberscount; ++j)
     {
-        const lai_struct_member_info_t *m = info->structmembers[j];
+        const otai_struct_member_info_t *m = info->structmembers[j];
 
-        if (m->membervaluetype == LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+        if (m->membervaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
         {
-            lai_object_id_t vid = m->getoid(&metaKey);
+            otai_object_id_t vid = m->getoid(&metaKey);
 
-            lai_object_id_t rid = translateVidToRid(vid);
+            otai_object_id_t rid = translateVidToRid(vid);
 
             m->setoid(&metaKey, rid);
         }
@@ -439,8 +439,8 @@ void VirtualOidTranslator::translateVidToRid(
 }
 
 void VirtualOidTranslator::insertRidAndVid(
-        _In_ lai_object_id_t rid,
-        _In_ lai_object_id_t vid)
+        _In_ otai_object_id_t rid,
+        _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 
@@ -455,8 +455,8 @@ void VirtualOidTranslator::insertRidAndVid(
 }
 
 void VirtualOidTranslator::eraseRidAndVid(
-        _In_ lai_object_id_t rid,
-        _In_ lai_object_id_t vid)
+        _In_ otai_object_id_t rid,
+        _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 

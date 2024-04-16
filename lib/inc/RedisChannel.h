@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Channel.h"
-#include "RemoteLaiInterface.h"
+#include "RemoteOtaiInterface.h"
 #include "LinecardContainer.h"
 #include "VirtualObjectIdManager.h"
 #include "Notification.h"
@@ -16,7 +16,7 @@
 #include <memory>
 #include <functional>
 
-namespace lairedis
+namespace otairedis
 {
     class RedisChannel:
         public Channel
@@ -47,7 +47,7 @@ namespace lairedis
                     _In_ const std::string& key,
                     _In_ const std::string& command) override;
 
-            virtual lai_status_t wait(
+            virtual otai_status_t wait(
                     _In_ const std::string& command,
                     _Out_ swss::KeyOpFieldsValuesTuple& kco) override;
 

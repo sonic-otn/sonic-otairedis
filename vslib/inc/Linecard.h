@@ -1,22 +1,22 @@
 #pragma once
 
 extern "C" {
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
-namespace laivs
+namespace otaivs
 {
     class Linecard
     {
         public:
 
             Linecard(
-                    _In_ lai_object_id_t linecardId);
+                    _In_ otai_object_id_t linecardId);
 
             Linecard(
-                    _In_ lai_object_id_t linecardId,
+                    _In_ otai_object_id_t linecardId,
                     _In_ uint32_t attrCount,
-                    _In_ const lai_attribute_t *attrList);
+                    _In_ const otai_attribute_t *attrList);
 
             virtual ~Linecard() = default;
 
@@ -31,21 +31,21 @@ namespace laivs
              */
             void updateNotifications(
                     _In_ uint32_t attrCount,
-                    _In_ const lai_attribute_t *attrList);
+                    _In_ const otai_attribute_t *attrList);
 
-            const lai_linecard_notifications_t& getLinecardNotifications() const;
+            const otai_linecard_notifications_t& getLinecardNotifications() const;
 
-            lai_object_id_t getLinecardId() const;
+            otai_object_id_t getLinecardId() const;
 
         private:
 
-            lai_object_id_t m_linecardId;
+            otai_object_id_t m_linecardId;
 
             /**
              * @brief Notifications pointers holder.
              *
              * Each linecard instance can have it's own notifications defined.
              */
-            lai_linecard_notifications_t m_linecardNotifications;
+            otai_linecard_notifications_t m_linecardNotifications;
     };
 }

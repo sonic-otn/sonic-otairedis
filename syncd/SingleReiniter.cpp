@@ -8,23 +8,23 @@
 
 #include "swss/logger.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include <unistd.h>
 #include <inttypes.h>
 
 using namespace syncd;
-using namespace laimeta;
+using namespace otaimeta;
 
 SingleReiniter::SingleReiniter(
     _In_ std::shared_ptr<RedisClient> client,
     _In_ std::shared_ptr<VirtualOidTranslator> translator,
-    _In_ std::shared_ptr<lairedis::LaiInterface> lai,
+    _In_ std::shared_ptr<otairedis::OtaiInterface> otai,
     _In_ std::shared_ptr<NotificationHandler> handler,
     _In_ const ObjectIdMap& vidToRidMap,
     _In_ const ObjectIdMap& ridToVidMap,
     _In_ const std::vector<std::string>& asicKeys) :
-    m_vendorLai(lai),
+    m_vendorOtai(otai),
     m_vidToRidMap(vidToRidMap),
     m_ridToVidMap(ridToVidMap),
     m_asicKeys(asicKeys),
@@ -36,8 +36,8 @@ SingleReiniter::SingleReiniter(
 
     SWSS_LOG_DEBUG("%s m_vidToRidMap %d, m_ridToVidMap %d, m_asicKeys %d", __FUNCTION__, (int)m_vidToRidMap.size(), (int)m_ridToVidMap.size(), (int)m_asicKeys.size());
 
-    m_linecard_rid = LAI_NULL_OBJECT_ID;
-    m_linecard_vid = LAI_NULL_OBJECT_ID;
+    m_linecard_rid = OTAI_NULL_OBJECT_ID;
+    m_linecard_vid = OTAI_NULL_OBJECT_ID;
 }
 
 SingleReiniter::~SingleReiniter()
@@ -47,7 +47,7 @@ SingleReiniter::~SingleReiniter()
     // empty
 }
 
-std::shared_ptr<LaiLinecard> SingleReiniter::hardReinit()
+std::shared_ptr<OtaiLinecard> SingleReiniter::hardReinit()
 {
     SWSS_LOG_ENTER();
 
@@ -69,7 +69,7 @@ std::shared_ptr<LaiLinecard> SingleReiniter::hardReinit()
     for (const auto& p : m_perf_create)
     {
         SWSS_LOG_NOTICE("create %s: %d: %f",
-            lai_serialize_object_type(p.first).c_str(),
+            otai_serialize_object_type(p.first).c_str(),
             std::get<0>(p.second),
             std::get<1>(p.second));
 
@@ -79,7 +79,7 @@ std::shared_ptr<LaiLinecard> SingleReiniter::hardReinit()
     for (const auto& p : m_perf_set)
     {
         SWSS_LOG_NOTICE("set %s: %d: %f",
-            lai_serialize_object_type(p.first).c_str(),
+            otai_serialize_object_type(p.first).c_str(),
             std::get<0>(p.second),
             std::get<1>(p.second));
 
@@ -102,15 +102,15 @@ void SingleReiniter::prepareAsicState()
 
     for (auto& key : m_asicKeys)
     {
-        lai_object_type_t objectType = getObjectTypeFromAsicKey(key);
+        otai_object_type_t objectType = getObjectTypeFromAsicKey(key);
 
         const std::string& strObjectId = getObjectIdFromAsicKey(key);
 
-        auto info = lai_metadata_get_object_type_info(objectType);
+        auto info = otai_metadata_get_object_type_info(objectType);
 
         switch (objectType)
         {
-        case LAI_OBJECT_TYPE_LINECARD:
+        case OTAI_OBJECT_TYPE_LINECARD:
             m_linecards[strObjectId] = key;
             m_oids[strObjectId] = key;
             break;
@@ -130,7 +130,7 @@ void SingleReiniter::prepareAsicState()
     }
 }
 
-lai_object_type_t SingleReiniter::getObjectTypeFromAsicKey(
+otai_object_type_t SingleReiniter::getObjectTypeFromAsicKey(
     _In_ const std::string& key)
 {
     SWSS_LOG_ENTER();
@@ -140,13 +140,13 @@ lai_object_type_t SingleReiniter::getObjectTypeFromAsicKey(
 
     const std::string strObjectType = key.substr(start, end - start);
 
-    lai_object_type_t objectType;
-    lai_deserialize_object_type(strObjectType, objectType);
+    otai_object_type_t objectType;
+    otai_deserialize_object_type(strObjectType, objectType);
 
-    if (!lai_metadata_is_object_type_valid(objectType))
+    if (!otai_metadata_is_object_type_valid(objectType))
     {
         SWSS_LOG_THROW("invalid object type: %s on asic key: %s",
-            lai_serialize_object_type(objectType).c_str(),
+            otai_serialize_object_type(objectType).c_str(),
             key.c_str());
     }
 
@@ -175,8 +175,8 @@ void SingleReiniter::stopPreConfigLinecards()
     for (const auto& s : m_linecards) {
         std::string strLinecardVid = s.first;
         
-        lai_deserialize_object_id(strLinecardVid, m_linecard_vid);
-        if (m_linecard_vid == LAI_NULL_OBJECT_ID) {
+        otai_deserialize_object_id(strLinecardVid, m_linecard_vid);
+        if (m_linecard_vid == OTAI_NULL_OBJECT_ID) {
             SWSS_LOG_THROW("linecard id can't be NULL");
         }
         auto oit = m_oids.find(strLinecardVid);
@@ -185,14 +185,14 @@ void SingleReiniter::stopPreConfigLinecards()
         }
         m_linecard_rid = m_vidToRidMap[m_linecard_vid];
         
-        lai_attribute_t attr;
-        attr.id = LAI_LINECARD_ATTR_STOP_PRE_CONFIGURATION;
+        otai_attribute_t attr;
+        attr.id = OTAI_LINECARD_ATTR_STOP_PRE_CONFIGURATION;
         attr.value.booldata = true;
         
         SWSS_LOG_NOTICE("Stop pre-config linecard");
         
-        lai_status_t status = m_vendorLai->set(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &attr);
-        if (status != LAI_STATUS_SUCCESS) {
+        otai_status_t status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &attr);
+        if (status != OTAI_STATUS_SUCCESS) {
             SWSS_LOG_THROW("failed to stop pre-config linecard");
         }
     }
@@ -228,9 +228,9 @@ void SingleReiniter::processLinecards()
         std::string strLinecardVid = s.first;
         std::string asicKey = s.second;
 
-        lai_deserialize_object_id(strLinecardVid, m_linecard_vid);
+        otai_deserialize_object_id(strLinecardVid, m_linecard_vid);
 
-        if (m_linecard_vid == LAI_NULL_OBJECT_ID)
+        if (m_linecard_vid == OTAI_NULL_OBJECT_ID)
         {
             SWSS_LOG_THROW("linecard id can't be NULL");
         }
@@ -242,9 +242,9 @@ void SingleReiniter::processLinecards()
             SWSS_LOG_THROW("failed to find VID %s in OIDs map", strLinecardVid.c_str());
         }
 
-        std::shared_ptr<LaiAttributeList> list = m_attributesLists[asicKey];
+        std::shared_ptr<OtaiAttributeList> list = m_attributesLists[asicKey];
 
-        lai_attribute_t* attrList = list->get_attr_list();
+        otai_attribute_t* attrList = list->get_attr_list();
 
         uint32_t attrCount = list->get_attr_count();
 
@@ -253,7 +253,7 @@ void SingleReiniter::processLinecards()
          * point to callbacks in syncd memory.
          */
 
-        m_handler->updateNotificationsPointers(LAI_OBJECT_TYPE_LINECARD, attrCount, attrList); // TODO need per linecard template static
+        m_handler->updateNotificationsPointers(OTAI_OBJECT_TYPE_LINECARD, attrCount, attrList); // TODO need per linecard template static
 
         /*
          * Now we need to select only attributes MANDATORY_ON_CREATE and
@@ -266,17 +266,17 @@ void SingleReiniter::processLinecards()
         uint32_t attr_count = 0;            // attr count needed for create
         uint32_t attr_count_left = 0;       // attr count after create
 
-        std::vector<lai_attribute_t> attrs;         // attrs for create
-        std::vector<lai_attribute_t> attrs_left;    // attrs for set
+        std::vector<otai_attribute_t> attrs;         // attrs for create
+        std::vector<otai_attribute_t> attrs_left;    // attrs for set
 
         bool is_board_mode_existed = false;
         std::string board_mode;
 
         for (uint32_t idx = 0; idx < attrCount; ++idx)
         {
-            auto meta = lai_metadata_get_attr_metadata(LAI_OBJECT_TYPE_LINECARD, attrList[idx].id);
+            auto meta = otai_metadata_get_attr_metadata(OTAI_OBJECT_TYPE_LINECARD, attrList[idx].id);
 
-            if (LAI_HAS_FLAG_MANDATORY_ON_CREATE(meta->flags) || LAI_HAS_FLAG_CREATE_ONLY(meta->flags))
+            if (OTAI_HAS_FLAG_MANDATORY_ON_CREATE(meta->flags) || OTAI_HAS_FLAG_CREATE_ONLY(meta->flags))
             {
                 /*
                  * If attribute is mandatory on create or create only, we need
@@ -293,7 +293,7 @@ void SingleReiniter::processLinecards()
                 attrs.push_back(attrList[idx]); // struct copy, we will keep the same pointers
                 attr_count++;
             }
-            else if (attrList[idx].id == LAI_LINECARD_ATTR_BOARD_MODE)
+            else if (attrList[idx].id == OTAI_LINECARD_ATTR_BOARD_MODE)
             {
                 is_board_mode_existed = true;
                 board_mode = (attrList[idx].value.chardata);
@@ -310,25 +310,25 @@ void SingleReiniter::processLinecards()
             }
         }
 
-        lai_attribute_t* attr_list = attrs.data();
+        otai_attribute_t* attr_list = attrs.data();
 
-        SWSS_LOG_INFO("creating linecard VID: %s", lai_serialize_object_id(m_linecard_vid).c_str());
+        SWSS_LOG_INFO("creating linecard VID: %s", otai_serialize_object_id(m_linecard_vid).c_str());
 
-        lai_status_t status;
+        otai_status_t status;
 
         {
             SWSS_LOG_TIMER("Cold boot: create linecard");
-            status = m_vendorLai->create(LAI_OBJECT_TYPE_LINECARD, &m_linecard_rid, 0, attr_count, attr_list);
+            status = m_vendorOtai->create(OTAI_OBJECT_TYPE_LINECARD, &m_linecard_rid, 0, attr_count, attr_list);
         }
 
-        if (status != LAI_STATUS_SUCCESS)
+        if (status != OTAI_STATUS_SUCCESS)
         {
             SWSS_LOG_THROW("failed to create linecard RID: %s",
-                lai_serialize_status(status).c_str());
+                otai_serialize_status(status).c_str());
         }
 
         SWSS_LOG_NOTICE("created linecard RID: %s",
-            lai_serialize_object_id(m_linecard_rid).c_str());
+            otai_serialize_object_id(m_linecard_rid).c_str());
         /*
          * Save this linecard ids as translated.
          */
@@ -337,18 +337,18 @@ void SingleReiniter::processLinecards()
         m_translatedR2V[m_linecard_rid] = m_linecard_vid;
 
         /*
-         * LaiLinecard class object must be created before before any other
+         * OtaiLinecard class object must be created before before any other
          * object, so when doing discover we will get full default ASIC view.
          */
 
-        m_sw = std::make_shared<LaiLinecard>(m_linecard_vid, m_linecard_rid, m_client, m_translator, m_vendorLai);
+        m_sw = std::make_shared<OtaiLinecard>(m_linecard_vid, m_linecard_rid, m_client, m_translator, m_vendorOtai);
 
-        lai_attribute_t pre_config_attr;
-        pre_config_attr.id = LAI_LINECARD_ATTR_START_PRE_CONFIGURATION;
+        otai_attribute_t pre_config_attr;
+        pre_config_attr.id = OTAI_LINECARD_ATTR_START_PRE_CONFIGURATION;
         pre_config_attr.value.booldata = true;
 
-        status = m_vendorLai->set(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &pre_config_attr);
-        if (status != LAI_STATUS_SUCCESS) {
+        status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &pre_config_attr);
+        if (status != OTAI_STATUS_SUCCESS) {
             SWSS_LOG_THROW("failed to start pre-config linecard");
         }
 
@@ -365,20 +365,20 @@ void SingleReiniter::processLinecards()
          * attributes for oids.
          */
 
-        processAttributesForOids(LAI_OBJECT_TYPE_LINECARD, attr_count_left, attrs_left.data());
+        processAttributesForOids(OTAI_OBJECT_TYPE_LINECARD, attr_count_left, attrs_left.data());
 
         for (uint32_t idx = 0; idx < attr_count_left; ++idx)
         {
-            lai_attribute_t* attr = &attrs_left[idx];
+            otai_attribute_t* attr = &attrs_left[idx];
 
-            status = m_vendorLai->set(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, attr);
+            status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, attr);
 
-            if (status != LAI_STATUS_SUCCESS)
+            if (status != OTAI_STATUS_SUCCESS)
             {
                 SWSS_LOG_THROW("failed to set attribute %s on linecard VID %s: %s",
-                    lai_metadata_get_attr_metadata(LAI_OBJECT_TYPE_LINECARD, attr->id)->attridname,
-                    lai_serialize_object_id(m_linecard_rid).c_str(),
-                    lai_serialize_status(status).c_str());
+                    otai_metadata_get_attr_metadata(OTAI_OBJECT_TYPE_LINECARD, attr->id)->attridname,
+                    otai_serialize_object_id(m_linecard_rid).c_str(),
+                    otai_serialize_status(status).c_str());
             }
         }
     }
@@ -389,13 +389,13 @@ void SingleReiniter::setBoardMode(std::string mode)
     SWSS_LOG_ENTER();
 
     int wait_count = 0;
-    lai_attribute_t attr;
-    lai_status_t status;
+    otai_attribute_t attr;
+    otai_status_t status;
 
-    attr.id = LAI_LINECARD_ATTR_BOARD_MODE;
+    attr.id = OTAI_LINECARD_ATTR_BOARD_MODE;
     memset(attr.value.chardata, 0, sizeof(attr.value.chardata));
-    status = m_vendorLai->get(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, 1, &attr);
-    if (status == LAI_STATUS_SUCCESS && mode == attr.value.chardata)
+    status = m_vendorOtai->get(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, 1, &attr);
+    if (status == OTAI_STATUS_SUCCESS && mode == attr.value.chardata)
     {
         SWSS_LOG_DEBUG("Linecard and maincard have a same board-mode, %s", mode.c_str());
         return;
@@ -405,8 +405,8 @@ void SingleReiniter::setBoardMode(std::string mode)
 
     memset(attr.value.chardata, 0, sizeof(attr.value.chardata));
     strncpy(attr.value.chardata, mode.c_str(), sizeof(attr.value.chardata) - 1);
-    status = m_vendorLai->set(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &attr);
-    if (status != LAI_STATUS_SUCCESS)
+    status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &attr);
+    if (status != OTAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to set board-mode status=%d, mode=%s",
                        status, mode.c_str());
@@ -416,8 +416,8 @@ void SingleReiniter::setBoardMode(std::string mode)
     {
         wait_count++;
         this_thread::sleep_for(chrono::milliseconds(1000));
-        status = m_vendorLai->get(LAI_OBJECT_TYPE_LINECARD, m_linecard_rid, 1, &attr);
-        if (status != LAI_STATUS_SUCCESS)
+        status = m_vendorOtai->get(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, 1, &attr);
+        if (status != OTAI_STATUS_SUCCESS)
         {
             continue;
         }
@@ -431,41 +431,41 @@ void SingleReiniter::setBoardMode(std::string mode)
 }
 
 void SingleReiniter::listFailedAttributes(
-    _In_ lai_object_type_t objectType,
+    _In_ otai_object_type_t objectType,
     _In_ uint32_t attrCount,
-    _In_ const lai_attribute_t* attrList)
+    _In_ const otai_attribute_t* attrList)
 {
     SWSS_LOG_ENTER();
 
     for (uint32_t idx = 0; idx < attrCount; idx++)
     {
-        const lai_attribute_t* attr = &attrList[idx];
+        const otai_attribute_t* attr = &attrList[idx];
 
-        auto meta = lai_metadata_get_attr_metadata(objectType, attr->id);
+        auto meta = otai_metadata_get_attr_metadata(objectType, attr->id);
 
         if (meta == NULL)
         {
             SWSS_LOG_ERROR("failed to get attribute metadata %s %d",
-                lai_serialize_object_type(objectType).c_str(),
+                otai_serialize_object_type(objectType).c_str(),
                 attr->id);
 
             continue;
         }
 
-        SWSS_LOG_ERROR("%s = %s", meta->attridname, lai_serialize_attr_value(*meta, *attr).c_str());
+        SWSS_LOG_ERROR("%s = %s", meta->attridname, otai_serialize_attr_value(*meta, *attr).c_str());
     }
 }
 
-lai_object_id_t SingleReiniter::processSingleVid(
-    _In_ lai_object_id_t vid)
+otai_object_id_t SingleReiniter::processSingleVid(
+    _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 
-    if (vid == LAI_NULL_OBJECT_ID)
+    if (vid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_DEBUG("processed VID 0 to RID 0");
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
     auto it = m_translatedV2R.find(vid);
@@ -477,15 +477,15 @@ lai_object_id_t SingleReiniter::processSingleVid(
          */
 
         SWSS_LOG_DEBUG("processed VID %s to RID %s",
-            lai_serialize_object_id(vid).c_str(),
-            lai_serialize_object_id(it->second).c_str());
+            otai_serialize_object_id(vid).c_str(),
+            otai_serialize_object_id(it->second).c_str());
 
         return it->second;
     }
 
-    lai_object_type_t objectType = VidManager::objectTypeQuery(vid);
+    otai_object_type_t objectType = VidManager::objectTypeQuery(vid);
 
-    std::string strVid = lai_serialize_object_id(vid);
+    std::string strVid = otai_serialize_object_id(vid);
 
     auto oit = m_oids.find(strVid);
 
@@ -496,9 +496,9 @@ lai_object_id_t SingleReiniter::processSingleVid(
 
     std::string asicKey = oit->second;
 
-    std::shared_ptr<LaiAttributeList> list = m_attributesLists[asicKey];
+    std::shared_ptr<OtaiAttributeList> list = m_attributesLists[asicKey];
 
-    lai_attribute_t* attrList = list->get_attr_list();
+    otai_attribute_t* attrList = list->get_attr_list();
 
     uint32_t attrCount = list->get_attr_count();
 
@@ -522,10 +522,10 @@ lai_object_id_t SingleReiniter::processSingleVid(
     if (v2rMapIt == m_vidToRidMap.end())
     {
         SWSS_LOG_THROW("failed to find VID %s in VIDTORID map",
-            lai_serialize_object_id(vid).c_str());
+            otai_serialize_object_id(vid).c_str());
     }
 
-    lai_object_id_t rid;
+    otai_object_id_t rid;
 
     if (m_sw->isDiscoveredRid(v2rMapIt->second))
     {
@@ -534,22 +534,22 @@ lai_object_id_t SingleReiniter::processSingleVid(
         createObject = false;
 
         SWSS_LOG_DEBUG("object %s will not be created, processed VID %s to RID %s",
-            lai_serialize_object_type(objectType).c_str(),
-            lai_serialize_object_id(vid).c_str(),
-            lai_serialize_object_id(rid).c_str());
+            otai_serialize_object_type(objectType).c_str(),
+            otai_serialize_object_id(vid).c_str(),
+            otai_serialize_object_id(rid).c_str());
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     uint32_t attr_count = 0;            // attr count needed for create
     uint32_t attr_count_left = 0;       // attr count after create
 
-    std::vector<lai_attribute_t> attrs;         // attrs for create
-    std::vector<lai_attribute_t> attrs_left;    // attrs for set
+    std::vector<otai_attribute_t> attrs;         // attrs for create
+    std::vector<otai_attribute_t> attrs_left;    // attrs for set
 
     for (uint32_t idx = 0; idx < attrCount; ++idx)
     {
-        auto meta = lai_metadata_get_attr_metadata(objectType, attrList[idx].id);
+        auto meta = otai_metadata_get_attr_metadata(objectType, attrList[idx].id);
 
-        if (LAI_HAS_FLAG_MANDATORY_ON_CREATE(meta->flags) || LAI_HAS_FLAG_CREATE_ONLY(meta->flags))
+        if (OTAI_HAS_FLAG_MANDATORY_ON_CREATE(meta->flags) || OTAI_HAS_FLAG_CREATE_ONLY(meta->flags))
         {
             /*
              * If attribute is mandatory on create or create only, we need
@@ -582,7 +582,7 @@ lai_object_id_t SingleReiniter::processSingleVid(
 
     if (createObject)
     {
-        lai_object_meta_key_t meta_key;
+        otai_object_meta_key_t meta_key;
 
         meta_key.objecttype = objectType;
 
@@ -594,7 +594,7 @@ lai_object_id_t SingleReiniter::processSingleVid(
         auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-        lai_status_t status = m_vendorLai->create(meta_key.objecttype, &meta_key.objectkey.key.object_id, m_linecard_rid, attr_count, attrs.data());
+        otai_status_t status = m_vendorOtai->create(meta_key.objecttype, &meta_key.objectkey.key.object_id, m_linecard_rid, attr_count, attrs.data());
 
 #ifdef ENABLE_PERF
         auto end = std::chrono::high_resolution_clock::now();
@@ -607,21 +607,21 @@ lai_object_id_t SingleReiniter::processSingleVid(
         std::get<1>(m_perf_create[objectType]) += duration;
 #endif
 
-        if (status != LAI_STATUS_SUCCESS)
+        if (status != OTAI_STATUS_SUCCESS)
         {
             listFailedAttributes(objectType, attr_count, attrs.data());
 
             SWSS_LOG_THROW("failed to create object %s: %s",
-                lai_serialize_object_type(objectType).c_str(),
-                lai_serialize_status(status).c_str());
+                otai_serialize_object_type(objectType).c_str(),
+                otai_serialize_status(status).c_str());
         }
 
         rid = meta_key.objectkey.key.object_id;
 
         SWSS_LOG_DEBUG("created object of type %s, processed VID %s to RID %s",
-            lai_serialize_object_type(objectType).c_str(),
-            lai_serialize_object_id(vid).c_str(),
-            lai_serialize_object_id(rid).c_str());
+            otai_serialize_object_type(objectType).c_str(),
+            otai_serialize_object_id(vid).c_str(),
+            otai_serialize_object_id(rid).c_str());
     }
     else
     {
@@ -629,18 +629,18 @@ lai_object_id_t SingleReiniter::processSingleVid(
 
         for (uint32_t idx = 0; idx < attr_count_left; idx++)
         {
-            lai_attribute_t* attr = &attrs_left[idx];
+            otai_attribute_t* attr = &attrs_left[idx];
 
-            auto meta = lai_metadata_get_attr_metadata(objectType, attr->id);
+            auto meta = otai_metadata_get_attr_metadata(objectType, attr->id);
 
             if (meta == NULL)
             {
                 SWSS_LOG_THROW("failed to get attribute metadata %s: %d",
-                    lai_serialize_object_type(objectType).c_str(),
+                    otai_serialize_object_type(objectType).c_str(),
                     attr->id);
             }
 
-            if (LAI_HAS_FLAG_CREATE_ONLY(meta->flags))
+            if (OTAI_HAS_FLAG_CREATE_ONLY(meta->flags))
             {
                 /*
                  * If we will be performing this on default existing created
@@ -658,7 +658,7 @@ lai_object_id_t SingleReiniter::processSingleVid(
 
                 SWSS_LOG_WARN("skipping create only attr %s: %s",
                     meta->attridname,
-                    lai_serialize_attr_value(*meta, *attr).c_str());
+                    otai_serialize_attr_value(*meta, *attr).c_str());
 
                 continue;
             }
@@ -667,7 +667,7 @@ lai_object_id_t SingleReiniter::processSingleVid(
             auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-            lai_status_t status = m_vendorLai->set(objectType, rid, attr);
+            otai_status_t status = m_vendorOtai->set(objectType, rid, attr);
 
 #ifdef ENABLE_PERF
             auto end = std::chrono::high_resolution_clock::now();
@@ -680,13 +680,13 @@ lai_object_id_t SingleReiniter::processSingleVid(
             std::get<1>(m_perf_set[objectType]) += duration;
 #endif
 
-            if (status != LAI_STATUS_SUCCESS)
+            if (status != OTAI_STATUS_SUCCESS)
             {
                 SWSS_LOG_ERROR(
                     "failed to set %s value %s: %s",
                     meta->attridname,
-                    lai_serialize_attr_value(*meta, *attr).c_str(),
-                    lai_serialize_status(status).c_str());
+                    otai_serialize_attr_value(*meta, *attr).c_str(),
+                    otai_serialize_status(status).c_str());
             }
         }
     }
@@ -698,39 +698,39 @@ lai_object_id_t SingleReiniter::processSingleVid(
 }
 
 void SingleReiniter::processAttributesForOids(
-    _In_ lai_object_type_t objectType,
+    _In_ otai_object_type_t objectType,
     _In_ uint32_t attr_count,
-    _In_ lai_attribute_t* attr_list)
+    _In_ otai_attribute_t* attr_list)
 {
     SWSS_LOG_ENTER();
 
     SWSS_LOG_DEBUG("processing list for object type %s",
-        lai_serialize_object_type(objectType).c_str());
+        otai_serialize_object_type(objectType).c_str());
 
     for (uint32_t idx = 0; idx < attr_count; idx++)
     {
-        lai_attribute_t& attr = attr_list[idx];
+        otai_attribute_t& attr = attr_list[idx];
 
-        auto meta = lai_metadata_get_attr_metadata(objectType, attr.id);
+        auto meta = otai_metadata_get_attr_metadata(objectType, attr.id);
 
         if (meta == NULL)
         {
             SWSS_LOG_THROW("unable to get metadata for object type %s, attribute %d",
-                lai_serialize_object_type(objectType).c_str(),
+                otai_serialize_object_type(objectType).c_str(),
                 attr.id);
         }
 
         uint32_t count = 0;
-        lai_object_id_t* objectIdList;
+        otai_object_id_t* objectIdList;
 
         switch (meta->attrvaluetype)
         {
-        case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
             count = 1;
             objectIdList = &attr.value.oid;
             break;
 
-        case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
             count = attr.value.objlist.count;
             objectIdList = attr.value.objlist.list;
             break;
@@ -757,9 +757,9 @@ void SingleReiniter::processAttributesForOids(
 
         for (uint32_t j = 0; j < count; j++)
         {
-            lai_object_id_t vid = objectIdList[j];
+            otai_object_id_t vid = objectIdList[j];
 
-            lai_object_id_t rid = processSingleVid(vid);
+            otai_object_id_t rid = processSingleVid(vid);
 
             objectIdList[j] = rid;
         }
@@ -774,19 +774,19 @@ void SingleReiniter::processOids()
     {
         const std::string& strObjectId = kv.first;
 
-        lai_object_id_t vid;
-        lai_deserialize_object_id(strObjectId, vid);
+        otai_object_id_t vid;
+        otai_deserialize_object_id(strObjectId, vid);
 
         processSingleVid(vid);
     }
 }
 
 void SingleReiniter::processStructNonObjectIds(
-    _In_ lai_object_meta_key_t& meta_key)
+    _In_ otai_object_meta_key_t& meta_key)
 {
     SWSS_LOG_ENTER();
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     /*
      * Call processSingleVid method for each oid in non object id (struct
@@ -797,16 +797,16 @@ void SingleReiniter::processStructNonObjectIds(
     {
         for (size_t j = 0; j < info->structmemberscount; ++j)
         {
-            const lai_struct_member_info_t* m = info->structmembers[j];
+            const otai_struct_member_info_t* m = info->structmembers[j];
 
-            if (m->membervaluetype != LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
             {
                 continue;
             }
 
-            lai_object_id_t vid = m->getoid(&meta_key);
+            otai_object_id_t vid = m->getoid(&meta_key);
 
-            lai_object_id_t rid = processSingleVid(vid);
+            otai_object_id_t rid = processSingleVid(vid);
 
             m->setoid(&meta_key, rid);
 
@@ -828,7 +828,7 @@ void SingleReiniter::checkAllIds()
         if (it == m_vidToRidMap.end())
         {
             SWSS_LOG_THROW("failed to find vid %s in previous map",
-                lai_serialize_object_id(kv.first).c_str());
+                otai_serialize_object_id(kv.first).c_str());
         }
 
         m_vidToRidMap.erase(it);
@@ -840,11 +840,11 @@ void SingleReiniter::checkAllIds()
     {
         for (auto& kv : m_vidToRidMap)
         {
-            lai_object_type_t objectType = VidManager::objectTypeQuery(kv.first);
+            otai_object_type_t objectType = VidManager::objectTypeQuery(kv.first);
 
             SWSS_LOG_ERROR("vid not translated: %s, object type: %s",
-                lai_serialize_object_id(kv.first).c_str(),
-                lai_serialize_object_type(objectType).c_str());
+                otai_serialize_object_id(kv.first).c_str(),
+                otai_serialize_object_type(objectType).c_str());
         }
 
         SWSS_LOG_THROW("vid to rid map is not empty (%zu) after translation", size);
@@ -881,12 +881,12 @@ void SingleReiniter::postRemoveActions()
     }
 }
 
-std::shared_ptr<LaiAttributeList> SingleReiniter::redisGetAttributesFromAsicKey(
+std::shared_ptr<OtaiAttributeList> SingleReiniter::redisGetAttributesFromAsicKey(
     _In_ const std::string& key)
 {
     SWSS_LOG_ENTER();
 
-    lai_object_type_t objectType = getObjectTypeFromAsicKey(key);
+    otai_object_type_t objectType = getObjectTypeFromAsicKey(key);
 
     std::vector<swss::FieldValueTuple> values;
 
@@ -902,10 +902,10 @@ std::shared_ptr<LaiAttributeList> SingleReiniter::redisGetAttributesFromAsicKey(
         values.push_back(fvt);
     }
 
-    return std::make_shared<LaiAttributeList>(objectType, values, false);
+    return std::make_shared<OtaiAttributeList>(objectType, values, false);
 }
 
-std::shared_ptr<LaiLinecard> SingleReiniter::getLinecard() const
+std::shared_ptr<OtaiLinecard> SingleReiniter::getLinecard() const
 {
     SWSS_LOG_ENTER();
 

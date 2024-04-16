@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace laivs
+namespace otaivs
 {
     class ResourceLimiterContainer
     {

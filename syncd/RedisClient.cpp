@@ -1,9 +1,9 @@
 #include "RedisClient.h"
 #include "VidManager.h"
 
-#include "lairediscommon.h"
+#include "otairediscommon.h"
 
-#include "meta/lai_serialize.h"
+#include "meta/otai_serialize.h"
 
 #include "swss/logger.h"
 #include "swss/redisapi.h"
@@ -33,7 +33,7 @@ RedisClient::~RedisClient()
 }
 
 std::string RedisClient::getRedisLanesKey(
-        _In_ lai_object_id_t linecardVid) const
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -42,7 +42,7 @@ std::string RedisClient::getRedisLanesKey(
      *
      * NOTE: To support multiple linecards LANES needs to be made per linecard.
      *
-     * return std::string(LANES) + ":" + lai_serialize_object_id(m_linecard_vid);
+     * return std::string(LANES) + ":" + otai_serialize_object_id(m_linecard_vid);
      *
      * Only linecard with index 0 and global context 0 will have key "LANES" for
      * backward compatibility. We could convert that during runtime at first
@@ -58,12 +58,12 @@ std::string RedisClient::getRedisLanesKey(
         return std::string(LANES);
     }
 
-    return (LANES ":") + lai_serialize_object_id(linecardVid);
+    return (LANES ":") + otai_serialize_object_id(linecardVid);
 }
 
 
 void RedisClient::clearLaneMap(
-        _In_ lai_object_id_t linecardVid) const
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -72,8 +72,8 @@ void RedisClient::clearLaneMap(
     m_dbAsic->del(key);
 }
 
-std::unordered_map<lai_uint32_t, lai_object_id_t> RedisClient::getLaneMap(
-        _In_ lai_object_id_t linecardVid) const
+std::unordered_map<otai_uint32_t, otai_object_id_t> RedisClient::getLaneMap(
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -83,19 +83,19 @@ std::unordered_map<lai_uint32_t, lai_object_id_t> RedisClient::getLaneMap(
 
     SWSS_LOG_DEBUG("previous lanes: %zu", hash.size());
 
-    std::unordered_map<lai_uint32_t, lai_object_id_t> map;
+    std::unordered_map<otai_uint32_t, otai_object_id_t> map;
 
     for (auto &kv: hash)
     {
         const std::string &str_key = kv.first;
         const std::string &str_value = kv.second;
 
-        lai_uint32_t lane;
-        lai_object_id_t portId;
+        otai_uint32_t lane;
+        otai_object_id_t portId;
 
-        lai_deserialize_number(str_key, lane);
+        otai_deserialize_number(str_key, lane);
 
-        lai_deserialize_object_id(str_value, portId);
+        otai_deserialize_object_id(str_value, portId);
 
         map[lane] = portId;
     }
@@ -104,8 +104,8 @@ std::unordered_map<lai_uint32_t, lai_object_id_t> RedisClient::getLaneMap(
 }
 
 void RedisClient::saveLaneMap(
-        _In_ lai_object_id_t linecardVid,
-        _In_ const std::unordered_map<lai_uint32_t, lai_object_id_t>& map) const
+        _In_ otai_object_id_t linecardVid,
+        _In_ const std::unordered_map<otai_uint32_t, otai_object_id_t>& map) const
 {
     SWSS_LOG_ENTER();
 
@@ -113,11 +113,11 @@ void RedisClient::saveLaneMap(
 
     for (auto const &it: map)
     {
-        lai_uint32_t lane = it.first;
-        lai_object_id_t portId = it.second;
+        otai_uint32_t lane = it.first;
+        otai_object_id_t portId = it.second;
 
-        std::string strLane = lai_serialize_number(lane);
-        std::string strPortId = lai_serialize_object_id(portId);
+        std::string strLane = otai_serialize_number(lane);
+        std::string strPortId = otai_serialize_object_id(portId);
 
         auto key = getRedisLanesKey(linecardVid);
 
@@ -125,26 +125,26 @@ void RedisClient::saveLaneMap(
     }
 }
 
-std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getObjectMap(
+std::unordered_map<otai_object_id_t, otai_object_id_t> RedisClient::getObjectMap(
         _In_ const std::string &key) const
 {
     SWSS_LOG_ENTER();
 
     auto hash = m_dbAsic->hgetall(key);
 
-    std::unordered_map<lai_object_id_t, lai_object_id_t> map;
+    std::unordered_map<otai_object_id_t, otai_object_id_t> map;
 
     for (auto &kv: hash)
     {
         const std::string &str_key = kv.first;
         const std::string &str_value = kv.second;
 
-        lai_object_id_t objectIdKey;
-        lai_object_id_t objectIdValue;
+        otai_object_id_t objectIdKey;
+        otai_object_id_t objectIdValue;
 
-        lai_deserialize_object_id(str_key, objectIdKey);
+        otai_deserialize_object_id(str_key, objectIdKey);
 
-        lai_deserialize_object_id(str_value, objectIdValue);
+        otai_deserialize_object_id(str_value, objectIdValue);
 
         map[objectIdKey] = objectIdValue;
     }
@@ -152,14 +152,14 @@ std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getObjectMap(
     return map;
 }
 
-std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getVidToRidMap(
-        _In_ lai_object_id_t linecardVid) const
+std::unordered_map<otai_object_id_t, otai_object_id_t> RedisClient::getVidToRidMap(
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
     auto map = getObjectMap(VIDTORID);
 
-    std::unordered_map<lai_object_id_t, lai_object_id_t> filtered;
+    std::unordered_map<otai_object_id_t, otai_object_id_t> filtered;
 
     for (auto& v2r: map)
     {
@@ -174,14 +174,14 @@ std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getVidToRidMap
     return filtered;
 }
 
-std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getRidToVidMap(
-        _In_ lai_object_id_t linecardVid) const
+std::unordered_map<otai_object_id_t, otai_object_id_t> RedisClient::getRidToVidMap(
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
     auto map = getObjectMap(RIDTOVID);
 
-    std::unordered_map<lai_object_id_t, lai_object_id_t> filtered;
+    std::unordered_map<otai_object_id_t, otai_object_id_t> filtered;
 
     for (auto& r2v: map)
     {
@@ -196,14 +196,14 @@ std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getRidToVidMap
     return filtered;
 }
 
-std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getVidToRidMap() const
+std::unordered_map<otai_object_id_t, otai_object_id_t> RedisClient::getVidToRidMap() const
 {
     SWSS_LOG_ENTER();
 
     return getObjectMap(VIDTORID);
 }
 
-std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getRidToVidMap() const
+std::unordered_map<otai_object_id_t, otai_object_id_t> RedisClient::getRidToVidMap() const
 {
     SWSS_LOG_ENTER();
 
@@ -211,15 +211,15 @@ std::unordered_map<lai_object_id_t, lai_object_id_t> RedisClient::getRidToVidMap
 }
 
 void RedisClient::setDummyAsicStateObject(
-        _In_ lai_object_id_t objectVid)
+        _In_ otai_object_id_t objectVid)
 {
     SWSS_LOG_ENTER();
 
-    lai_object_type_t objectType = VidManager::objectTypeQuery(objectVid);
+    otai_object_type_t objectType = VidManager::objectTypeQuery(objectVid);
 
-    std::string strObjectType = lai_serialize_object_type(objectType);
+    std::string strObjectType = otai_serialize_object_type(objectType);
 
-    std::string strVid = lai_serialize_object_id(objectVid);
+    std::string strVid = otai_serialize_object_id(objectVid);
 
     std::string strKey = ASIC_STATE_TABLE + (":" + strObjectType + ":" + strVid);
 
@@ -227,7 +227,7 @@ void RedisClient::setDummyAsicStateObject(
 }
 
 std::string RedisClient::getRedisColdVidsKey(
-        _In_ lai_object_id_t linecardVid) const
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -236,7 +236,7 @@ std::string RedisClient::getRedisColdVidsKey(
      *
      * NOTE: To support multiple linecards COLDVIDS needs to be made per linecard.
      *
-     * return std::string(COLDVIDS) + ":" + lai_serialize_object_id(m_linecard_vid);
+     * return std::string(COLDVIDS) + ":" + otai_serialize_object_id(m_linecard_vid);
      *
      * Only linecard with index 0 and global context 0 will have key "COLDVIDS" for
      * backward compatibility. We could convert that during runtime at first
@@ -252,12 +252,12 @@ std::string RedisClient::getRedisColdVidsKey(
         return std::string(COLDVIDS);
     }
 
-    return (COLDVIDS ":") + lai_serialize_object_id(linecardVid);
+    return (COLDVIDS ":") + otai_serialize_object_id(linecardVid);
 }
 
 void RedisClient::saveColdBootDiscoveredVids(
-        _In_ lai_object_id_t linecardVid,
-        _In_ const std::set<lai_object_id_t>& coldVids)
+        _In_ otai_object_id_t linecardVid,
+        _In_ const std::set<otai_object_id_t>& coldVids)
 {
     SWSS_LOG_ENTER();
 
@@ -265,18 +265,18 @@ void RedisClient::saveColdBootDiscoveredVids(
 
     for (auto vid: coldVids)
     {
-        lai_object_type_t objectType = VidManager::objectTypeQuery(vid);
+        otai_object_type_t objectType = VidManager::objectTypeQuery(vid);
 
-        std::string strObjectType = lai_serialize_object_type(objectType);
+        std::string strObjectType = otai_serialize_object_type(objectType);
 
-        std::string strVid = lai_serialize_object_id(vid);
+        std::string strVid = otai_serialize_object_id(vid);
 
         m_dbAsic->hset(key, strVid, strObjectType);
     }
 }
 
 std::string RedisClient::getRedisHiddenKey(
-        _In_ lai_object_id_t linecardVid) const
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -285,7 +285,7 @@ std::string RedisClient::getRedisHiddenKey(
      *
      * NOTE: To support multiple linecards HIDDEN needs to be made per linecard.
      *
-     * return std::string(HIDDEN) + ":" + lai_serialize_object_id(m_linecard_vid);
+     * return std::string(HIDDEN) + ":" + otai_serialize_object_id(m_linecard_vid);
      *
      * Only linecard with index 0 and global context 0 will have key "HIDDEN" for
      * backward compatibility. We could convert that during runtime at first
@@ -301,11 +301,11 @@ std::string RedisClient::getRedisHiddenKey(
         return std::string(HIDDEN);
     }
 
-    return (HIDDEN ":") + lai_serialize_object_id(linecardVid);
+    return (HIDDEN ":") + otai_serialize_object_id(linecardVid);
 }
 
 std::shared_ptr<std::string> RedisClient::getLinecardHiddenAttribute(
-        _In_ lai_object_id_t linecardVid,
+        _In_ otai_object_id_t linecardVid,
         _In_ const std::string& attrIdName)
 {
     SWSS_LOG_ENTER();
@@ -316,21 +316,21 @@ std::shared_ptr<std::string> RedisClient::getLinecardHiddenAttribute(
 }
 
 void RedisClient::saveLinecardHiddenAttribute(
-        _In_ lai_object_id_t linecardVid,
+        _In_ otai_object_id_t linecardVid,
         _In_ const std::string& attrIdName,
-        _In_ lai_object_id_t objectRid)
+        _In_ otai_object_id_t objectRid)
 {
     SWSS_LOG_ENTER();
 
     auto key = getRedisHiddenKey(linecardVid);
 
-    std::string strRid = lai_serialize_object_id(objectRid);
+    std::string strRid = otai_serialize_object_id(objectRid);
 
     m_dbAsic->hset(key, attrIdName, strRid);
 }
 
-std::set<lai_object_id_t> RedisClient::getColdVids(
-        _In_ lai_object_id_t linecardVid)
+std::set<otai_object_id_t> RedisClient::getColdVids(
+        _In_ otai_object_id_t linecardVid)
 {
     SWSS_LOG_ENTER();
 
@@ -343,14 +343,14 @@ std::set<lai_object_id_t> RedisClient::getColdVids(
      * BRIDGE_PORT, since user could decide to remove them on previous boot.
      */
 
-    std::set<lai_object_id_t> coldVids;
+    std::set<otai_object_id_t> coldVids;
 
     for (auto kvp: hash)
     {
         auto strVid = kvp.first;
 
-        lai_object_id_t vid;
-        lai_deserialize_object_id(strVid, vid);
+        otai_object_id_t vid;
+        otai_deserialize_object_id(strVid, vid);
 
         /*
          * Just make sure that vid in COLDVIDS is present in current vid2rid map
@@ -370,8 +370,8 @@ std::set<lai_object_id_t> RedisClient::getColdVids(
 }
 
 void RedisClient::setPortLanes(
-        _In_ lai_object_id_t linecardVid,
-        _In_ lai_object_id_t portRid,
+        _In_ otai_object_id_t linecardVid,
+        _In_ otai_object_id_t portRid,
         _In_ const std::vector<uint32_t>& lanes)
 {
     SWSS_LOG_ENTER();
@@ -380,15 +380,15 @@ void RedisClient::setPortLanes(
 
     for (uint32_t lane: lanes)
     {
-        std::string strLane = lai_serialize_number(lane);
-        std::string strPortRid = lai_serialize_object_id(portRid);
+        std::string strLane = otai_serialize_number(lane);
+        std::string strPortRid = otai_serialize_object_id(portRid);
 
         m_dbAsic->hset(key, strLane, strPortRid);
     }
 }
 
 size_t RedisClient::getAsicObjectsSize(
-        _In_ lai_object_id_t linecardVid) const
+        _In_ otai_object_id_t linecardVid) const
 {
     SWSS_LOG_ENTER();
 
@@ -404,9 +404,9 @@ size_t RedisClient::getAsicObjectsSize(
     {
         auto mk = key.substr(key.find_first_of(":") + 1);
 
-        lai_object_meta_key_t metaKey;
+        otai_object_meta_key_t metaKey;
 
-        lai_deserialize_object_meta_key(mk, metaKey);
+        otai_deserialize_object_meta_key(mk, metaKey);
 
         // we need to check only objects that's belong to requested linecard
 
@@ -422,8 +422,8 @@ size_t RedisClient::getAsicObjectsSize(
 }
 
 int RedisClient::removePortFromLanesMap(
-        _In_ lai_object_id_t linecardVid,
-        _In_ lai_object_id_t portRid) const
+        _In_ otai_object_id_t linecardVid,
+        _In_ otai_object_id_t portRid) const
 {
     SWSS_LOG_ENTER();
 
@@ -438,7 +438,7 @@ int RedisClient::removePortFromLanesMap(
     {
         if (kv.second == portRid)
         {
-            std::string strLane = lai_serialize_number(kv.first);
+            std::string strLane = otai_serialize_number(kv.first);
 
             m_dbAsic->hdel(key, strLane);
 
@@ -450,15 +450,15 @@ int RedisClient::removePortFromLanesMap(
 }
 
 void RedisClient::removeAsicObject(
-        _In_ lai_object_id_t objectVid) const
+        _In_ otai_object_id_t objectVid) const
 {
     SWSS_LOG_ENTER();
 
-    lai_object_type_t ot = VidManager::objectTypeQuery(objectVid);
+    otai_object_type_t ot = VidManager::objectTypeQuery(objectVid);
 
-    auto strVid = lai_serialize_object_id(objectVid);
+    auto strVid = otai_serialize_object_id(objectVid);
 
-    std::string key = (ASIC_STATE_TABLE ":") + lai_serialize_object_type(ot) + ":" + strVid;
+    std::string key = (ASIC_STATE_TABLE ":") + otai_serialize_object_type(ot) + ":" + strVid;
 
     SWSS_LOG_INFO("removing ASIC DB key: %s", key.c_str());
 
@@ -466,11 +466,11 @@ void RedisClient::removeAsicObject(
 }
 
 void RedisClient::removeAsicObject(
-        _In_ const lai_object_meta_key_t& metaKey)
+        _In_ const otai_object_meta_key_t& metaKey)
 {
     SWSS_LOG_ENTER();
 
-    std::string key = (ASIC_STATE_TABLE ":") + lai_serialize_object_meta_key(metaKey);
+    std::string key = (ASIC_STATE_TABLE ":") + otai_serialize_object_meta_key(metaKey);
 
     m_dbAsic->del(key);
 }
@@ -492,24 +492,24 @@ void RedisClient::removeAsicObjects(
 }
 
 void RedisClient::setAsicObject(
-        _In_ const lai_object_meta_key_t& metaKey,
+        _In_ const otai_object_meta_key_t& metaKey,
         _In_ const std::string& attr,
         _In_ const std::string& value)
 {
     SWSS_LOG_ENTER();
 
-    std::string key = (ASIC_STATE_TABLE ":") + lai_serialize_object_meta_key(metaKey);
+    std::string key = (ASIC_STATE_TABLE ":") + otai_serialize_object_meta_key(metaKey);
 
     m_dbAsic->hset(key, attr, value);
 }
 
 void RedisClient::createAsicObject(
-        _In_ const lai_object_meta_key_t& metaKey,
+        _In_ const otai_object_meta_key_t& metaKey,
         _In_ const std::vector<swss::FieldValueTuple>& attrs)
 {
     SWSS_LOG_ENTER();
 
-    std::string key = (ASIC_STATE_TABLE ":") + lai_serialize_object_meta_key(metaKey);
+    std::string key = (ASIC_STATE_TABLE ":") + otai_serialize_object_meta_key(metaKey);
 
     if (attrs.size() == 0)
     {
@@ -545,7 +545,7 @@ void RedisClient::createAsicObjects(
 }
 
 void RedisClient::setVidAndRidMap(
-        _In_ const std::unordered_map<lai_object_id_t, lai_object_id_t>& map)
+        _In_ const std::unordered_map<otai_object_id_t, otai_object_id_t>& map)
 {
     SWSS_LOG_ENTER();
 
@@ -554,8 +554,8 @@ void RedisClient::setVidAndRidMap(
 
     for (auto &kv: map)
     {
-        std::string strVid = lai_serialize_object_id(kv.first);
-        std::string strRid = lai_serialize_object_id(kv.second);
+        std::string strVid = otai_serialize_object_id(kv.first);
+        std::string strRid = otai_serialize_object_id(kv.second);
 
         m_dbAsic->hset(VIDTORID, strVid, strRid);
         m_dbAsic->hset(RIDTOVID, strRid, strVid);
@@ -587,15 +587,15 @@ std::vector<std::string> RedisClient::getAsicStateLinecardsKeys() const
 {
     SWSS_LOG_ENTER();
 
-    return m_dbAsic->keys(ASIC_STATE_TABLE ":LAI_OBJECT_TYPE_LINECARD:*");
+    return m_dbAsic->keys(ASIC_STATE_TABLE ":OTAI_OBJECT_TYPE_LINECARD:*");
 }
 
 void RedisClient::removeColdVid(
-        _In_ lai_object_id_t vid)
+        _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 
-    auto strVid = lai_serialize_object_id(vid);
+    auto strVid = otai_serialize_object_id(vid);
 
     m_dbAsic->hdel(COLDVIDS, strVid);
 }
@@ -640,37 +640,37 @@ bool RedisClient::hasNoHiddenKeysDefined() const
 }
 
 void RedisClient::removeVidAndRid(
-        _In_ lai_object_id_t vid,
-        _In_ lai_object_id_t rid)
+        _In_ otai_object_id_t vid,
+        _In_ otai_object_id_t rid)
 {
     SWSS_LOG_ENTER();
 
-    auto strVid = lai_serialize_object_id(vid);
-    auto strRid = lai_serialize_object_id(rid);
+    auto strVid = otai_serialize_object_id(vid);
+    auto strRid = otai_serialize_object_id(rid);
 
     m_dbAsic->hdel(VIDTORID, strVid);
     m_dbAsic->hdel(RIDTOVID, strRid);
 }
 
 void RedisClient::insertVidAndRid(
-        _In_ lai_object_id_t vid,
-        _In_ lai_object_id_t rid)
+        _In_ otai_object_id_t vid,
+        _In_ otai_object_id_t rid)
 {
     SWSS_LOG_ENTER();
 
-    auto strVid = lai_serialize_object_id(vid);
-    auto strRid = lai_serialize_object_id(rid);
+    auto strVid = otai_serialize_object_id(vid);
+    auto strRid = otai_serialize_object_id(rid);
 
     m_dbAsic->hset(VIDTORID, strVid, strRid);
     m_dbAsic->hset(RIDTOVID, strRid, strVid);
 }
 
-lai_object_id_t RedisClient::getVidForRid(
-        _In_ lai_object_id_t rid)
+otai_object_id_t RedisClient::getVidForRid(
+        _In_ otai_object_id_t rid)
 {
     SWSS_LOG_ENTER();
 
-    auto strRid = lai_serialize_object_id(rid);
+    auto strRid = otai_serialize_object_id(rid);
 
     auto pvid = m_dbAsic->hget(RIDTOVID, strRid);
 
@@ -679,22 +679,22 @@ lai_object_id_t RedisClient::getVidForRid(
         // rid2vid map should never contain null, so we can return NULL which
         // will mean that mapping don't exists
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
-    lai_object_id_t vid;
+    otai_object_id_t vid;
 
-    lai_deserialize_object_id(*pvid, vid);
+    otai_deserialize_object_id(*pvid, vid);
 
     return vid;
 }
 
-lai_object_id_t RedisClient::getRidForVid(
-        _In_ lai_object_id_t vid)
+otai_object_id_t RedisClient::getRidForVid(
+        _In_ otai_object_id_t vid)
 {
     SWSS_LOG_ENTER();
 
-    auto strVid = lai_serialize_object_id(vid);
+    auto strVid = otai_serialize_object_id(vid);
 
     auto prid = m_dbAsic->hget(VIDTORID, strVid);
 
@@ -703,12 +703,12 @@ lai_object_id_t RedisClient::getRidForVid(
         // rid2vid map should never contain null, so we can return NULL which
         // will mean that mapping don't exists
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
 
-    lai_object_id_t rid;
+    otai_object_id_t rid;
 
-    lai_deserialize_object_id(*prid, rid);
+    otai_deserialize_object_id(*prid, rid);
 
     return rid;
 }

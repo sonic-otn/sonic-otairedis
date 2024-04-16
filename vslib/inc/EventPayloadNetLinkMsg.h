@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 #include "EventPayload.h"
@@ -10,7 +10,7 @@ extern "C" {
 
 #include <string>
 
-namespace laivs
+namespace otaivs
 {
     class EventPayloadNetLinkMsg:
         public EventPayload
@@ -18,7 +18,7 @@ namespace laivs
         public:
 
             EventPayloadNetLinkMsg(
-                    _In_ lai_object_id_t linecardId,
+                    _In_ otai_object_id_t linecardId,
                     _In_ int nlmsgType,
                     _In_ int ifIndex,
                     _In_ unsigned int ifFlags,
@@ -28,7 +28,7 @@ namespace laivs
 
         public:
 
-            lai_object_id_t getLinecardId() const;
+            otai_object_id_t getLinecardId() const;
 
             int getNlmsgType() const;
 
@@ -40,7 +40,7 @@ namespace laivs
 
         private:
 
-            lai_object_id_t m_linecardId;
+            otai_object_id_t m_linecardId;
 
             int m_nlmsgType;
 

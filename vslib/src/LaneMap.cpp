@@ -4,7 +4,7 @@
 
 #include <set>
 
-using namespace laivs;
+using namespace otaivs;
 
 LaneMap::LaneMap(
         _In_ uint32_t linecardIndex):

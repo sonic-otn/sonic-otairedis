@@ -1,10 +1,10 @@
 #include "Meta.h"
 
 #include "swss/logger.h"
-#include "lai_serialize.h"
+#include "otai_serialize.h"
 
 #include "Globals.h"
-#include "LaiAttributeList.h"
+#include "OtaiAttributeList.h"
 
 #include <inttypes.h>
 
@@ -14,12 +14,12 @@
 
 #define MAX_LIST_COUNT 0x1000
 
-#define CHECK_STATUS_SUCCESS(s) { if ((s) != LAI_STATUS_SUCCESS) return (s); }
+#define CHECK_STATUS_SUCCESS(s) { if ((s) != OTAI_STATUS_SUCCESS) return (s); }
 
 #define VALIDATION_LIST(md,vlist) \
 {\
     auto status1 = meta_genetic_validation_list(md,vlist.count,vlist.list);\
-    if (status1 != LAI_STATUS_SUCCESS)\
+    if (status1 != OTAI_STATUS_SUCCESS)\
     {\
         return status1;\
     }\
@@ -33,10 +33,10 @@
     }\
 }
 
-using namespace laimeta;
+using namespace otaimeta;
 
 Meta::Meta(
-        _In_ std::shared_ptr<lairedis::LaiInterface> impl):
+        _In_ std::shared_ptr<otairedis::OtaiInterface> impl):
     m_implementation(impl)
 {
     SWSS_LOG_ENTER();
@@ -49,23 +49,23 @@ Meta::Meta(
     m_warmBoot = false;
 }
 
-lai_status_t Meta::initialize(
+otai_status_t Meta::initialize(
         _In_ uint64_t flags,
-        _In_ const lai_service_method_table_t *service_method_table)
+        _In_ const otai_service_method_table_t *service_method_table)
 {
     SWSS_LOG_ENTER();
 
     return m_implementation->initialize(flags, service_method_table);
 }
 
-lai_status_t Meta::uninitialize(void)
+otai_status_t Meta::uninitialize(void)
 {
     SWSS_LOG_ENTER();
 
     return m_implementation->uninitialize();
 }
 
-lai_status_t Meta::linkCheck(_Out_ bool *up)
+otai_status_t Meta::linkCheck(_Out_ bool *up)
 {
     SWSS_LOG_ENTER();
 
@@ -87,7 +87,7 @@ void Meta::meta_init_db()
      */
 
     m_oids.clear();
-    m_laiObjectCollection.clear();
+    m_otaiObjectCollection.clear();
     m_attrKeys.clear();
     m_portRelatedSet.clear();
 
@@ -106,43 +106,43 @@ bool Meta::isEmpty()
     return m_portRelatedSet.getAllPorts().empty()
         && m_oids.getAllOids().empty()
         && m_attrKeys.getAllKeys().empty()
-        && m_laiObjectCollection.getAllKeys().empty();
+        && m_otaiObjectCollection.getAllKeys().empty();
 }
 
-lai_status_t Meta::remove(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id)
+otai_status_t Meta::remove(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id)
 {
     SWSS_LOG_ENTER();
 
-    lai_status_t status = meta_lai_validate_oid(object_type, &object_id, LAI_NULL_OBJECT_ID, false);
+    otai_status_t status = meta_otai_validate_oid(object_type, &object_id, OTAI_NULL_OBJECT_ID, false);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
-    lai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
+    otai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
 
     status = meta_generic_validation_remove(meta_key);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
     status = m_implementation->remove(object_type, object_id);
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_DEBUG("remove status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_DEBUG("remove status: %s", otai_serialize_status(status).c_str());
     }
     else
     {
-        SWSS_LOG_ERROR("remove status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_ERROR("remove status: %s", otai_serialize_status(status).c_str());
     }
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
         meta_generic_validation_post_remove(meta_key);
     }
@@ -150,51 +150,51 @@ lai_status_t Meta::remove(
     return status;
 }
 
-lai_status_t Meta::create(
-        _In_ lai_object_type_t object_type,
-        _Out_ lai_object_id_t* object_id,
-        _In_ lai_object_id_t linecard_id,
+otai_status_t Meta::create(
+        _In_ otai_object_type_t object_type,
+        _Out_ otai_object_id_t* object_id,
+        _In_ otai_object_id_t linecard_id,
         _In_ uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    lai_status_t status = meta_lai_validate_oid(object_type, object_id, linecard_id, true);
+    otai_status_t status = meta_otai_validate_oid(object_type, object_id, linecard_id, true);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
-    lai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = LAI_NULL_OBJECT_ID } } };
+    otai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = OTAI_NULL_OBJECT_ID } } };
 
     status = meta_generic_validation_create(meta_key, linecard_id, attr_count, attr_list);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
     status = m_implementation->create(object_type, object_id, linecard_id, attr_count, attr_list);
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_DEBUG("create status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_DEBUG("create status: %s", otai_serialize_status(status).c_str());
     }
     else
     {
-        SWSS_LOG_ERROR("create status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_ERROR("create status: %s", otai_serialize_status(status).c_str());
     }
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
         meta_key.objectkey.key.object_id = *object_id;
 
-        if (meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD)
+        if (meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
         {
             /*
              * We are creating linecard object, so linecard id must be the same as
-             * just created object. We could use LAI_NULL_OBJECT_ID in that
+             * just created object. We could use OTAI_NULL_OBJECT_ID in that
              * case and do special linecard inside post_create method.
              */
 
@@ -207,41 +207,41 @@ lai_status_t Meta::create(
     return status;
 }
 
-lai_status_t Meta::set(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
-        _In_ const lai_attribute_t *attr)
+otai_status_t Meta::set(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
+        _In_ const otai_attribute_t *attr)
 {
     SWSS_LOG_ENTER();
 
-    lai_status_t status = meta_lai_validate_oid(object_type, &object_id, LAI_NULL_OBJECT_ID, false);
+    otai_status_t status = meta_otai_validate_oid(object_type, &object_id, OTAI_NULL_OBJECT_ID, false);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
-    lai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
+    otai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
 
     status = meta_generic_validation_set(meta_key, attr);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
     status = m_implementation->set(object_type, object_id, attr);
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_DEBUG("set status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_DEBUG("set status: %s", otai_serialize_status(status).c_str());
     }
     else
     {
-        SWSS_LOG_ERROR("set status: %s", lai_serialize_status(status).c_str());
+        SWSS_LOG_ERROR("set status: %s", otai_serialize_status(status).c_str());
     }
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
         meta_generic_validation_post_set(meta_key, attr);
     }
@@ -249,35 +249,35 @@ lai_status_t Meta::set(
     return status;
 }
 
-lai_status_t Meta::get(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t Meta::get(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t attr_count,
-        _Inout_ lai_attribute_t *attr_list)
+        _Inout_ otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    lai_status_t status = meta_lai_validate_oid(object_type, &object_id, LAI_NULL_OBJECT_ID, false);
+    otai_status_t status = meta_otai_validate_oid(object_type, &object_id, OTAI_NULL_OBJECT_ID, false);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
-    lai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
+    otai_object_meta_key_t meta_key = { .objecttype = object_type, .objectkey = { .key = { .object_id  = object_id } } };
 
     status = meta_generic_validation_get(meta_key, attr_count, attr_list);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
     status = m_implementation->get(object_type, object_id, attr_count, attr_list);
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
-        lai_object_id_t linecard_id = linecardIdQuery(object_id);
+        otai_object_id_t linecard_id = linecardIdQuery(object_id);
 
         if (!m_oids.objectReferenceExists(linecard_id))
         {
@@ -293,60 +293,60 @@ lai_status_t Meta::get(
 #define PARAMETER_CHECK_IF_NOT_NULL(param) {                                                \
     if ((param) == nullptr) {                                                               \
         SWSS_LOG_ERROR("parameter " # param " is NULL");                                    \
-        return LAI_STATUS_INVALID_PARAMETER; } }
+        return OTAI_STATUS_INVALID_PARAMETER; } }
 
 #define PARAMETER_CHECK_OID_OBJECT_TYPE(param, OT) {                                        \
-    lai_object_type_t _ot = objectTypeQuery(param);                                   \
+    otai_object_type_t _ot = objectTypeQuery(param);                                   \
     if (_ot != (OT)) {                                                                      \
         SWSS_LOG_ERROR("parameter " # param " %s object type is %s, but expected %s",       \
-                lai_serialize_object_id(param).c_str(),                                     \
-                lai_serialize_object_type(_ot).c_str(),                                     \
-                lai_serialize_object_type(OT).c_str());                                     \
-        return LAI_STATUS_INVALID_PARAMETER; } }
+                otai_serialize_object_id(param).c_str(),                                     \
+                otai_serialize_object_type(_ot).c_str(),                                     \
+                otai_serialize_object_type(OT).c_str());                                     \
+        return OTAI_STATUS_INVALID_PARAMETER; } }
 
 #define PARAMETER_CHECK_OBJECT_TYPE_VALID(ot) {                                             \
-    if (!lai_metadata_is_object_type_valid(ot)) {                                           \
+    if (!otai_metadata_is_object_type_valid(ot)) {                                           \
         SWSS_LOG_ERROR("parameter " # ot " object type %d is invalid", (ot));               \
-        return LAI_STATUS_INVALID_PARAMETER; } }
+        return OTAI_STATUS_INVALID_PARAMETER; } }
 
 #define PARAMETER_CHECK_POSITIVE(param) {                                                   \
     if ((param) <= 0) {                                                                     \
         SWSS_LOG_ERROR("parameter " #param " must be positive");                            \
-        return LAI_STATUS_INVALID_PARAMETER; } }
+        return OTAI_STATUS_INVALID_PARAMETER; } }
 
 #define PARAMETER_CHECK_OID_EXISTS(oid, OT) {                                               \
-    lai_object_meta_key_t _key = {                                                          \
+    otai_object_meta_key_t _key = {                                                          \
         .objecttype = (OT), .objectkey = { .key = { .object_id = (oid) } } };               \
-    if (!m_laiObjectCollection.objectExists(_key)) {                                        \
-        SWSS_LOG_ERROR("object %s don't exists", lai_serialize_object_id(oid).c_str()); } }
+    if (!m_otaiObjectCollection.objectExists(_key)) {                                        \
+        SWSS_LOG_ERROR("object %s don't exists", otai_serialize_object_id(oid).c_str()); } }
 
-lai_status_t Meta::objectTypeGetAvailability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
+otai_status_t Meta::objectTypeGetAvailability(
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t *attrList,
+        _In_ const otai_attribute_t *attrList,
         _Out_ uint64_t *count)
 {
     SWSS_LOG_ENTER();
 
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, LAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, LAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
     PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
     PARAMETER_CHECK_POSITIVE(attrCount);
     PARAMETER_CHECK_IF_NOT_NULL(attrList);
     PARAMETER_CHECK_IF_NOT_NULL(count);
 
-    auto info = lai_metadata_get_object_type_info(objectType);
+    auto info = otai_metadata_get_object_type_info(objectType);
 
     PARAMETER_CHECK_IF_NOT_NULL(info);
 
-    std::set<lai_attr_id_t> attrs;
+    std::set<otai_attr_id_t> attrs;
 
     for (uint32_t idx = 0; idx < attrCount; idx++)
     {
         auto id = attrList[idx].id;
 
-        auto mdp = lai_metadata_get_attr_metadata(objectType, id);
+        auto mdp = otai_metadata_get_attr_metadata(objectType, id);
 
         if (mdp == nullptr)
         {
@@ -354,14 +354,14 @@ lai_status_t Meta::objectTypeGetAvailability(
                     info->objecttypename,
                     attrList[idx].id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (attrs.find(id) != attrs.end())
         {
             SWSS_LOG_ERROR("attr %s already defined on list", mdp->attridname);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         attrs.insert(id);
@@ -370,20 +370,20 @@ lai_status_t Meta::objectTypeGetAvailability(
         {
             SWSS_LOG_ERROR("attr %s is not resource type", mdp->attridname);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         switch (mdp->attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
 
-                if (mdp->isenum && !lai_metadata_is_allowed_enum_value(mdp, attrList[idx].value.s32))
+                if (mdp->isenum && !otai_metadata_is_allowed_enum_value(mdp, attrList[idx].value.s32))
                 {
                     SWSS_LOG_ERROR("%s is enum, but value %d not found on allowed values list",
                             mdp->attridname,
                             attrList[idx].value.s32);
 
-                    return LAI_STATUS_INVALID_PARAMETER;
+                    return OTAI_STATUS_INVALID_PARAMETER;
                 }
 
                 break;
@@ -391,7 +391,7 @@ lai_status_t Meta::objectTypeGetAvailability(
             default:
 
                 SWSS_LOG_THROW("value type %s not supported yet, FIXME!",
-                        lai_serialize_attr_value_type(mdp->attrvaluetype).c_str());
+                        otai_serialize_attr_value_type(mdp->attrvaluetype).c_str());
         }
     }
 
@@ -402,27 +402,27 @@ lai_status_t Meta::objectTypeGetAvailability(
     return status;
 }
 
-lai_status_t Meta::queryAttributeCapability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _Out_ lai_attr_capability_t *capability)
+otai_status_t Meta::queryAttributeCapability(
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _Out_ otai_attr_capability_t *capability)
 {
     SWSS_LOG_ENTER();
 
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, LAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, LAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
     PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
 
-    auto mdp = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto mdp = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (!mdp)
     {
         SWSS_LOG_ERROR("unable to find attribute: %s:%d",
-                lai_serialize_object_type(objectType).c_str(),
+                otai_serialize_object_type(objectType).c_str(),
                 attrId);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     PARAMETER_CHECK_IF_NOT_NULL(capability);
@@ -432,47 +432,47 @@ lai_status_t Meta::queryAttributeCapability(
     return status;
 }
 
-lai_status_t Meta::queryAattributeEnumValuesCapability(
-        _In_ lai_object_id_t linecardId,
-        _In_ lai_object_type_t objectType,
-        _In_ lai_attr_id_t attrId,
-        _Inout_ lai_s32_list_t *enumValuesCapability)
+otai_status_t Meta::queryAattributeEnumValuesCapability(
+        _In_ otai_object_id_t linecardId,
+        _In_ otai_object_type_t objectType,
+        _In_ otai_attr_id_t attrId,
+        _Inout_ otai_s32_list_t *enumValuesCapability)
 {
     SWSS_LOG_ENTER();
 
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, LAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, LAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
+    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
     PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
 
-    auto mdp = lai_metadata_get_attr_metadata(objectType, attrId);
+    auto mdp = otai_metadata_get_attr_metadata(objectType, attrId);
 
     if (!mdp)
     {
         SWSS_LOG_ERROR("unable to find attribute: %s:%d",
-                lai_serialize_object_type(objectType).c_str(),
+                otai_serialize_object_type(objectType).c_str(),
                 attrId);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (!mdp->isenum && !mdp->isenumlist)
     {
         SWSS_LOG_ERROR("%s is not enum/enum list", mdp->attridname);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     PARAMETER_CHECK_IF_NOT_NULL(enumValuesCapability);
 
     if (meta_genetic_validation_list(*mdp, enumValuesCapability->count, enumValuesCapability->list)
-            != LAI_STATUS_SUCCESS)
+            != OTAI_STATUS_SUCCESS)
     {
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     auto status = m_implementation->queryAattributeEnumValuesCapability(linecardId, objectType, attrId, enumValuesCapability);
 
-    if (status == LAI_STATUS_SUCCESS)
+    if (status == OTAI_STATUS_SUCCESS)
     {
         if (enumValuesCapability->list)
         {
@@ -481,7 +481,7 @@ lai_status_t Meta::queryAattributeEnumValuesCapability(
             {
                 int val = enumValuesCapability->list[idx];
 
-                if (!lai_metadata_is_allowed_enum_value(mdp, val))
+                if (!otai_metadata_is_allowed_enum_value(mdp, val))
                 {
                     SWSS_LOG_ERROR("returned value %d is not allowed on %s", val, mdp->attridname);
                 }
@@ -494,13 +494,13 @@ lai_status_t Meta::queryAattributeEnumValuesCapability(
 
 #define META_COUNTERS_COUNT_MSB (0x80000000)
 
-lai_status_t Meta::meta_validate_stats(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t Meta::meta_validate_stats(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids,
-        _Out_ lai_stat_value_t *counters,
-        _In_ lai_stats_mode_t mode)
+        _In_ const otai_stat_id_t *counter_ids,
+        _Out_ otai_stat_value_t *counters,
+        _In_ otai_stats_mode_t mode)
 {
     SWSS_LOG_ENTER();
 
@@ -521,14 +521,14 @@ lai_status_t Meta::meta_validate_stats(
     PARAMETER_CHECK_IF_NOT_NULL(counter_ids);
     PARAMETER_CHECK_IF_NOT_NULL(counters);
 
-    lai_object_id_t linecard_id = linecardIdQuery(object_id);
+    otai_object_id_t linecard_id = linecardIdQuery(object_id);
 
     // checks also if object type is OID
-    lai_status_t status = meta_lai_validate_oid(object_type, &object_id, linecard_id, false);
+    otai_status_t status = meta_otai_validate_oid(object_type, &object_id, linecard_id, false);
 
     CHECK_STATUS_SUCCESS(status);
 
-    auto info = lai_metadata_get_object_type_info(object_type);
+    auto info = otai_metadata_get_object_type_info(object_type);
 
     PARAMETER_CHECK_IF_NOT_NULL(info);
 
@@ -536,43 +536,43 @@ lai_status_t Meta::meta_validate_stats(
     {
         SWSS_LOG_ERROR("%s does not support stats", info->objecttypename);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     // check if all counter ids are in enum range
 
     for (uint32_t idx = 0; idx < number_of_counters; idx++)
     {
-        if (lai_metadata_get_enum_value_name(info->statenum, counter_ids[idx]) == nullptr)
+        if (otai_metadata_get_enum_value_name(info->statenum, counter_ids[idx]) == nullptr)
         {
             SWSS_LOG_ERROR("value %d is not in range on %s", counter_ids[idx], info->statenum->name);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
     // check mode
 
-    if (lai_metadata_get_enum_value_name(&lai_metadata_enum_lai_stats_mode_t, mode) == nullptr)
+    if (otai_metadata_get_enum_value_name(&otai_metadata_enum_otai_stats_mode_t, mode) == nullptr)
     {
-        SWSS_LOG_ERROR("mode value %d is not in range on %s", mode, lai_metadata_enum_lai_stats_mode_t.name);
+        SWSS_LOG_ERROR("mode value %d is not in range on %s", mode, otai_metadata_enum_otai_stats_mode_t.name);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::getStats(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t Meta::getStats(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids,
-        _Out_ lai_stat_value_t *counters)
+        _In_ const otai_stat_id_t *counter_ids,
+        _Out_ otai_stat_value_t *counters)
 {
     SWSS_LOG_ENTER();
 
-    auto status = meta_validate_stats(object_type, object_id, number_of_counters, counter_ids, counters, LAI_STATS_MODE_READ);
+    auto status = meta_validate_stats(object_type, object_id, number_of_counters, counter_ids, counters, OTAI_STATS_MODE_READ);
 
     CHECK_STATUS_SUCCESS(status);
 
@@ -583,13 +583,13 @@ lai_status_t Meta::getStats(
     return status;
 }
 
-lai_status_t Meta::getStatsExt(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t Meta::getStatsExt(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids,
-        _In_ lai_stats_mode_t mode,
-        _Out_ lai_stat_value_t *counters)
+        _In_ const otai_stat_id_t *counter_ids,
+        _In_ otai_stats_mode_t mode,
+        _Out_ otai_stat_value_t *counters)
 {
     SWSS_LOG_ENTER();
 
@@ -604,16 +604,16 @@ lai_status_t Meta::getStatsExt(
     return status;
 }
 
-lai_status_t Meta::clearStats(
-        _In_ lai_object_type_t object_type,
-        _In_ lai_object_id_t object_id,
+otai_status_t Meta::clearStats(
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ uint32_t number_of_counters,
-        _In_ const lai_stat_id_t *counter_ids)
+        _In_ const otai_stat_id_t *counter_ids)
 {
     SWSS_LOG_ENTER();
 
-    lai_stat_value_t counters;
-    auto status = meta_validate_stats(object_type, object_id, number_of_counters, counter_ids, &counters, LAI_STATS_MODE_READ);
+    otai_stat_value_t counters;
+    auto status = meta_validate_stats(object_type, object_id, number_of_counters, counter_ids, &counters, OTAI_STATS_MODE_READ);
 
     CHECK_STATUS_SUCCESS(status);
 
@@ -624,25 +624,25 @@ lai_status_t Meta::clearStats(
     return status;
 }
 
-lai_object_type_t Meta::objectTypeQuery(
-        _In_ lai_object_id_t objectId)
+otai_object_type_t Meta::objectTypeQuery(
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
     return m_implementation->objectTypeQuery(objectId);
 }
 
-lai_object_id_t Meta::linecardIdQuery(
-        _In_ lai_object_id_t objectId)
+otai_object_id_t Meta::linecardIdQuery(
+        _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
     return m_implementation->linecardIdQuery(objectId);
 }
 
-lai_status_t Meta::logSet(
-        _In_ lai_api_t api,
-        _In_ lai_log_level_t log_level)
+otai_status_t Meta::logSet(
+        _In_ otai_api_t api,
+        _In_ otai_log_level_t log_level)
 {
     SWSS_LOG_ENTER();
 
@@ -652,17 +652,17 @@ lai_status_t Meta::logSet(
 }
 
 void Meta::clean_after_linecard_remove(
-        _In_ lai_object_id_t linecardId)
+        _In_ otai_object_id_t linecardId)
 {
     SWSS_LOG_ENTER();
 
     SWSS_LOG_NOTICE("cleaning metadata for linecard: %s",
-            lai_serialize_object_id(linecardId).c_str());
+            otai_serialize_object_id(linecardId).c_str());
 
-    if (objectTypeQuery(linecardId) != LAI_OBJECT_TYPE_LINECARD)
+    if (objectTypeQuery(linecardId) != OTAI_OBJECT_TYPE_LINECARD)
     {
         SWSS_LOG_THROW("oid %s is not LINECARD!",
-                lai_serialize_object_id(linecardId).c_str());
+                otai_serialize_object_id(linecardId).c_str());
     }
 
     // clear port related objects
@@ -689,8 +689,8 @@ void Meta::clean_after_linecard_remove(
 
     for (auto& key: m_attrKeys.getAllKeys())
     {
-        lai_object_meta_key_t mk;
-        lai_deserialize_object_meta_key(key, mk);
+        otai_object_meta_key_t mk;
+        otai_deserialize_object_meta_key(key, mk);
 
         // we guarantee that linecard_id is first in the key structure so we can
         // use that as object_id as well
@@ -701,81 +701,81 @@ void Meta::clean_after_linecard_remove(
         }
     }
 
-    for (auto& mk: m_laiObjectCollection.getAllKeys())
+    for (auto& mk: m_otaiObjectCollection.getAllKeys())
     {
         // we guarantee that linecard_id is first in the key structure so we can
         // use that as object_id as well
 
         if (linecardIdQuery(mk.objectkey.key.object_id) == linecardId)
         {
-            m_laiObjectCollection.removeObject(mk);
+            m_otaiObjectCollection.removeObject(mk);
         }
     }
 
     SWSS_LOG_NOTICE("removed all objects related to linecard %s",
-            lai_serialize_object_id(linecardId).c_str());
+            otai_serialize_object_id(linecardId).c_str());
 }
 
-lai_status_t Meta::meta_generic_validation_remove(
-        _In_ const lai_object_meta_key_t& meta_key)
+otai_status_t Meta::meta_generic_validation_remove(
+        _In_ const otai_object_meta_key_t& meta_key)
 {
     SWSS_LOG_ENTER();
 
-    if (!m_laiObjectCollection.objectExists(meta_key))
+    if (!m_otaiObjectCollection.objectExists(meta_key))
     {
         SWSS_LOG_ERROR("object key %s doesn't exist",
-                lai_serialize_object_meta_key(meta_key).c_str());
+                otai_serialize_object_meta_key(meta_key).c_str());
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
         // we don't keep reference of those since those are leafs
-        return LAI_STATUS_SUCCESS;
+        return OTAI_STATUS_SUCCESS;
     }
 
     // for OID objects check oid value
 
-    lai_object_id_t oid = meta_key.objectkey.key.object_id;
+    otai_object_id_t oid = meta_key.objectkey.key.object_id;
 
-    if (oid == LAI_NULL_OBJECT_ID)
+    if (oid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_ERROR("can't remove null object id");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    lai_object_type_t object_type = objectTypeQuery(oid);
+    otai_object_type_t object_type = objectTypeQuery(oid);
 
-    if (object_type == LAI_NULL_OBJECT_ID)
+    if (object_type == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_ERROR("oid 0x%" PRIx64 " is not valid, returned null object id", oid);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (object_type != meta_key.objecttype)
     {
         SWSS_LOG_ERROR("oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (!m_oids.objectReferenceExists(oid))
     {
         SWSS_LOG_ERROR("object 0x%" PRIx64 " reference doesn't exist", oid);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     int count = m_oids.getObjectReferenceCount(oid);
 
     if (count != 0)
     {
-        if (object_type == LAI_OBJECT_TYPE_LINECARD)
+        if (object_type == OTAI_OBJECT_TYPE_LINECARD)
         {
             /*
              * We allow to remove linecard object even if there are ROUTE_ENTRY
@@ -785,25 +785,25 @@ lai_status_t Meta::meta_generic_validation_remove(
 
             SWSS_LOG_WARN("removing linecard object 0x%" PRIx64 " reference count is %d, removing all objects from meta DB", oid, count);
 
-            return LAI_STATUS_SUCCESS;
+            return OTAI_STATUS_SUCCESS;
         }
 
         SWSS_LOG_ERROR("object 0x%" PRIx64 " reference count is %d, can't remove", oid, count);
 
-        return LAI_STATUS_OBJECT_IN_USE;
+        return OTAI_STATUS_OBJECT_IN_USE;
     }
 
     // should be safe to remove
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::meta_port_remove_validation(
-        _In_ const lai_object_meta_key_t& meta_key)
+otai_status_t Meta::meta_port_remove_validation(
+        _In_ const otai_object_meta_key_t& meta_key)
 {
     SWSS_LOG_ENTER();
 
-    lai_object_id_t port_id = meta_key.objectkey.key.object_id;
+    otai_object_id_t port_id = meta_key.objectkey.key.object_id;
 
     auto relatedObjects = m_portRelatedSet.getPortRelatedObjects(port_id);
 
@@ -811,15 +811,15 @@ lai_status_t Meta::meta_port_remove_validation(
     {
         // user didn't query any queues, ipgs or scheduler groups
         // for this port, then we can just skip this
-        return LAI_STATUS_SUCCESS;
+        return OTAI_STATUS_SUCCESS;
     }
 
     if (!meta_is_object_in_default_state(port_id))
     {
         SWSS_LOG_ERROR("port %s is not in default state, can't remove",
-                lai_serialize_object_id(port_id).c_str());
+                otai_serialize_object_id(port_id).c_str());
 
-        return LAI_STATUS_OBJECT_IN_USE;
+        return OTAI_STATUS_OBJECT_IN_USE;
     }
 
     for (auto oid: relatedObjects)
@@ -827,61 +827,61 @@ lai_status_t Meta::meta_port_remove_validation(
         if (m_oids.getObjectReferenceCount(oid) != 0)
         {
             SWSS_LOG_ERROR("port %s related object %s reference count is not zero, can't remove",
-                    lai_serialize_object_id(port_id).c_str(),
-                    lai_serialize_object_id(oid).c_str());
+                    otai_serialize_object_id(port_id).c_str(),
+                    otai_serialize_object_id(oid).c_str());
 
-            return LAI_STATUS_OBJECT_IN_USE;
+            return OTAI_STATUS_OBJECT_IN_USE;
         }
 
         if (!meta_is_object_in_default_state(oid))
         {
             SWSS_LOG_ERROR("port related object %s is not in default state, can't remove",
-                    lai_serialize_object_id(oid).c_str());
+                    otai_serialize_object_id(oid).c_str());
 
-            return LAI_STATUS_OBJECT_IN_USE;
+            return OTAI_STATUS_OBJECT_IN_USE;
         }
     }
 
     SWSS_LOG_NOTICE("all objects related to port %s are in default state, can be remove",
-                lai_serialize_object_id(port_id).c_str());
+                otai_serialize_object_id(port_id).c_str());
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
 bool Meta::meta_is_object_in_default_state(
-        _In_ lai_object_id_t oid)
+        _In_ otai_object_id_t oid)
 {
     SWSS_LOG_ENTER();
 
-    if (oid == LAI_NULL_OBJECT_ID)
+    if (oid == OTAI_NULL_OBJECT_ID)
         SWSS_LOG_THROW("not expected NULL object id");
 
     if (!m_oids.objectReferenceExists(oid))
     {
         SWSS_LOG_WARN("object %s reference not exists, bug!",
-                lai_serialize_object_id(oid).c_str());
+                otai_serialize_object_id(oid).c_str());
         return false;
     }
 
-    lai_object_meta_key_t meta_key;
+    otai_object_meta_key_t meta_key;
 
     meta_key.objecttype = objectTypeQuery(oid);
     meta_key.objectkey.key.object_id = oid;
 
-    if (!m_laiObjectCollection.objectExists(meta_key))
+    if (!m_otaiObjectCollection.objectExists(meta_key))
     {
         SWSS_LOG_WARN("object %s don't exists in local database, bug!",
-                lai_serialize_object_id(oid).c_str());
+                otai_serialize_object_id(oid).c_str());
         return false;
     }
 
-    auto attrs = m_laiObjectCollection.getObject(meta_key)->getAttributes();
+    auto attrs = m_otaiObjectCollection.getObject(meta_key)->getAttributes();
 
     for (const auto& attr: attrs)
     {
-        auto &md = *attr->getLaiAttrMetadata();
+        auto &md = *attr->getOtaiAttrMetadata();
 
-        auto *a = attr->getLaiAttr();
+        auto *a = attr->getOtaiAttr();
 
         if (md.isreadonly)
             continue;
@@ -889,29 +889,29 @@ bool Meta::meta_is_object_in_default_state(
         if (!md.isoidattribute)
             continue;
 
-        if (md.attrvaluetype == LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+        if (md.attrvaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
         {
-            if (a->value.oid != LAI_NULL_OBJECT_ID)
+            if (a->value.oid != OTAI_NULL_OBJECT_ID)
             {
                 SWSS_LOG_ERROR("object %s has non default state on %s: %s, expected NULL",
-                        lai_serialize_object_id(oid).c_str(),
+                        otai_serialize_object_id(oid).c_str(),
                         md.attridname,
-                        lai_serialize_object_id(a->value.oid).c_str());
+                        otai_serialize_object_id(a->value.oid).c_str());
 
                 return false;
             }
         }
-        else if (md.attrvaluetype == LAI_ATTR_VALUE_TYPE_OBJECT_LIST)
+        else if (md.attrvaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_LIST)
         {
             for (uint32_t i = 0; i < a->value.objlist.count; i++)
             {
-                if (a->value.objlist.list[i] != LAI_NULL_OBJECT_ID)
+                if (a->value.objlist.list[i] != OTAI_NULL_OBJECT_ID)
                 {
                     SWSS_LOG_ERROR("object %s has non default state on %s[%u]: %s, expected NULL",
-                            lai_serialize_object_id(oid).c_str(),
+                            otai_serialize_object_id(oid).c_str(),
                             md.attridname,
                             i,
-                            lai_serialize_object_id(a->value.objlist.list[i]).c_str());
+                            otai_serialize_object_id(a->value.objlist.list[i]).c_str());
 
                     return false;
                 }
@@ -929,24 +929,24 @@ bool Meta::meta_is_object_in_default_state(
     return true;
 }
 
-lai_status_t Meta::meta_lai_validate_oid(
-        _In_ lai_object_type_t object_type,
-        _In_ const lai_object_id_t* object_id,
-        _In_ lai_object_id_t linecard_id,
+otai_status_t Meta::meta_otai_validate_oid(
+        _In_ otai_object_type_t object_type,
+        _In_ const otai_object_id_t* object_id,
+        _In_ otai_object_id_t linecard_id,
         _In_ bool bcreate)
 {
     SWSS_LOG_ENTER();
 
-    if (object_type <= LAI_OBJECT_TYPE_NULL ||
-            object_type >= LAI_OBJECT_TYPE_EXTENSIONS_MAX)
+    if (object_type <= OTAI_OBJECT_TYPE_NULL ||
+            object_type >= OTAI_OBJECT_TYPE_EXTENSIONS_MAX)
     {
         SWSS_LOG_ERROR("invalid object type specified: %d, FIXME", object_type);
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    const char* otname =  lai_metadata_get_enum_value_name(&lai_metadata_enum_lai_object_type_t, object_type);
+    const char* otname =  otai_metadata_get_enum_value_name(&otai_metadata_enum_otai_object_type_t, object_type);
 
-    auto info = lai_metadata_get_object_type_info(object_type);
+    auto info = otai_metadata_get_object_type_info(object_type);
 
     if (info->isnonobjectid)
     {
@@ -959,62 +959,62 @@ lai_status_t Meta::meta_lai_validate_oid(
     {
         SWSS_LOG_ERROR("oid pointer is NULL");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (bcreate)
     {
-        return LAI_STATUS_SUCCESS;
+        return OTAI_STATUS_SUCCESS;
     }
 
-    lai_object_id_t oid = *object_id;
+    otai_object_id_t oid = *object_id;
 
-    if (oid == LAI_NULL_OBJECT_ID)
+    if (oid == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_ERROR("oid is set to null object id on %s", otname);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    lai_object_type_t ot = objectTypeQuery(oid);
+    otai_object_type_t ot = objectTypeQuery(oid);
 
-    if (ot == LAI_OBJECT_TYPE_NULL)
+    if (ot == OTAI_OBJECT_TYPE_NULL)
     {
         SWSS_LOG_ERROR("%s oid 0x%" PRIx64 " is not valid object type, returned null object type", otname, oid);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    lai_object_type_t expected = object_type;
+    otai_object_type_t expected = object_type;
 
     if (ot != expected)
     {
         SWSS_LOG_ERROR("%s oid 0x%" PRIx64 " type %d is wrong type, expected object type %d", otname, oid, ot, expected);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     // check if object exists
 
-    lai_object_meta_key_t meta_key_oid = { .objecttype = expected, .objectkey = { .key = { .object_id = oid } } };
+    otai_object_meta_key_t meta_key_oid = { .objecttype = expected, .objectkey = { .key = { .object_id = oid } } };
 
-    if (!m_laiObjectCollection.objectExists(meta_key_oid))
+    if (!m_otaiObjectCollection.objectExists(meta_key_oid))
     {
         SWSS_LOG_ERROR("object key %s doesn't exist",
-                lai_serialize_object_meta_key(meta_key_oid).c_str());
+                otai_serialize_object_meta_key(meta_key_oid).c_str());
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
 void Meta::meta_generic_validation_post_remove(
-        _In_ const lai_object_meta_key_t& meta_key)
+        _In_ const otai_object_meta_key_t& meta_key)
 {
     SWSS_LOG_ENTER();
 
-    if (meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD)
+    if (meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
     {
         /*
          * If linecard object was removed then meta db was cleared and there are
@@ -1028,51 +1028,51 @@ void Meta::meta_generic_validation_post_remove(
 
     // get all attributes that was set
 
-    for (auto&it: m_laiObjectCollection.getObject(meta_key)->getAttributes())
+    for (auto&it: m_otaiObjectCollection.getObject(meta_key)->getAttributes())
     {
-        const lai_attribute_t* attr = it->getLaiAttr();
+        const otai_attribute_t* attr = it->getOtaiAttr();
 
-        auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
-        const lai_attribute_value_t& value = attr->value;
+        const otai_attribute_value_t& value = attr->value;
 
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
         // decrease reference on object id types
 
         switch (md.attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_BOOL:
-            case LAI_ATTR_VALUE_TYPE_CHARDATA:
-            case LAI_ATTR_VALUE_TYPE_UINT8:
-            case LAI_ATTR_VALUE_TYPE_INT8:
-            case LAI_ATTR_VALUE_TYPE_UINT16:
-            case LAI_ATTR_VALUE_TYPE_INT16:
-            case LAI_ATTR_VALUE_TYPE_UINT32:
-            case LAI_ATTR_VALUE_TYPE_INT32:
-            case LAI_ATTR_VALUE_TYPE_UINT64:
-            case LAI_ATTR_VALUE_TYPE_INT64:
-            case LAI_ATTR_VALUE_TYPE_DOUBLE:
-            case LAI_ATTR_VALUE_TYPE_POINTER:
+            case OTAI_ATTR_VALUE_TYPE_BOOL:
+            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_INT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_INT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT64:
+            case OTAI_ATTR_VALUE_TYPE_INT64:
+            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+            case OTAI_ATTR_VALUE_TYPE_POINTER:
                 // primitives, ok
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 m_oids.objectReferenceDecrement(value.oid);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 m_oids.objectReferenceDecrement(value.objlist);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT8_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT16_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT32_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-            case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
                 // no special action required
                 break;
 
@@ -1084,7 +1084,7 @@ void Meta::meta_generic_validation_post_remove(
     // we don't keep track of fdb, neighbor, route since
     // those are safe to remove any time (leafs)
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
@@ -1095,9 +1095,9 @@ void Meta::meta_generic_validation_post_remove(
 
         for (size_t j = 0; j < info->structmemberscount; ++j)
         {
-            const lai_struct_member_info_t *m = info->structmembers[j];
+            const otai_struct_member_info_t *m = info->structmembers[j];
 
-            if (m->membervaluetype != LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
             {
                 continue;
             }
@@ -1110,19 +1110,19 @@ void Meta::meta_generic_validation_post_remove(
         m_oids.objectReferenceRemove(meta_key.objectkey.key.object_id);
     }
 
-    m_laiObjectCollection.removeObject(meta_key);
+    m_otaiObjectCollection.removeObject(meta_key);
 
-    std::string metaKey = lai_serialize_object_meta_key(meta_key);
+    std::string metaKey = otai_serialize_object_meta_key(meta_key);
 
     m_attrKeys.eraseMetaKey(metaKey);
 
 }
 
-lai_status_t Meta::meta_generic_validation_create(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ lai_object_id_t linecard_id,
+otai_status_t Meta::meta_generic_validation_create(
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ otai_object_id_t linecard_id,
         _In_ const uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
@@ -1130,23 +1130,23 @@ lai_status_t Meta::meta_generic_validation_create(
     {
         SWSS_LOG_ERROR("create attribute count %u > max list count %u", attr_count, MAX_LIST_COUNT);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (attr_count > 0 && attr_list == NULL)
     {
         SWSS_LOG_ERROR("attr count is %u but attribute list pointer is NULL", attr_count);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    bool linecardcreate = meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD;
+    bool linecardcreate = meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD;
 
     if (linecardcreate)
     {
         // we are creating linecard
 
-        linecard_id = LAI_NULL_OBJECT_ID;
+        linecard_id = OTAI_NULL_OBJECT_ID;
 
         /*
          * Creating linecard can't have any object attributes set on it, OID
@@ -1155,20 +1155,20 @@ lai_status_t Meta::meta_generic_validation_create(
 
         for (uint32_t i = 0; i < attr_count; ++i)
         {
-            auto meta = lai_metadata_get_attr_metadata(LAI_OBJECT_TYPE_LINECARD, attr_list[i].id);
+            auto meta = otai_metadata_get_attr_metadata(OTAI_OBJECT_TYPE_LINECARD, attr_list[i].id);
 
             if (meta == NULL)
             {
                 SWSS_LOG_ERROR("attribute %d not found", attr_list[i].id);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
 
             if (meta->isoidattribute)
             {
                 SWSS_LOG_ERROR("%s is OID attribute, not allowed on create linecard", meta->attridname);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
         }
     }
@@ -1182,51 +1182,51 @@ lai_status_t Meta::meta_generic_validation_create(
 
         linecard_id = meta_extract_linecard_id(meta_key, linecard_id);
 
-        if (linecard_id == LAI_NULL_OBJECT_ID)
+        if (linecard_id == OTAI_NULL_OBJECT_ID)
         {
-            SWSS_LOG_ERROR("linecard id is NULL for %s", lai_serialize_object_type(meta_key.objecttype).c_str());
+            SWSS_LOG_ERROR("linecard id is NULL for %s", otai_serialize_object_type(meta_key.objecttype).c_str());
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        lai_object_type_t sw_type = objectTypeQuery(linecard_id);
+        otai_object_type_t sw_type = objectTypeQuery(linecard_id);
 
-        if (sw_type != LAI_OBJECT_TYPE_LINECARD)
+        if (sw_type != OTAI_OBJECT_TYPE_LINECARD)
         {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " type is %s, expected LINECARD", linecard_id, lai_serialize_object_type(sw_type).c_str());
+            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " type is %s, expected LINECARD", linecard_id, otai_serialize_object_type(sw_type).c_str());
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         // check if linecard exists
 
-        lai_object_meta_key_t linecard_meta_key = { .objecttype = LAI_OBJECT_TYPE_LINECARD, .objectkey = { .key = { .object_id = linecard_id } } };
+        otai_object_meta_key_t linecard_meta_key = { .objecttype = OTAI_OBJECT_TYPE_LINECARD, .objectkey = { .key = { .object_id = linecard_id } } };
 
-        if (!m_laiObjectCollection.objectExists(linecard_meta_key))
+        if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
         {
             SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist yet", linecard_id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (!m_oids.objectReferenceExists(linecard_id))
         {
             SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist yet", linecard_id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         // ok
     }
 
-    lai_status_t status = meta_generic_validate_non_object_on_create(meta_key, linecard_id);
+    otai_status_t status = meta_generic_validate_non_object_on_create(meta_key, linecard_id);
 
-    if (status != LAI_STATUS_SUCCESS)
+    if (status != OTAI_STATUS_SUCCESS)
     {
         return status;
     }
 
-    std::unordered_map<lai_attr_id_t, const lai_attribute_t*> attrs;
+    std::unordered_map<otai_attr_id_t, const otai_attribute_t*> attrs;
 
     SWSS_LOG_DEBUG("attr count = %u", attr_count);
 
@@ -1235,20 +1235,20 @@ lai_status_t Meta::meta_generic_validation_create(
     // check each attribute separately
     for (uint32_t idx = 0; idx < attr_count; ++idx)
     {
-        const lai_attribute_t* attr = &attr_list[idx];
+        const otai_attribute_t* attr = &attr_list[idx];
 
-        auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
         if (mdp == NULL)
         {
             SWSS_LOG_ERROR("unable to find attribute metadata %d:%d", meta_key.objecttype, attr->id);
 
-            return LAI_STATUS_FAILURE;
+            return OTAI_STATUS_FAILURE;
         }
 
-        const lai_attribute_value_t& value = attr->value;
+        const otai_attribute_value_t& value = attr->value;
 
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
         META_LOG_DEBUG(md, "(create)");
 
@@ -1256,19 +1256,19 @@ lai_status_t Meta::meta_generic_validation_create(
         {
             META_LOG_ERROR(md, "attribute id (%u) is defined on attr list multiple times", attr->id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         attrs[attr->id] = attr;
 
-        if (LAI_HAS_FLAG_READ_ONLY(md.flags))
+        if (OTAI_HAS_FLAG_READ_ONLY(md.flags))
         {
             META_LOG_ERROR(md, "attr is read only and cannot be created");
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (LAI_HAS_FLAG_KEY(md.flags))
+        if (OTAI_HAS_FLAG_KEY(md.flags))
         {
             haskeys = true;
 
@@ -1280,27 +1280,27 @@ lai_status_t Meta::meta_generic_validation_create(
 
         switch (md.attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_BOOL:
-            case LAI_ATTR_VALUE_TYPE_UINT8:
-            case LAI_ATTR_VALUE_TYPE_INT8:
-            case LAI_ATTR_VALUE_TYPE_UINT16:
-            case LAI_ATTR_VALUE_TYPE_INT16:
-            case LAI_ATTR_VALUE_TYPE_UINT32:
-            case LAI_ATTR_VALUE_TYPE_INT32:
-            case LAI_ATTR_VALUE_TYPE_UINT64:
-            case LAI_ATTR_VALUE_TYPE_INT64:
-            case LAI_ATTR_VALUE_TYPE_DOUBLE:
-            case LAI_ATTR_VALUE_TYPE_POINTER:
-            case LAI_ATTR_VALUE_TYPE_CHARDATA:
+            case OTAI_ATTR_VALUE_TYPE_BOOL:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_INT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_INT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT64:
+            case OTAI_ATTR_VALUE_TYPE_INT64:
+            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+            case OTAI_ATTR_VALUE_TYPE_POINTER:
+            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
                 // primitives
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
 
                 {
                     status = meta_generic_validation_objlist(md, linecard_id, 1, &value.oid);
 
-                    if (status != LAI_STATUS_SUCCESS)
+                    if (status != OTAI_STATUS_SUCCESS)
                     {
                         return status;
                     }
@@ -1308,12 +1308,12 @@ lai_status_t Meta::meta_generic_validation_create(
                     break;
                 }
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
 
                 {
                     status = meta_generic_validation_objlist(md, linecard_id, value.objlist.count, value.objlist.list);
 
-                    if (status != LAI_STATUS_SUCCESS)
+                    if (status != OTAI_STATUS_SUCCESS)
                     {
                         return status;
                     }
@@ -1321,43 +1321,43 @@ lai_status_t Meta::meta_generic_validation_create(
                     break;
                 }
 
-            case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
                 VALIDATION_LIST(md, value.u8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
                 VALIDATION_LIST(md, value.s8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
                 VALIDATION_LIST(md, value.u16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
                 VALIDATION_LIST(md, value.s16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
                 VALIDATION_LIST(md, value.u32list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
                 VALIDATION_LIST(md, value.s32list);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
 
                 if (value.u32range.min > value.u32range.max)
                 {
                     META_LOG_ERROR(md, "invalid range %u .. %u", value.u32range.min, value.u32range.max);
 
-                    return LAI_STATUS_INVALID_PARAMETER;
+                    return OTAI_STATUS_INVALID_PARAMETER;
                 }
 
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
 
                 if (value.s32range.min > value.s32range.max)
                 {
                     META_LOG_ERROR(md, "invalid range %u .. %u", value.s32range.min, value.s32range.max);
 
-                    return LAI_STATUS_INVALID_PARAMETER;
+                    return OTAI_STATUS_INVALID_PARAMETER;
                 }
 
                 break;
@@ -1373,11 +1373,11 @@ lai_status_t Meta::meta_generic_validation_create(
 
             val = value.s32;
 
-            if (!lai_metadata_is_allowed_enum_value(&md, val))
+            if (!otai_metadata_is_allowed_enum_value(&md, val))
             {
                 META_LOG_ERROR(md, "is enum, but value %d not found on allowed values list", val);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
         }
 
@@ -1388,18 +1388,18 @@ lai_status_t Meta::meta_generic_validation_create(
             {
                 META_LOG_ERROR(md, "enum list is NULL");
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
 
             for (uint32_t i = value.s32list.count; i < value.s32list.count; ++i)
             {
                 int32_t s32 = value.s32list.list[i];
 
-                if (!lai_metadata_is_allowed_enum_value(&md, s32))
+                if (!otai_metadata_is_allowed_enum_value(&md, s32))
                 {
                     META_LOG_ERROR(md, "is enum list, but value %d not found on allowed values list", s32);
 
-                    return LAI_STATUS_INVALID_PARAMETER;
+                    return OTAI_STATUS_INVALID_PARAMETER;
                 }
             }
         }
@@ -1409,18 +1409,18 @@ lai_status_t Meta::meta_generic_validation_create(
 
     // we are creating object, no need for check if exists (only key values needs to be checked)
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
         // just sanity check if object already exists
 
-        if (m_laiObjectCollection.objectExists(meta_key))
+        if (m_otaiObjectCollection.objectExists(meta_key))
         {
             SWSS_LOG_ERROR("object key %s already exists",
-                    lai_serialize_object_meta_key(meta_key).c_str());
+                    otai_serialize_object_meta_key(meta_key).c_str());
 
-            return LAI_STATUS_ITEM_ALREADY_EXISTS;
+            return OTAI_STATUS_ITEM_ALREADY_EXISTS;
         }
     }
     else
@@ -1437,16 +1437,16 @@ lai_status_t Meta::meta_generic_validation_create(
     {
         SWSS_LOG_ERROR("get attributes metadata returned empty list for object type: %d", meta_key.objecttype);
 
-        return LAI_STATUS_FAILURE;
+        return OTAI_STATUS_FAILURE;
     }
 
     // check if all mandatory attributes were passed
 
     for (auto mdp: metadata)
     {
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
-        if (!LAI_HAS_FLAG_MANDATORY_ON_CREATE(md.flags))
+        if (!OTAI_HAS_FLAG_MANDATORY_ON_CREATE(md.flags))
         {
             continue;
         }
@@ -1464,19 +1464,19 @@ lai_status_t Meta::meta_generic_validation_create(
             /*
              * Buffer profile shared static/dynamic is special case since it's
              * mandatory on create but condition is on
-             * LAI_BUFFER_PROFILE_ATTR_POOL_ID attribute (see file laibuffer.h).
+             * OTAI_BUFFER_PROFILE_ATTR_POOL_ID attribute (see file otaibuffer.h).
              */
 
             META_LOG_ERROR(md, "attribute is mandatory but not passed in attr list");
 
-            return LAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+            return OTAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
         }
     }
 
     // check if we need any conditional attributes
     for (auto mdp: metadata)
     {
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
         if (!md.isconditional)
         {
@@ -1492,11 +1492,11 @@ lai_status_t Meta::meta_generic_validation_create(
             const auto& c = *md.conditions[index];
 
             // conditions may only be on the same object type
-            const auto& cmd = *lai_metadata_get_attr_metadata(meta_key.objecttype, c.attrid);
+            const auto& cmd = *otai_metadata_get_attr_metadata(meta_key.objecttype, c.attrid);
 
-            const lai_attribute_value_t* cvalue = cmd.defaultvalue;
+            const otai_attribute_value_t* cvalue = cmd.defaultvalue;
 
-            const lai_attribute_t *cattr = lai_metadata_get_attr_by_id(c.attrid, attr_count, attr_list);
+            const otai_attribute_t *cattr = otai_metadata_get_attr_by_id(c.attrid, attr_count, attr_list);
 
             if (cattr != NULL)
             {
@@ -1505,7 +1505,7 @@ lai_status_t Meta::meta_generic_validation_create(
                 cvalue = &cattr->value;
             }
 
-            if (cmd.attrvaluetype == LAI_ATTR_VALUE_TYPE_BOOL)
+            if (cmd.attrvaluetype == OTAI_ATTR_VALUE_TYPE_BOOL)
             {
                 if (c.condition.booldata == cvalue->booldata)
                 {
@@ -1538,7 +1538,7 @@ lai_status_t Meta::meta_generic_validation_create(
             {
                 META_LOG_ERROR(md, "conditional, but condition was not met, this attribute is not required, but passed");
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
 
             continue;
@@ -1551,7 +1551,7 @@ lai_status_t Meta::meta_generic_validation_create(
         {
             META_LOG_ERROR(md, "attribute is conditional and is mandatory but not passed in attr list");
 
-            return LAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+            return OTAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
         }
     }
 
@@ -1564,16 +1564,16 @@ lai_status_t Meta::meta_generic_validation_create(
         {
             SWSS_LOG_ERROR("attribute key %s already exists, can't create", key.c_str());
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::meta_generic_validation_set(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ const lai_attribute_t *attr)
+otai_status_t Meta::meta_generic_validation_set(
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ const otai_attribute_t *attr)
 {
     SWSS_LOG_ENTER();
 
@@ -1581,25 +1581,25 @@ lai_status_t Meta::meta_generic_validation_set(
     {
         SWSS_LOG_ERROR("attribute pointer is NULL");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+    auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
     if (mdp == NULL)
     {
         SWSS_LOG_ERROR("unable to find attribute metadata %d:%d", meta_key.objecttype, attr->id);
 
-        return LAI_STATUS_FAILURE;
+        return OTAI_STATUS_FAILURE;
     }
 
-    const lai_attribute_value_t& value = attr->value;
+    const otai_attribute_value_t& value = attr->value;
 
-    const lai_attr_metadata_t& md = *mdp;
+    const otai_attr_metadata_t& md = *mdp;
 
     META_LOG_DEBUG(md, "(set)");
 
-    if (LAI_HAS_FLAG_READ_ONLY(md.flags))
+    if (OTAI_HAS_FLAG_READ_ONLY(md.flags))
     {
         if (meta_unittests_get_and_erase_set_readonly_flag(md))
         {
@@ -1609,27 +1609,27 @@ lai_status_t Meta::meta_generic_validation_set(
         {
             META_LOG_ERROR(md, "attr is read only and cannot be modified");
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
-    if (LAI_HAS_FLAG_CREATE_ONLY(md.flags))
+    if (OTAI_HAS_FLAG_CREATE_ONLY(md.flags))
     {
         META_LOG_ERROR(md, "attr is create only and cannot be modified");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    if (LAI_HAS_FLAG_KEY(md.flags))
+    if (OTAI_HAS_FLAG_KEY(md.flags))
     {
         META_LOG_ERROR(md, "attr is key and cannot be modified");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    lai_object_id_t linecard_id = LAI_NULL_OBJECT_ID;
+    otai_object_id_t linecard_id = OTAI_NULL_OBJECT_ID;
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (!info->isnonobjectid)
     {
@@ -1638,7 +1638,7 @@ lai_status_t Meta::meta_generic_validation_set(
         if (!m_oids.objectReferenceExists(linecard_id))
         {
             SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", linecard_id);
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
@@ -1648,24 +1648,24 @@ lai_status_t Meta::meta_generic_validation_set(
 
     switch (md.attrvaluetype)
     {
-        case LAI_ATTR_VALUE_TYPE_BOOL:
-        case LAI_ATTR_VALUE_TYPE_UINT8:
-        case LAI_ATTR_VALUE_TYPE_INT8:
-        case LAI_ATTR_VALUE_TYPE_UINT16:
-        case LAI_ATTR_VALUE_TYPE_INT16:
-        case LAI_ATTR_VALUE_TYPE_UINT32:
-        case LAI_ATTR_VALUE_TYPE_INT32:
-        case LAI_ATTR_VALUE_TYPE_UINT64:
-        case LAI_ATTR_VALUE_TYPE_INT64:
-        case LAI_ATTR_VALUE_TYPE_DOUBLE:
-        case LAI_ATTR_VALUE_TYPE_POINTER:
+        case OTAI_ATTR_VALUE_TYPE_BOOL:
+        case OTAI_ATTR_VALUE_TYPE_UINT8:
+        case OTAI_ATTR_VALUE_TYPE_INT8:
+        case OTAI_ATTR_VALUE_TYPE_UINT16:
+        case OTAI_ATTR_VALUE_TYPE_INT16:
+        case OTAI_ATTR_VALUE_TYPE_UINT32:
+        case OTAI_ATTR_VALUE_TYPE_INT32:
+        case OTAI_ATTR_VALUE_TYPE_UINT64:
+        case OTAI_ATTR_VALUE_TYPE_INT64:
+        case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+        case OTAI_ATTR_VALUE_TYPE_POINTER:
             // primitives
             break;
 
-        case LAI_ATTR_VALUE_TYPE_CHARDATA:
+        case OTAI_ATTR_VALUE_TYPE_CHARDATA:
 
             {
-                size_t len = strnlen(value.chardata, sizeof(lai_attribute_value_t::chardata)/sizeof(char));
+                size_t len = strnlen(value.chardata, sizeof(otai_attribute_value_t::chardata)/sizeof(char));
 
                 // for some attributes, length can be zero
 
@@ -1677,20 +1677,20 @@ lai_status_t Meta::meta_generic_validation_set(
                     {
                         META_LOG_ERROR(md, "invalid character 0x%02x in chardata", c);
 
-                        return LAI_STATUS_INVALID_PARAMETER;
+                        return OTAI_STATUS_INVALID_PARAMETER;
                     }
                 }
 
                 break;
             }
 
-        case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
 
             {
 
-                lai_status_t status = meta_generic_validation_objlist(md, linecard_id, 1, &value.oid);
+                otai_status_t status = meta_generic_validation_objlist(md, linecard_id, 1, &value.oid);
 
-                if (status != LAI_STATUS_SUCCESS)
+                if (status != OTAI_STATUS_SUCCESS)
                 {
                     return status;
                 }
@@ -1698,12 +1698,12 @@ lai_status_t Meta::meta_generic_validation_set(
                 break;
             }
 
-        case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
 
             {
-                lai_status_t status = meta_generic_validation_objlist(md, linecard_id, value.objlist.count, value.objlist.list);
+                otai_status_t status = meta_generic_validation_objlist(md, linecard_id, value.objlist.count, value.objlist.list);
 
-                if (status != LAI_STATUS_SUCCESS)
+                if (status != OTAI_STATUS_SUCCESS)
                 {
                     return status;
                 }
@@ -1711,43 +1711,43 @@ lai_status_t Meta::meta_generic_validation_set(
                 break;
             }
 
-        case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
             VALIDATION_LIST(md, value.u8list);
             break;
-        case LAI_ATTR_VALUE_TYPE_INT8_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
             VALIDATION_LIST(md, value.s8list);
             break;
-        case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
             VALIDATION_LIST(md, value.u16list);
             break;
-        case LAI_ATTR_VALUE_TYPE_INT16_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
             VALIDATION_LIST(md, value.s16list);
             break;
-        case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
             VALIDATION_LIST(md, value.u32list);
             break;
-        case LAI_ATTR_VALUE_TYPE_INT32_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
             VALIDATION_LIST(md, value.s32list);
             break;
 
-        case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+        case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
 
             if (value.u32range.min > value.u32range.max)
             {
                 META_LOG_ERROR(md, "invalid range %u .. %u", value.u32range.min, value.u32range.max);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
 
             break;
 
-        case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+        case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
 
             if (value.s32range.min > value.s32range.max)
             {
                 META_LOG_ERROR(md, "invalid range %u .. %u", value.s32range.min, value.s32range.max);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
 
             break;
@@ -1763,11 +1763,11 @@ lai_status_t Meta::meta_generic_validation_set(
 
         val = value.s32;
 
-        if (!lai_metadata_is_allowed_enum_value(&md, val))
+        if (!otai_metadata_is_allowed_enum_value(&md, val))
         {
             META_LOG_ERROR(md, "is enum, but value %d not found on allowed values list", val);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
@@ -1778,18 +1778,18 @@ lai_status_t Meta::meta_generic_validation_set(
         {
             META_LOG_ERROR(md, "enum list is NULL");
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         for (uint32_t i = value.s32list.count; i < value.s32list.count; ++i)
         {
             int32_t s32 = value.s32list.list[i];
 
-            if (!lai_metadata_is_allowed_enum_value(&md, s32))
+            if (!otai_metadata_is_allowed_enum_value(&md, s32))
             {
                 SWSS_LOG_ERROR("is enum list, but value %d not found on allowed values list", s32);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
         }
     }
@@ -1802,7 +1802,7 @@ lai_status_t Meta::meta_generic_validation_set(
         if (get_object_previous_attr(meta_key, md) == NULL)
         {
             META_LOG_WARN(md, "set for conditional, but not found in local db, object %s created on linecard ?",
-                    lai_serialize_object_meta_key(meta_key).c_str());
+                    otai_serialize_object_meta_key(meta_key).c_str());
         }
         else
         {
@@ -1814,12 +1814,12 @@ lai_status_t Meta::meta_generic_validation_set(
 
     // check if object on which we perform operation exists
 
-    if (!m_laiObjectCollection.objectExists(meta_key))
+    if (!m_otaiObjectCollection.objectExists(meta_key))
     {
         META_LOG_ERROR(md, "object key %s doesn't exist",
-                lai_serialize_object_meta_key(meta_key).c_str());
+                otai_serialize_object_meta_key(meta_key).c_str());
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     // object exists in DB so we can do "set" operation
@@ -1827,7 +1827,7 @@ lai_status_t Meta::meta_generic_validation_set(
     if (info->isnonobjectid)
     {
         SWSS_LOG_DEBUG("object key exists: %s",
-                lai_serialize_object_meta_key(meta_key).c_str());
+                otai_serialize_object_meta_key(meta_key).c_str());
     }
     else
     {
@@ -1836,32 +1836,32 @@ lai_status_t Meta::meta_generic_validation_set(
          * type of SET function.
          */
 
-        lai_object_id_t oid = meta_key.objectkey.key.object_id;
+        otai_object_id_t oid = meta_key.objectkey.key.object_id;
 
-        lai_object_type_t object_type = objectTypeQuery(oid);
+        otai_object_type_t object_type = objectTypeQuery(oid);
 
-        if (object_type == LAI_NULL_OBJECT_ID)
+        if (object_type == OTAI_NULL_OBJECT_ID)
         {
             META_LOG_ERROR(md, "oid 0x%" PRIx64 " is not valid, returned null object id", oid);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (object_type != meta_key.objecttype)
         {
             META_LOG_ERROR(md, "oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::meta_generic_validation_get(
-        _In_ const lai_object_meta_key_t& meta_key,
+otai_status_t Meta::meta_generic_validation_get(
+        _In_ const otai_object_meta_key_t& meta_key,
         _In_ const uint32_t attr_count,
-        _In_ lai_attribute_t *attr_list)
+        _In_ otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
@@ -1869,49 +1869,49 @@ lai_status_t Meta::meta_generic_validation_get(
     {
         SWSS_LOG_ERROR("expected at least 1 attribute when calling get, zero given");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (attr_count > MAX_LIST_COUNT)
     {
         SWSS_LOG_ERROR("get attribute count %u > max list count %u", attr_count, MAX_LIST_COUNT);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (attr_list == NULL)
     {
         SWSS_LOG_ERROR("attribute list pointer is NULL");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     SWSS_LOG_DEBUG("attr count = %u", attr_count);
 
     for (uint32_t i = 0; i < attr_count; ++i)
     {
-        const lai_attribute_t* attr = &attr_list[i];
+        const otai_attribute_t* attr = &attr_list[i];
 
-        auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
         if (mdp == NULL)
         {
             SWSS_LOG_ERROR("unable to find attribute metadata %d:%d", meta_key.objecttype, attr->id);
 
-            return LAI_STATUS_FAILURE;
+            return OTAI_STATUS_FAILURE;
         }
 
-        const lai_attribute_value_t& value = attr->value;
+        const otai_attribute_value_t& value = attr->value;
 
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
         META_LOG_DEBUG(md, "(get)");
 
-        if (LAI_HAS_FLAG_SET_ONLY(md.flags))
+        if (OTAI_HAS_FLAG_SET_ONLY(md.flags))
         {
             META_LOG_ERROR(md, "attr is write only and cannot be read");
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (md.isconditional)
@@ -1921,7 +1921,7 @@ lai_status_t Meta::meta_generic_validation_get(
              *
              * TODO If object was created internally by switch (like bridge
              * port) then current db will not have previous value of this
-             * attribute (like LAI_BRIDGE_PORT_ATTR_PORT_ID) or even other oid.
+             * attribute (like OTAI_BRIDGE_PORT_ATTR_PORT_ID) or even other oid.
              * This can lead to inconsistency, that we queried one oid, and its
              * attribute also oid, and then did a "set" on that value, and now
              * reference is not decreased since previous oid was not snooped.
@@ -1940,7 +1940,7 @@ lai_status_t Meta::meta_generic_validation_get(
             {
                 // XXX produces too much noise
                 // META_LOG_WARN(md, "get for conditional, but not found in local db, object %s created on linecard ?",
-                //          lai_serialize_object_meta_key(meta_key).c_str());
+                //          otai_serialize_object_meta_key(meta_key).c_str());
             }
             else
             {
@@ -1968,49 +1968,49 @@ lai_status_t Meta::meta_generic_validation_get(
 
         switch (md.attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_BOOL:
-            case LAI_ATTR_VALUE_TYPE_CHARDATA:
-            case LAI_ATTR_VALUE_TYPE_UINT8:
-            case LAI_ATTR_VALUE_TYPE_INT8:
-            case LAI_ATTR_VALUE_TYPE_UINT16:
-            case LAI_ATTR_VALUE_TYPE_INT16:
-            case LAI_ATTR_VALUE_TYPE_UINT32:
-            case LAI_ATTR_VALUE_TYPE_INT32:
-            case LAI_ATTR_VALUE_TYPE_UINT64:
-            case LAI_ATTR_VALUE_TYPE_INT64:
-            case LAI_ATTR_VALUE_TYPE_DOUBLE:
-            case LAI_ATTR_VALUE_TYPE_POINTER:
+            case OTAI_ATTR_VALUE_TYPE_BOOL:
+            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_INT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_INT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT64:
+            case OTAI_ATTR_VALUE_TYPE_INT64:
+            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+            case OTAI_ATTR_VALUE_TYPE_POINTER:
                 // primitives
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 VALIDATION_LIST(md, value.objlist);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
                 VALIDATION_LIST(md, value.u8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
                 VALIDATION_LIST(md, value.s8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
                 VALIDATION_LIST(md, value.u16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
                 VALIDATION_LIST(md, value.s16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
                 VALIDATION_LIST(md, value.u32list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
                 VALIDATION_LIST(md, value.s32list);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-            case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
                 // primitives
                 break;
 
@@ -2022,20 +2022,20 @@ lai_status_t Meta::meta_generic_validation_get(
         }
     }
 
-    if (!m_laiObjectCollection.objectExists(meta_key))
+    if (!m_otaiObjectCollection.objectExists(meta_key))
     {
         SWSS_LOG_ERROR("object key %s doesn't exist",
-                lai_serialize_object_meta_key(meta_key).c_str());
+                otai_serialize_object_meta_key(meta_key).c_str());
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
         SWSS_LOG_DEBUG("object key exists: %s",
-                lai_serialize_object_meta_key(meta_key).c_str());
+                otai_serialize_object_meta_key(meta_key).c_str());
     }
     else
     {
@@ -2044,35 +2044,35 @@ lai_status_t Meta::meta_generic_validation_get(
          * type of GET function.
          */
 
-        lai_object_id_t oid = meta_key.objectkey.key.object_id;
+        otai_object_id_t oid = meta_key.objectkey.key.object_id;
 
-        lai_object_type_t object_type = objectTypeQuery(oid);
+        otai_object_type_t object_type = objectTypeQuery(oid);
 
-        if (object_type == LAI_NULL_OBJECT_ID)
+        if (object_type == OTAI_NULL_OBJECT_ID)
         {
             SWSS_LOG_ERROR("oid 0x%" PRIx64 " is not valid, returned null object id", oid);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (object_type != meta_key.objecttype)
         {
             SWSS_LOG_ERROR("oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
     // object exists in DB so we can do "get" operation
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
 void Meta::meta_generic_validation_post_get(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ lai_object_id_t linecard_id,
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ otai_object_id_t linecard_id,
         _In_ const uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
@@ -2086,59 +2086,59 @@ void Meta::meta_generic_validation_post_get(
 
     for (uint32_t idx = 0; idx < attr_count; ++idx)
     {
-        const lai_attribute_t* attr = &attr_list[idx];
+        const otai_attribute_t* attr = &attr_list[idx];
 
-        auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
-        const lai_attribute_value_t& value = attr->value;
+        const otai_attribute_value_t& value = attr->value;
 
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
         switch (md.attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_BOOL:
-            case LAI_ATTR_VALUE_TYPE_CHARDATA:
-            case LAI_ATTR_VALUE_TYPE_UINT8:
-            case LAI_ATTR_VALUE_TYPE_INT8:
-            case LAI_ATTR_VALUE_TYPE_UINT16:
-            case LAI_ATTR_VALUE_TYPE_INT16:
-            case LAI_ATTR_VALUE_TYPE_UINT32:
-            case LAI_ATTR_VALUE_TYPE_INT32:
-            case LAI_ATTR_VALUE_TYPE_UINT64:
-            case LAI_ATTR_VALUE_TYPE_INT64:
-            case LAI_ATTR_VALUE_TYPE_DOUBLE:
-            case LAI_ATTR_VALUE_TYPE_POINTER:
+            case OTAI_ATTR_VALUE_TYPE_BOOL:
+            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_INT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_INT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT64:
+            case OTAI_ATTR_VALUE_TYPE_INT64:
+            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+            case OTAI_ATTR_VALUE_TYPE_POINTER:
                 // primitives, ok
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 meta_generic_validation_post_get_objlist(meta_key, md, linecard_id, 1, &value.oid);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 meta_generic_validation_post_get_objlist(meta_key, md, linecard_id, value.objlist.count, value.objlist.list);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
                 VALIDATION_LIST_GET(md, value.u8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
                 VALIDATION_LIST_GET(md, value.s8list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
                 VALIDATION_LIST_GET(md, value.u16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
                 VALIDATION_LIST_GET(md, value.s16list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
                 VALIDATION_LIST_GET(md, value.u32list);
                 break;
-            case LAI_ATTR_VALUE_TYPE_INT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
                 VALIDATION_LIST_GET(md, value.s32list);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
 
                 if (value.u32range.min > value.u32range.max)
                 {
@@ -2147,7 +2147,7 @@ void Meta::meta_generic_validation_post_get(
 
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
 
                 if (value.s32range.min > value.s32range.max)
                 {
@@ -2167,7 +2167,7 @@ void Meta::meta_generic_validation_post_get(
 
             val = value.s32;
 
-            if (!lai_metadata_is_allowed_enum_value(&md, val))
+            if (!otai_metadata_is_allowed_enum_value(&md, val))
             {
                 META_LOG_ERROR(md, "is enum, but value %d not found on allowed values list", val);
                 continue;
@@ -2185,7 +2185,7 @@ void Meta::meta_generic_validation_post_get(
             {
                 int32_t s32 = value.s32list.list[i];
 
-                if (!lai_metadata_is_allowed_enum_value(&md, s32))
+                if (!otai_metadata_is_allowed_enum_value(&md, s32))
                 {
                     META_LOG_ERROR(md, "is enum list, but value %d not found on allowed values list", s32);
                 }
@@ -2194,11 +2194,11 @@ void Meta::meta_generic_validation_post_get(
     }
 }
 
-lai_status_t Meta::meta_generic_validation_objlist(
-        _In_ const lai_attr_metadata_t& md,
-        _In_ lai_object_id_t linecard_id,
+otai_status_t Meta::meta_generic_validation_objlist(
+        _In_ const otai_attr_metadata_t& md,
+        _In_ otai_object_id_t linecard_id,
         _In_ uint32_t count,
-        _In_ const lai_object_id_t* list)
+        _In_ const otai_object_id_t* list)
 {
     SWSS_LOG_ENTER();
 
@@ -2206,19 +2206,19 @@ lai_status_t Meta::meta_generic_validation_objlist(
     {
         META_LOG_ERROR(md, "object list count %u > max list count %u", count, MAX_LIST_COUNT);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (list == NULL)
     {
         if (count == 0)
         {
-            return LAI_STATUS_SUCCESS;
+            return OTAI_STATUS_SUCCESS;
         }
 
         META_LOG_ERROR(md, "object list is null, but count is %u", count);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     /*
@@ -2226,22 +2226,22 @@ lai_status_t Meta::meta_generic_validation_objlist(
      * on list and whether all oids are same object type.
      */
 
-    std::set<lai_object_id_t> oids;
+    std::set<otai_object_id_t> oids;
 
-    lai_object_type_t object_type = LAI_OBJECT_TYPE_NULL;
+    otai_object_type_t object_type = OTAI_OBJECT_TYPE_NULL;
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        lai_object_id_t oid = list[i];
+        otai_object_id_t oid = list[i];
 
         if (oids.find(oid) != oids.end())
         {
             META_LOG_ERROR(md, "object on list [%u] oid 0x%" PRIx64 " is duplicated, but not allowed", i, oid);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (oid == LAI_NULL_OBJECT_ID)
+        if (oid == OTAI_NULL_OBJECT_ID)
         {
             if (md.allownullobjectid)
             {
@@ -2251,32 +2251,32 @@ lai_status_t Meta::meta_generic_validation_objlist(
 
             META_LOG_ERROR(md, "object on list [%u] is NULL, but not allowed", i);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         oids.insert(oid);
 
-        lai_object_type_t ot = objectTypeQuery(oid);
+        otai_object_type_t ot = objectTypeQuery(oid);
 
-        if (ot == LAI_NULL_OBJECT_ID)
+        if (ot == OTAI_NULL_OBJECT_ID)
         {
             META_LOG_ERROR(md, "object on list [%u] oid 0x%" PRIx64 " is not valid, returned null object id", i, oid);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (!lai_metadata_is_allowed_object_type(&md, ot))
+        if (!otai_metadata_is_allowed_object_type(&md, ot))
         {
             META_LOG_ERROR(md, "object on list [%u] oid 0x%" PRIx64 " object type %d is not allowed on this attribute", i, oid, ot);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (!m_oids.objectReferenceExists(oid))
         {
             META_LOG_ERROR(md, "object on list [%u] oid 0x%" PRIx64 " object type %d does not exists in local DB", i, oid, ot);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (i > 1)
@@ -2289,33 +2289,33 @@ lai_status_t Meta::meta_generic_validation_objlist(
             {
                 META_LOG_ERROR(md, "object list contain's mixed object types: %d vs %d, not allowed", object_type, ot);
 
-                return LAI_STATUS_INVALID_PARAMETER;
+                return OTAI_STATUS_INVALID_PARAMETER;
             }
         }
 
-        lai_object_id_t query_linecard_id = linecardIdQuery(oid);
+        otai_object_id_t query_linecard_id = linecardIdQuery(oid);
 
         if (!m_oids.objectReferenceExists(query_linecard_id))
         {
             SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", query_linecard_id);
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (query_linecard_id != linecard_id)
         {
             SWSS_LOG_ERROR("oid 0x%" PRIx64 " is from linecard 0x%" PRIx64 " but expected linecard 0x%" PRIx64 "", oid, query_linecard_id, linecard_id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         object_type = ot;
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::meta_genetic_validation_list(
-        _In_ const lai_attr_metadata_t& md,
+otai_status_t Meta::meta_genetic_validation_list(
+        _In_ const otai_attr_metadata_t& md,
         _In_ uint32_t count,
         _In_ const void* list)
 {
@@ -2325,34 +2325,34 @@ lai_status_t Meta::meta_genetic_validation_list(
     {
         META_LOG_ERROR(md, "list count %u > max list count %u", count, MAX_LIST_COUNT);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (count == 0 && list != NULL)
     {
         META_LOG_ERROR(md, "when count is zero, list must be NULL");
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (list == NULL)
     {
         if (count == 0)
         {
-            return LAI_STATUS_SUCCESS;
+            return OTAI_STATUS_SUCCESS;
         }
 
         META_LOG_ERROR(md, "list is null, but count is %u", count);
 
-        return LAI_STATUS_INVALID_PARAMETER;
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_status_t Meta::meta_generic_validate_non_object_on_create(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ lai_object_id_t linecard_id)
+otai_status_t Meta::meta_generic_validate_non_object_on_create(
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ otai_object_id_t linecard_id)
 {
     SWSS_LOG_ENTER();
 
@@ -2366,11 +2366,11 @@ lai_status_t Meta::meta_generic_validate_non_object_on_create(
      * check in object hash whether this object exists.
      */
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (!info->isnonobjectid)
     {
-        return LAI_STATUS_SUCCESS;
+        return OTAI_STATUS_SUCCESS;
     }
 
     /*
@@ -2379,34 +2379,34 @@ lai_status_t Meta::meta_generic_validate_non_object_on_create(
 
     for (size_t j = 0; j < info->structmemberscount; ++j)
     {
-        const lai_struct_member_info_t *m = info->structmembers[j];
+        const otai_struct_member_info_t *m = info->structmembers[j];
 
-        if (m->membervaluetype != LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+        if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
         {
             continue;
         }
 
-        lai_object_id_t oid = m->getoid(&meta_key);
+        otai_object_id_t oid = m->getoid(&meta_key);
 
-        if (oid == LAI_NULL_OBJECT_ID)
+        if (oid == OTAI_NULL_OBJECT_ID)
         {
             SWSS_LOG_ERROR("oid on %s on struct member %s is NULL",
-                    lai_serialize_object_type(meta_key.objecttype).c_str(),
+                    otai_serialize_object_type(meta_key.objecttype).c_str(),
                     m->membername);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (!m_oids.objectReferenceExists(oid))
         {
             SWSS_LOG_ERROR("object don't exist %s (%s)",
-                    lai_serialize_object_id(oid).c_str(),
+                    otai_serialize_object_id(oid).c_str(),
                     m->membername);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        lai_object_type_t ot = objectTypeQuery(oid);
+        otai_object_type_t ot = objectTypeQuery(oid);
 
         /*
          * No need for checking null here, since metadata don't allow
@@ -2427,34 +2427,34 @@ lai_status_t Meta::meta_generic_validate_non_object_on_create(
         if (!allowed)
         {
             SWSS_LOG_ERROR("object id 0x%" PRIx64 " is %s, but it's not allowed on member %s",
-                    oid, lai_serialize_object_type(ot).c_str(), m->membername);
+                    oid, otai_serialize_object_type(ot).c_str(), m->membername);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        lai_object_id_t oid_linecard_id = linecardIdQuery(oid);
+        otai_object_id_t oid_linecard_id = linecardIdQuery(oid);
 
         if (!m_oids.objectReferenceExists(oid_linecard_id))
         {
             SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", oid_linecard_id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
 
         if (linecard_id != oid_linecard_id)
         {
             SWSS_LOG_ERROR("oid 0x%" PRIx64 " is on linecard 0x%" PRIx64 " but required linecard is 0x%" PRIx64 "", oid, oid_linecard_id, linecard_id);
 
-            return LAI_STATUS_INVALID_PARAMETER;
+            return OTAI_STATUS_INVALID_PARAMETER;
         }
     }
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-lai_object_id_t Meta::meta_extract_linecard_id(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ lai_object_id_t linecard_id)
+otai_object_id_t Meta::meta_extract_linecard_id(
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ otai_object_id_t linecard_id)
 {
     SWSS_LOG_ENTER();
 
@@ -2462,7 +2462,7 @@ lai_object_id_t Meta::meta_extract_linecard_id(
      * We assume here that objecttype in meta key is in valid range.
      */
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
@@ -2475,18 +2475,18 @@ lai_object_id_t Meta::meta_extract_linecard_id(
 
         for (size_t j = 0; j < info->structmemberscount; ++j)
         {
-            const lai_struct_member_info_t *m = info->structmembers[j];
+            const otai_struct_member_info_t *m = info->structmembers[j];
 
-            if (m->membervaluetype != LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
             {
                 continue;
             }
 
             for (size_t k = 0 ; k < m->allowedobjecttypeslength; k++)
             {
-                lai_object_type_t ot = m->allowedobjecttypes[k];
+                otai_object_type_t ot = m->allowedobjecttypes[k];
 
-                if (ot == LAI_OBJECT_TYPE_LINECARD)
+                if (ot == OTAI_OBJECT_TYPE_LINECARD)
                 {
                     return  m->getoid(&meta_key);
                 }
@@ -2495,7 +2495,7 @@ lai_object_id_t Meta::meta_extract_linecard_id(
 
         SWSS_LOG_ERROR("unable to find linecard id inside non object id");
 
-        return LAI_NULL_OBJECT_ID;
+        return OTAI_NULL_OBJECT_ID;
     }
     else
     {
@@ -2504,25 +2504,25 @@ lai_object_id_t Meta::meta_extract_linecard_id(
     }
 }
 
-std::shared_ptr<LaiAttrWrapper> Meta::get_object_previous_attr(
-        _In_ const lai_object_meta_key_t& metaKey,
-        _In_ const lai_attr_metadata_t& md)
+std::shared_ptr<OtaiAttrWrapper> Meta::get_object_previous_attr(
+        _In_ const otai_object_meta_key_t& metaKey,
+        _In_ const otai_attr_metadata_t& md)
 {
     SWSS_LOG_ENTER();
 
-    return m_laiObjectCollection.getObjectAttr(metaKey, md.attrid);
+    return m_otaiObjectCollection.getObjectAttr(metaKey, md.attrid);
 }
 
-std::vector<const lai_attr_metadata_t*> Meta::get_attributes_metadata(
-        _In_ lai_object_type_t objecttype)
+std::vector<const otai_attr_metadata_t*> Meta::get_attributes_metadata(
+        _In_ otai_object_type_t objecttype)
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_DEBUG("objecttype: %s", lai_serialize_object_type(objecttype).c_str());
+    SWSS_LOG_DEBUG("objecttype: %s", otai_serialize_object_type(objecttype).c_str());
 
-    auto meta = lai_metadata_get_object_type_info(objecttype)->attrmetadata;
+    auto meta = otai_metadata_get_object_type_info(objecttype)->attrmetadata;
 
-    std::vector<const lai_attr_metadata_t*> attrs;
+    std::vector<const otai_attr_metadata_t*> attrs;
 
     for (size_t index = 0; meta[index] != NULL; ++index)
     {
@@ -2533,16 +2533,16 @@ std::vector<const lai_attr_metadata_t*> Meta::get_attributes_metadata(
 }
 
 void Meta::meta_add_port_to_related_map(
-        _In_ lai_object_id_t port_id,
-        _In_ const lai_object_list_t& list)
+        _In_ otai_object_id_t port_id,
+        _In_ const otai_object_list_t& list)
 {
     SWSS_LOG_ENTER();
 
     for (uint32_t i = 0; i < list.count; i++)
     {
-        lai_object_id_t rel = list.list[i];
+        otai_object_id_t rel = list.list[i];
 
-        if (rel == LAI_NULL_OBJECT_ID)
+        if (rel == OTAI_NULL_OBJECT_ID)
             SWSS_LOG_THROW("not expected NULL oid on the list");
 
         m_portRelatedSet.insert(port_id, rel);
@@ -2550,11 +2550,11 @@ void Meta::meta_add_port_to_related_map(
 }
 
 void Meta::meta_generic_validation_post_get_objlist(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ const lai_attr_metadata_t& md,
-        _In_ lai_object_id_t linecard_id,
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ const otai_attr_metadata_t& md,
+        _In_ otai_object_id_t linecard_id,
         _In_ uint32_t count,
-        _In_ const lai_object_id_t* list)
+        _In_ const otai_object_id_t* list)
 {
     SWSS_LOG_ENTER();
 
@@ -2572,13 +2572,13 @@ void Meta::meta_generic_validation_post_get_objlist(
      * whether default value is present and it's const NULL.
      */
 
-    if (!LAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
+    if (!OTAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
     {
         if (get_object_previous_attr(meta_key, md) == NULL)
         {
             // XXX produces too much noise
             // META_LOG_WARN(md, "post get, not in local db, FIX snoop!: %s",
-            //          lai_serialize_object_meta_key(meta_key).c_str());
+            //          otai_serialize_object_meta_key(meta_key).c_str());
         }
     }
 
@@ -2593,11 +2593,11 @@ void Meta::meta_generic_validation_post_get_objlist(
         return;
     }
 
-    std::set<lai_object_id_t> oids;
+    std::set<otai_object_id_t> oids;
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        lai_object_id_t oid = list[i];
+        otai_object_id_t oid = list[i];
 
         if (oids.find(oid) != oids.end())
         {
@@ -2607,7 +2607,7 @@ void Meta::meta_generic_validation_post_get_objlist(
 
         oids.insert(oid);
 
-        if (oid == LAI_NULL_OBJECT_ID)
+        if (oid == OTAI_NULL_OBJECT_ID)
         {
             if (md.allownullobjectid)
             {
@@ -2619,15 +2619,15 @@ void Meta::meta_generic_validation_post_get_objlist(
             continue;
         }
 
-        lai_object_type_t ot = objectTypeQuery(oid);
+        otai_object_type_t ot = objectTypeQuery(oid);
 
-        if (ot == LAI_OBJECT_TYPE_NULL)
+        if (ot == OTAI_OBJECT_TYPE_NULL)
         {
             META_LOG_ERROR(md, "returned get object on list [%u] oid 0x%" PRIx64 " is not valid, returned null object type", i, oid);
             continue;
         }
 
-        if (!lai_metadata_is_allowed_object_type(&md, ot))
+        if (!otai_metadata_is_allowed_object_type(&md, ot))
         {
             META_LOG_ERROR(md, "returned get object on list [%u] oid 0x%" PRIx64 " object type %d is not allowed on this attribute", i, oid, ot);
         }
@@ -2640,17 +2640,17 @@ void Meta::meta_generic_validation_post_get_objlist(
 
             META_LOG_INFO(md, "returned get object on list [%u] oid 0x%" PRIx64 " object type %d does not exists in local DB (snoop)", i, oid, ot);
 
-            lai_object_meta_key_t key = { .objecttype = ot, .objectkey = { .key = { .object_id = oid } } };
+            otai_object_meta_key_t key = { .objecttype = ot, .objectkey = { .key = { .object_id = oid } } };
 
             m_oids.objectReferenceInsert(oid);
 
-            if (!m_laiObjectCollection.objectExists(key))
+            if (!m_otaiObjectCollection.objectExists(key))
             {
-                m_laiObjectCollection.createObject(key);
+                m_otaiObjectCollection.createObject(key);
             }
         }
 
-        lai_object_id_t query_linecard_id = linecardIdQuery(oid);
+        otai_object_id_t query_linecard_id = linecardIdQuery(oid);
 
         if (!m_oids.objectReferenceExists(query_linecard_id))
         {
@@ -2665,38 +2665,38 @@ void Meta::meta_generic_validation_post_get_objlist(
 }
 
 void Meta::meta_generic_validation_post_create(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ lai_object_id_t linecard_id,
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ otai_object_id_t linecard_id,
         _In_ const uint32_t attr_count,
-        _In_ const lai_attribute_t *attr_list)
+        _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
 
-    if (m_laiObjectCollection.objectExists(meta_key))
+    if (m_otaiObjectCollection.objectExists(meta_key))
     {
-        if (m_warmBoot && meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD)
+        if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
         {
             SWSS_LOG_NOTICE("post linecard create after WARM BOOT");
         }
         else
         {
             SWSS_LOG_ERROR("object key %s already exists (vendor bug?)",
-                    lai_serialize_object_meta_key(meta_key).c_str());
+                    otai_serialize_object_meta_key(meta_key).c_str());
 
             // this may produce inconsistency
         }
     }
 
-    if (m_warmBoot && meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD)
+    if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
     {
         SWSS_LOG_NOTICE("skipping create linecard on WARM BOOT since it was already created");
     }
     else
     {
-        m_laiObjectCollection.createObject(meta_key);
+        m_otaiObjectCollection.createObject(meta_key);
     }
 
-    auto info = lai_metadata_get_object_type_info(meta_key.objecttype);
+    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
     if (info->isnonobjectid)
     {
@@ -2707,9 +2707,9 @@ void Meta::meta_generic_validation_post_create(
 
         for (size_t j = 0; j < info->structmemberscount; ++j)
         {
-            const lai_struct_member_info_t *m = info->structmembers[j];
+            const otai_struct_member_info_t *m = info->structmembers[j];
 
-            if (m->membervaluetype != LAI_ATTR_VALUE_TYPE_OBJECT_ID)
+            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
             {
                 continue;
             }
@@ -2726,17 +2726,17 @@ void Meta::meta_generic_validation_post_create(
 
         do
         {
-            lai_object_id_t oid = meta_key.objectkey.key.object_id;
+            otai_object_id_t oid = meta_key.objectkey.key.object_id;
 
-            if (oid == LAI_NULL_OBJECT_ID)
+            if (oid == OTAI_NULL_OBJECT_ID)
             {
                 SWSS_LOG_ERROR("created oid is null object id (vendor bug?)");
                 break;
             }
 
-            lai_object_type_t object_type = objectTypeQuery(oid);
+            otai_object_type_t object_type = objectTypeQuery(oid);
 
-            if (object_type == LAI_NULL_OBJECT_ID)
+            if (object_type == OTAI_NULL_OBJECT_ID)
             {
                 SWSS_LOG_ERROR("created oid 0x%" PRIx64 " is not valid object type after create (null) (vendor bug?)", oid);
                 break;
@@ -2746,18 +2746,18 @@ void Meta::meta_generic_validation_post_create(
             {
                 SWSS_LOG_ERROR("created oid 0x%" PRIx64 " type %s, expected %s (vendor bug?)",
                         oid,
-                        lai_serialize_object_type(object_type).c_str(),
-                        lai_serialize_object_type(meta_key.objecttype).c_str());
+                        otai_serialize_object_type(object_type).c_str(),
+                        otai_serialize_object_type(meta_key.objecttype).c_str());
                 break;
             }
 
-            if (meta_key.objecttype != LAI_OBJECT_TYPE_LINECARD)
+            if (meta_key.objecttype != OTAI_OBJECT_TYPE_LINECARD)
             {
                 /*
                  * Check if created object linecard is the same as input linecard.
                  */
 
-                lai_object_id_t query_linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
+                otai_object_id_t query_linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
 
                 if (!m_oids.objectReferenceExists(query_linecard_id))
                 {
@@ -2773,7 +2773,7 @@ void Meta::meta_generic_validation_post_create(
                 }
             }
 
-            if (m_warmBoot && meta_key.objecttype == LAI_OBJECT_TYPE_LINECARD)
+            if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
             {
                 SWSS_LOG_NOTICE("skip insert linecard reference insert in WARM_BOOT");
             }
@@ -2796,15 +2796,15 @@ void Meta::meta_generic_validation_post_create(
 
     for (uint32_t idx = 0; idx < attr_count; ++idx)
     {
-        const lai_attribute_t* attr = &attr_list[idx];
+        const otai_attribute_t* attr = &attr_list[idx];
 
-        auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
-        const lai_attribute_value_t& value = attr->value;
+        const otai_attribute_value_t& value = attr->value;
 
-        const lai_attr_metadata_t& md = *mdp;
+        const otai_attr_metadata_t& md = *mdp;
 
-        if (LAI_HAS_FLAG_KEY(md.flags))
+        if (OTAI_HAS_FLAG_KEY(md.flags))
         {
             haskeys = true;
             META_LOG_DEBUG(md, "attr is key");
@@ -2814,37 +2814,37 @@ void Meta::meta_generic_validation_post_create(
 
         switch (md.attrvaluetype)
         {
-            case LAI_ATTR_VALUE_TYPE_BOOL:
-            case LAI_ATTR_VALUE_TYPE_CHARDATA:
-            case LAI_ATTR_VALUE_TYPE_UINT8:
-            case LAI_ATTR_VALUE_TYPE_INT8:
-            case LAI_ATTR_VALUE_TYPE_UINT16:
-            case LAI_ATTR_VALUE_TYPE_INT16:
-            case LAI_ATTR_VALUE_TYPE_UINT32:
-            case LAI_ATTR_VALUE_TYPE_INT32:
-            case LAI_ATTR_VALUE_TYPE_UINT64:
-            case LAI_ATTR_VALUE_TYPE_INT64:
-            case LAI_ATTR_VALUE_TYPE_DOUBLE:
-            case LAI_ATTR_VALUE_TYPE_POINTER:
+            case OTAI_ATTR_VALUE_TYPE_BOOL:
+            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
+            case OTAI_ATTR_VALUE_TYPE_UINT8:
+            case OTAI_ATTR_VALUE_TYPE_INT8:
+            case OTAI_ATTR_VALUE_TYPE_UINT16:
+            case OTAI_ATTR_VALUE_TYPE_INT16:
+            case OTAI_ATTR_VALUE_TYPE_UINT32:
+            case OTAI_ATTR_VALUE_TYPE_INT32:
+            case OTAI_ATTR_VALUE_TYPE_UINT64:
+            case OTAI_ATTR_VALUE_TYPE_INT64:
+            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+            case OTAI_ATTR_VALUE_TYPE_POINTER:
                 // primitives
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
                 m_oids.objectReferenceIncrement(value.oid);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
                 m_oids.objectReferenceIncrement(value.objlist);
                 break;
 
-            case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT8_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT16_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
-            case LAI_ATTR_VALUE_TYPE_INT32_LIST:
-            case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-            case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
+            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
                 // no special action required
                 break;
 
@@ -2853,12 +2853,12 @@ void Meta::meta_generic_validation_post_create(
                 META_LOG_THROW(md, "serialization type is not supported yet FIXME");
         }
 
-        m_laiObjectCollection.setObjectAttr(meta_key, md, attr);
+        m_otaiObjectCollection.setObjectAttr(meta_key, md, attr);
     }
 
     if (haskeys)
     {
-        auto mKey = lai_serialize_object_meta_key(meta_key);
+        auto mKey = otai_serialize_object_meta_key(meta_key);
 
         auto attrKey = AttrKeyMap::constructKey(meta_key, attr_count, attr_list);
 
@@ -2867,27 +2867,27 @@ void Meta::meta_generic_validation_post_create(
 }
 
 void Meta::meta_generic_validation_post_set(
-        _In_ const lai_object_meta_key_t& meta_key,
-        _In_ const lai_attribute_t *attr)
+        _In_ const otai_object_meta_key_t& meta_key,
+        _In_ const otai_attribute_t *attr)
 {
     SWSS_LOG_ENTER();
 
-    auto mdp = lai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
+    auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
 
-    const lai_attribute_value_t& value = attr->value;
+    const otai_attribute_value_t& value = attr->value;
 
-    const lai_attr_metadata_t& md = *mdp;
+    const otai_attr_metadata_t& md = *mdp;
 
     /*
      * TODO We need to get previous value and make deal with references, check
      * if there is default value and if it's const.
      */
 
-    if (!LAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
+    if (!OTAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
     {
         if ((get_object_previous_attr(meta_key, md) == NULL) &&
-                (md.defaultvaluetype != LAI_DEFAULT_VALUE_TYPE_CONST &&
-                 md.defaultvaluetype != LAI_DEFAULT_VALUE_TYPE_EMPTY_LIST))
+                (md.defaultvaluetype != OTAI_DEFAULT_VALUE_TYPE_CONST &&
+                 md.defaultvaluetype != OTAI_DEFAULT_VALUE_TYPE_EMPTY_LIST))
         {
             /*
              * If default value type will be internal then we should warn.
@@ -2895,28 +2895,28 @@ void Meta::meta_generic_validation_post_set(
 
             // XXX produces too much noise
             // META_LOG_WARN(md, "post set, not in local db, FIX snoop!: %s",
-            //              lai_serialize_object_meta_key(meta_key).c_str());
+            //              otai_serialize_object_meta_key(meta_key).c_str());
         }
     }
 
     switch (md.attrvaluetype)
     {
-        case LAI_ATTR_VALUE_TYPE_BOOL:
-        case LAI_ATTR_VALUE_TYPE_CHARDATA:
-        case LAI_ATTR_VALUE_TYPE_UINT8:
-        case LAI_ATTR_VALUE_TYPE_INT8:
-        case LAI_ATTR_VALUE_TYPE_UINT16:
-        case LAI_ATTR_VALUE_TYPE_INT16:
-        case LAI_ATTR_VALUE_TYPE_UINT32:
-        case LAI_ATTR_VALUE_TYPE_INT32:
-        case LAI_ATTR_VALUE_TYPE_UINT64:
-        case LAI_ATTR_VALUE_TYPE_INT64:
-        case LAI_ATTR_VALUE_TYPE_DOUBLE:
-        case LAI_ATTR_VALUE_TYPE_POINTER:
+        case OTAI_ATTR_VALUE_TYPE_BOOL:
+        case OTAI_ATTR_VALUE_TYPE_CHARDATA:
+        case OTAI_ATTR_VALUE_TYPE_UINT8:
+        case OTAI_ATTR_VALUE_TYPE_INT8:
+        case OTAI_ATTR_VALUE_TYPE_UINT16:
+        case OTAI_ATTR_VALUE_TYPE_INT16:
+        case OTAI_ATTR_VALUE_TYPE_UINT32:
+        case OTAI_ATTR_VALUE_TYPE_INT32:
+        case OTAI_ATTR_VALUE_TYPE_UINT64:
+        case OTAI_ATTR_VALUE_TYPE_INT64:
+        case OTAI_ATTR_VALUE_TYPE_DOUBLE:
+        case OTAI_ATTR_VALUE_TYPE_POINTER:
             // primitives, ok
             break;
 
-        case LAI_ATTR_VALUE_TYPE_OBJECT_ID:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
 
             {
                 auto prev = get_object_previous_attr(meta_key, md);
@@ -2924,7 +2924,7 @@ void Meta::meta_generic_validation_post_set(
                 if (prev != NULL)
                 {
                     // decrease previous if it was set
-                    m_oids.objectReferenceDecrement(prev->getLaiAttr()->value.oid);
+                    m_oids.objectReferenceDecrement(prev->getOtaiAttr()->value.oid);
                 }
 
                 m_oids.objectReferenceIncrement(value.oid);
@@ -2932,7 +2932,7 @@ void Meta::meta_generic_validation_post_set(
                 break;
             }
 
-        case LAI_ATTR_VALUE_TYPE_OBJECT_LIST:
+        case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
 
             {
                 auto prev = get_object_previous_attr(meta_key, md);
@@ -2940,7 +2940,7 @@ void Meta::meta_generic_validation_post_set(
                 if (prev != NULL)
                 {
                     // decrease previous if it was set
-                    m_oids.objectReferenceDecrement(prev->getLaiAttr()->value.objlist);
+                    m_oids.objectReferenceDecrement(prev->getOtaiAttr()->value.objlist);
                 }
 
                 m_oids.objectReferenceIncrement(value.objlist);
@@ -2948,14 +2948,14 @@ void Meta::meta_generic_validation_post_set(
                 break;
             }
 
-        case LAI_ATTR_VALUE_TYPE_UINT8_LIST:
-        case LAI_ATTR_VALUE_TYPE_INT8_LIST:
-        case LAI_ATTR_VALUE_TYPE_UINT16_LIST:
-        case LAI_ATTR_VALUE_TYPE_INT16_LIST:
-        case LAI_ATTR_VALUE_TYPE_UINT32_LIST:
-        case LAI_ATTR_VALUE_TYPE_INT32_LIST:
-        case LAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-        case LAI_ATTR_VALUE_TYPE_INT32_RANGE:
+        case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
+        case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
+        case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
+        case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
             // no special action required
             break;
 
@@ -2966,11 +2966,11 @@ void Meta::meta_generic_validation_post_set(
     // only on create we need to increase entry object types members
     // save actual attributes and values to local db
 
-    m_laiObjectCollection.setObjectAttr(meta_key, md, attr);
+    m_otaiObjectCollection.setObjectAttr(meta_key, md, attr);
 }
 
 bool Meta::meta_unittests_get_and_erase_set_readonly_flag(
-        _In_ const lai_attr_metadata_t& md)
+        _In_ const otai_attr_metadata_t& md)
 {
     SWSS_LOG_ENTER();
 
@@ -3011,8 +3011,8 @@ bool Meta::meta_unittests_enabled()
     return m_unittestsEnabled;
 }
 
-lai_status_t Meta::meta_unittests_allow_readonly_set_once(
-        _In_ lai_object_type_t object_type,
+otai_status_t Meta::meta_unittests_allow_readonly_set_once(
+        _In_ otai_object_type_t object_type,
         _In_ int32_t attr_id)
 {
     SWSS_LOG_ENTER();
@@ -3020,91 +3020,91 @@ lai_status_t Meta::meta_unittests_allow_readonly_set_once(
     if (!m_unittestsEnabled)
     {
         SWSS_LOG_NOTICE("unittests are not enabled");
-        return LAI_STATUS_FAILURE;
+        return OTAI_STATUS_FAILURE;
     }
 
-    auto *md = lai_metadata_get_attr_metadata(object_type, attr_id);
+    auto *md = otai_metadata_get_attr_metadata(object_type, attr_id);
 
     if (md == NULL)
     {
         SWSS_LOG_ERROR("failed to get metadata for object type %d and attr id %d", object_type, attr_id);
-        return LAI_STATUS_FAILURE;
+        return OTAI_STATUS_FAILURE;
     }
 
-    if (!LAI_HAS_FLAG_READ_ONLY(md->flags))
+    if (!OTAI_HAS_FLAG_READ_ONLY(md->flags))
     {
         SWSS_LOG_ERROR("attribute %s is not marked as READ_ONLY", md->attridname);
-        return LAI_STATUS_FAILURE;
+        return OTAI_STATUS_FAILURE;
     }
 
     m_meta_unittests_set_readonly_set.insert(md->attridname);
 
     SWSS_LOG_INFO("enabling SET for readonly attribute: %s", md->attridname);
 
-    return LAI_STATUS_SUCCESS;
+    return OTAI_STATUS_SUCCESS;
 }
 
-void Meta::meta_lai_on_linecard_state_change(
-        _In_ lai_object_id_t linecard_id,
-        _In_ lai_oper_status_t linecard_oper_status)
+void Meta::meta_otai_on_linecard_state_change(
+        _In_ otai_object_id_t linecard_id,
+        _In_ otai_oper_status_t linecard_oper_status)
 {
     SWSS_LOG_ENTER();
 
     auto ot = objectTypeQuery(linecard_id);
 
-    if (ot != LAI_OBJECT_TYPE_LINECARD)
+    if (ot != OTAI_OBJECT_TYPE_LINECARD)
     {
-        SWSS_LOG_WARN("linecard_id %s is of type %s, but expected LAI_OBJECT_TYPE_LINECARD",
-                lai_serialize_object_id(linecard_id).c_str(),
-                lai_serialize_object_type(ot).c_str());
+        SWSS_LOG_WARN("linecard_id %s is of type %s, but expected OTAI_OBJECT_TYPE_LINECARD",
+                otai_serialize_object_id(linecard_id).c_str(),
+                otai_serialize_object_type(ot).c_str());
     }
 
-    lai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
+    otai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
 
-    if (!m_laiObjectCollection.objectExists(linecard_meta_key))
+    if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
     {
         SWSS_LOG_ERROR("linecard_id %s don't exists in local database",
-                lai_serialize_object_id(linecard_id).c_str());
+                otai_serialize_object_id(linecard_id).c_str());
     }
 
     // we should not snoop linecard_id, since linecard id should be created directly by user
 
-    if (!lai_metadata_get_enum_value_name(
-                &lai_metadata_enum_lai_oper_status_t,
+    if (!otai_metadata_get_enum_value_name(
+                &otai_metadata_enum_otai_oper_status_t,
                 linecard_oper_status))
     {
-        SWSS_LOG_WARN("linecard oper status value (%d) not found in lai_oper_status_t",
+        SWSS_LOG_WARN("linecard oper status value (%d) not found in otai_oper_status_t",
                 linecard_oper_status);
     }
 }
 
-void Meta::meta_lai_on_linecard_shutdown_request(
-        _In_ lai_object_id_t linecard_id)
+void Meta::meta_otai_on_linecard_shutdown_request(
+        _In_ otai_object_id_t linecard_id)
 {
     SWSS_LOG_ENTER();
 
     auto ot = objectTypeQuery(linecard_id);
 
-    if (ot != LAI_OBJECT_TYPE_LINECARD)
+    if (ot != OTAI_OBJECT_TYPE_LINECARD)
     {
-        SWSS_LOG_WARN("linecard_id %s is of type %s, but expected LAI_OBJECT_TYPE_LINECARD",
-                lai_serialize_object_id(linecard_id).c_str(),
-                lai_serialize_object_type(ot).c_str());
+        SWSS_LOG_WARN("linecard_id %s is of type %s, but expected OTAI_OBJECT_TYPE_LINECARD",
+                otai_serialize_object_id(linecard_id).c_str(),
+                otai_serialize_object_type(ot).c_str());
     }
 
-    lai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
+    otai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
 
-    if (!m_laiObjectCollection.objectExists(linecard_meta_key))
+    if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
     {
         SWSS_LOG_ERROR("linecard_id %s don't exists in local database",
-                lai_serialize_object_id(linecard_id).c_str());
+                otai_serialize_object_id(linecard_id).c_str());
     }
 
     // we should not snoop linecard_id, since linecard id should be created directly by user
 }
 
 int32_t Meta::getObjectReferenceCount(
-        _In_ lai_object_id_t oid) const
+        _In_ otai_object_id_t oid) const
 {
     SWSS_LOG_ENTER();
 
@@ -3112,10 +3112,10 @@ int32_t Meta::getObjectReferenceCount(
 }
 
 bool Meta::objectExists(
-        _In_ const lai_object_meta_key_t& mk) const
+        _In_ const otai_object_meta_key_t& mk) const
 {
     SWSS_LOG_ENTER();
 
-    return m_laiObjectCollection.objectExists(mk);
+    return m_otaiObjectCollection.objectExists(mk);
 }
 

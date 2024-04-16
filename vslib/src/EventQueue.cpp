@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 #define QUEUE_MUTEX std::lock_guard<std::mutex> _lock(m_mutex);
 

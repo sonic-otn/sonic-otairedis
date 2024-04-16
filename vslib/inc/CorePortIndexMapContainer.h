@@ -5,7 +5,7 @@
 #include <memory>
 #include <map>
 
-namespace laivs
+namespace otaivs
 {
     class CorePortIndexMapContainer
     {

@@ -7,13 +7,13 @@
 #include "swss/sal.h"
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 #include <memory>
 #include <functional>
 
-namespace lairedis
+namespace otairedis
 {
     class Channel
     {
@@ -51,7 +51,7 @@ namespace lairedis
                     _In_ const std::string& key,
                     _In_ const std::string& command) = 0;
 
-            virtual lai_status_t wait(
+            virtual otai_status_t wait(
                     _In_ const std::string& command,
                     _Out_ swss::KeyOpFieldsValuesTuple& kco) = 0;
 

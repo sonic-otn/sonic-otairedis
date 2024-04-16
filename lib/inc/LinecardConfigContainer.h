@@ -7,7 +7,7 @@
 #include <map>
 #include <memory>
 
-namespace lairedis
+namespace otairedis
 {
     class LinecardConfigContainer
     {

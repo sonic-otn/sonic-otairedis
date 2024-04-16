@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace laivs
+namespace otaivs
 {
     class CorePortIndexMapFileParser
     {

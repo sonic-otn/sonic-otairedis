@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace laivs
+namespace otaivs
 {
     class Buffer
     {

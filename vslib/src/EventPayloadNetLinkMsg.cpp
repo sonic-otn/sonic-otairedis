@@ -2,10 +2,10 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 EventPayloadNetLinkMsg::EventPayloadNetLinkMsg(
-        _In_ lai_object_id_t linecardId,
+        _In_ otai_object_id_t linecardId,
         _In_ int nlmsgType,
         _In_ int ifIndex,
         _In_ unsigned int ifFlags,
@@ -21,7 +21,7 @@ EventPayloadNetLinkMsg::EventPayloadNetLinkMsg(
     // empty
 }
 
-lai_object_id_t EventPayloadNetLinkMsg::getLinecardId() const
+otai_object_id_t EventPayloadNetLinkMsg::getLinecardId() const
 {
     SWSS_LOG_ENTER();
 

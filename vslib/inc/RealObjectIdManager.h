@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-#include <lai.h>
+#include <otai.h>
 }
 
 #include "LinecardConfigContainer.h"
@@ -9,7 +9,7 @@ extern "C" {
 #include <set>
 #include <map>
 
-namespace laivs
+namespace otaivs
 {
     class RealObjectIdManager
     {
@@ -31,19 +31,19 @@ namespace laivs
              *
              * Throws if given object id has invalid object type.
              *
-             * For LAI_NULL_OBJECT_ID input will return LAI_NULL_OBJECT_ID.
+             * For OTAI_NULL_OBJECT_ID input will return OTAI_NULL_OBJECT_ID.
              */
-            lai_object_id_t laiLinecardIdQuery(
-                    _In_ lai_object_id_t objectId) const;
+            otai_object_id_t otaiLinecardIdQuery(
+                    _In_ otai_object_id_t objectId) const;
 
             /**
              * @brief Object type query.
              *
              * Returns object type for input object id. If object id is invalid
-             * then returns LAI_OBJECT_TYPE_NULL.
+             * then returns OTAI_OBJECT_TYPE_NULL.
              */
-            lai_object_type_t laiObjectTypeQuery(
-                    _In_ lai_object_id_t objectId) const;
+            otai_object_type_t otaiObjectTypeQuery(
+                    _In_ otai_object_id_t objectId) const;
 
             /**
              * @brief Clear linecard index set.
@@ -53,9 +53,9 @@ namespace laivs
             void clear();
 
             uint64_t allocateNewObjectIndex(
-                    _In_ lai_object_type_t objectType,
+                    _In_ otai_object_type_t objectType,
                     _In_ uint32_t attr_count,
-                    _In_ const lai_attribute_t *attr_list);
+                    _In_ const otai_attribute_t *attr_list);
 
             /**
              * @brief Allocate new object id on a given linecard.
@@ -65,16 +65,16 @@ namespace laivs
              * Throws when object type is linecard and there are no more
              * available linecard indexes.
              */
-            lai_object_id_t allocateNewObjectId(
-                    _In_ lai_object_type_t objectType,
-                    _In_ lai_object_id_t linecardId,
+            otai_object_id_t allocateNewObjectId(
+                    _In_ otai_object_type_t objectType,
+                    _In_ otai_object_id_t linecardId,
                     _In_ uint32_t attr_count,
-                    _In_ const lai_attribute_t *attr_list);
+                    _In_ const otai_attribute_t *attr_list);
 
             /**
              * @brief Allocate new linecard object id.
              */
-            lai_object_id_t allocateNewLinecardObjectId(
+            otai_object_id_t allocateNewLinecardObjectId(
                     _In_ const std::string& hardwareInfo);
 
             /**
@@ -83,7 +83,7 @@ namespace laivs
              * If object type is linecard, then linecard index will be released.
              */
             void releaseObjectId(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
 
         public:
 
@@ -93,19 +93,19 @@ namespace laivs
              * Return linecard object id for given object if. If object type is
              * linecard, it will return input value.
              *
-             * Return LAI_NULL_OBJECT_ID if given object id has invalid object type.
+             * Return OTAI_NULL_OBJECT_ID if given object id has invalid object type.
              */
-            static lai_object_id_t linecardIdQuery(
-                    _In_ lai_object_id_t objectId);
+            static otai_object_id_t linecardIdQuery(
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Object type query.
              *
              * Returns object type for input object id. If object id is invalid
-             * then returns LAI_OBJECT_TYPE_NULL.
+             * then returns OTAI_OBJECT_TYPE_NULL.
              */
-            static lai_object_type_t objectTypeQuery(
-                    _In_ lai_object_id_t objectId);
+            static otai_object_type_t objectTypeQuery(
+                    _In_ otai_object_id_t objectId);
 
             /**
              * @brief Get linecard index.
@@ -115,10 +115,10 @@ namespace laivs
              * Returns linecard index for given oid. If oid is invalid, returns 0.
              */
             static uint32_t getLinecardIndex(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
 
             uint32_t getObjectIndex(
-                    _In_ lai_object_id_t objectId);
+                    _In_ otai_object_id_t objectId);
         private:
 
             /**
@@ -141,8 +141,8 @@ namespace laivs
              *
              * Using all input parameters to construct object id.
              */
-            static lai_object_id_t constructObjectId(
-                    _In_ lai_object_type_t objectType,
+            static otai_object_id_t constructObjectId(
+                    _In_ otai_object_type_t objectType,
                     _In_ uint32_t linecardIndex,
                     _In_ uint64_t objectIndex,
                     _In_ uint32_t globalContext);
@@ -162,7 +162,7 @@ namespace laivs
              */
             std::set<uint32_t> m_linecardIndexes;
 
-            std::map<lai_object_type_t, uint64_t> m_indexer;
+            std::map<otai_object_type_t, uint64_t> m_indexer;
 
             std::shared_ptr<LinecardConfigContainer> m_container;
     };

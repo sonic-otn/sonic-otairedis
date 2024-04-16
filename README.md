@@ -1,1 +1,1 @@
-# AONOS - LAI Redis - lairedis
+# AONOS - OTAI Redis - otairedis

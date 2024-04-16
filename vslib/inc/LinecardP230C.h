@@ -2,7 +2,7 @@
 
 #include "LinecardStateBase.h"
 
-namespace laivs
+namespace otaivs
 {
     class LinecardP230C:
         public LinecardStateBase
@@ -10,7 +10,7 @@ namespace laivs
         public:
 
             LinecardP230C(
-                    _In_ lai_object_id_t linecard_id,
+                    _In_ otai_object_id_t linecard_id,
                     _In_ std::shared_ptr<RealObjectIdManager> manager,
                     _In_ std::shared_ptr<LinecardConfig> config);
 

@@ -1,12 +1,12 @@
 #pragma once
 
 extern "C" {
-#include "lai.h"
+#include "otai.h"
 }
 
 #include <map>
 
-namespace laivs
+namespace otaivs
 {
     class ResourceLimiter
     {
@@ -24,14 +24,14 @@ namespace laivs
         public:
 
             size_t getObjectTypeLimit(
-                    _In_ lai_object_type_t objectType) const;
+                    _In_ otai_object_type_t objectType) const;
 
             void setObjectTypeLimit(
-                    _In_ lai_object_type_t objectType,
+                    _In_ otai_object_type_t objectType,
                     _In_ size_t limit);
 
             void removeObjectTypeLimit(
-                    _In_ lai_object_type_t objectType);
+                    _In_ otai_object_type_t objectType);
 
             void clearLimits();
 
@@ -39,6 +39,6 @@ namespace laivs
 
             uint32_t m_linecardIndex;
 
-            std::map<lai_object_type_t, size_t> m_objectTypeLimits;
+            std::map<otai_object_type_t, size_t> m_objectTypeLimits;
     };
 }

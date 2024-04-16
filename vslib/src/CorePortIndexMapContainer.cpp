@@ -2,7 +2,7 @@
 
 #include "swss/logger.h"
 
-using namespace laivs;
+using namespace otaivs;
 
 void CorePortIndexMapContainer::insert(
         _In_ std::shared_ptr<CorePortIndexMap> corePortIndexMap)

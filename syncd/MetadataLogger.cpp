@@ -1,7 +1,7 @@
 #include "MetadataLogger.h"
 
 extern "C"{
-#include "laimetadata.h"
+#include "otaimetadata.h"
 }
 
 #include "swss/logger.h"
@@ -12,8 +12,8 @@ extern "C"{
 
 using namespace syncd;
 
-static void lai_meta_log_syncd(
-        _In_ lai_log_level_t logLevel,
+static void otai_meta_log_syncd(
+        _In_ otai_log_level_t logLevel,
         _In_ const char *file,
         _In_ int line,
         _In_ const char *func,
@@ -21,8 +21,8 @@ static void lai_meta_log_syncd(
         ...)
     __attribute__ ((format (printf, 5, 6)));
 
-static void lai_meta_log_syncd(
-        _In_ lai_log_level_t logLevel,
+static void otai_meta_log_syncd(
+        _In_ otai_log_level_t logLevel,
         _In_ const char *file,
         _In_ int line,
         _In_ const char *func,
@@ -42,21 +42,21 @@ static void lai_meta_log_syncd(
 
     switch (logLevel)
     {
-        case LAI_LOG_LEVEL_DEBUG:
+        case OTAI_LOG_LEVEL_DEBUG:
             priority = swss::Logger::SWSS_DEBUG;
             break;
-        case LAI_LOG_LEVEL_INFO:
+        case OTAI_LOG_LEVEL_INFO:
             priority = swss::Logger::SWSS_INFO;
             break;
-        case LAI_LOG_LEVEL_ERROR:
+        case OTAI_LOG_LEVEL_ERROR:
             priority = swss::Logger::SWSS_ERROR;
             fprintf(stderr, "ERROR: %s: %s\n", func, buffer);
             break;
-        case LAI_LOG_LEVEL_WARN:
+        case OTAI_LOG_LEVEL_WARN:
             priority = swss::Logger::SWSS_WARN;
             fprintf(stderr, "WARN: %s: %s\n", func, buffer);
             break;
-        case LAI_LOG_LEVEL_CRITICAL:
+        case OTAI_LOG_LEVEL_CRITICAL:
             priority = swss::Logger::SWSS_CRIT;
             break;
 
@@ -76,6 +76,6 @@ void MetadataLogger::initialize()
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-attribute=format"
-    lai_metadata_log = &lai_meta_log_syncd;
+    otai_metadata_log = &otai_meta_log_syncd;
 #pragma GCC diagnostic pop
 }

@@ -4,15 +4,15 @@
 
 #include <cstring>
 
-using namespace lairedis;
+using namespace otairedis;
 
 Linecard::Linecard(
-        _In_ lai_object_id_t linecardId):
+        _In_ otai_object_id_t linecardId):
     m_linecardId(linecardId)
 {
     SWSS_LOG_ENTER();
 
-    if (linecardId == LAI_NULL_OBJECT_ID)
+    if (linecardId == OTAI_NULL_OBJECT_ID)
     {
         SWSS_LOG_THROW("linecard id can't be NULL");
     }
@@ -21,9 +21,9 @@ Linecard::Linecard(
 }
 
 Linecard::Linecard(
-        _In_ lai_object_id_t linecardId,
+        _In_ otai_object_id_t linecardId,
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t *attrList):
+        _In_ const otai_attribute_t *attrList):
     Linecard(linecardId)
 {
     SWSS_LOG_ENTER();
@@ -42,7 +42,7 @@ void Linecard::clearNotificationsPointers()
     memset(&m_linecardNotifications, 0, sizeof(m_linecardNotifications));
 }
 
-lai_object_id_t Linecard::getLinecardId() const
+otai_object_id_t Linecard::getLinecardId() const
 {
     SWSS_LOG_ENTER();
 
@@ -51,7 +51,7 @@ lai_object_id_t Linecard::getLinecardId() const
 
 void Linecard::updateNotifications(
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t *attrList)
+        _In_ const otai_attribute_t *attrList)
 {
     SWSS_LOG_ENTER();
 
@@ -64,34 +64,34 @@ void Linecard::updateNotifications(
     {
         auto &attr = attrList[index];
 
-        auto meta = lai_metadata_get_attr_metadata(LAI_OBJECT_TYPE_LINECARD, attr.id);
+        auto meta = otai_metadata_get_attr_metadata(OTAI_OBJECT_TYPE_LINECARD, attr.id);
 
         if (meta == NULL)
             SWSS_LOG_THROW("failed to find metadata for linecard attr %d", attr.id);
 
-        if (meta->attrvaluetype != LAI_ATTR_VALUE_TYPE_POINTER)
+        if (meta->attrvaluetype != OTAI_ATTR_VALUE_TYPE_POINTER)
             continue;
 
         switch (attr.id)
         {
-            case LAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY:
+            case OTAI_LINECARD_ATTR_LINECARD_STATE_CHANGE_NOTIFY:
                 m_linecardNotifications.on_linecard_state_change =
-                    (lai_linecard_state_change_notification_fn)attr.value.ptr;
+                    (otai_linecard_state_change_notification_fn)attr.value.ptr;
                 break;
 
-            case LAI_LINECARD_ATTR_LINECARD_ALARM_NOTIFY:
+            case OTAI_LINECARD_ATTR_LINECARD_ALARM_NOTIFY:
                 m_linecardNotifications.on_linecard_alarm =
-                    (lai_linecard_alarm_notification_fn)attr.value.ptr;
+                    (otai_linecard_alarm_notification_fn)attr.value.ptr;
                 break;
 
-            case LAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY:
+            case OTAI_LINECARD_ATTR_LINECARD_OCM_SPECTRUM_POWER_NOTIFY:
                 m_linecardNotifications.on_linecard_ocm_spectrum_power =
-                    (lai_linecard_ocm_spectrum_power_notification_fn)attr.value.ptr;
+                    (otai_linecard_ocm_spectrum_power_notification_fn)attr.value.ptr;
                 break;
 
-            case LAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY:
+            case OTAI_LINECARD_ATTR_LINECARD_OTDR_RESULT_NOTIFY:
                 m_linecardNotifications.on_linecard_otdr_result =
-                    (lai_linecard_otdr_result_notification_fn)attr.value.ptr;
+                    (otai_linecard_otdr_result_notification_fn)attr.value.ptr;
                 break;
 
             default:
@@ -101,7 +101,7 @@ void Linecard::updateNotifications(
     }
 }
 
-const lai_linecard_notifications_t& Linecard::getLinecardNotifications() const
+const otai_linecard_notifications_t& Linecard::getLinecardNotifications() const
 {
     SWSS_LOG_ENTER();
 
@@ -117,7 +117,7 @@ const std::string& Linecard::getHardwareInfo() const
 
 std::string Linecard::getHardwareInfo(
         _In_ uint32_t attrCount,
-        _In_ const lai_attribute_t *attrList)
+        _In_ const otai_attribute_t *attrList)
 {
     SWSS_LOG_ENTER();
 

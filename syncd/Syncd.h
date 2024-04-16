@@ -5,8 +5,8 @@
 
 #include "CommandLineOptions.h"
 #include "FlexCounterManager.h"
-#include "VendorLai.h"
-#include "LaiLinecard.h"
+#include "VendorOtai.h"
+#include "OtaiLinecard.h"
 #include "VirtualOidTranslator.h"
 #include "RedisClient.h"
 #include "NotificationHandler.h"
@@ -19,7 +19,7 @@
 #include "NotificationProducerBase.h"
 #include "SelectableChannel.h"
 
-#include "meta/LaiAttributeList.h"
+#include "meta/OtaiAttributeList.h"
 
 #include "swss/consumertable.h"
 #include "swss/producertable.h"
@@ -45,7 +45,7 @@ namespace syncd
     public:
 
         Syncd(
-            _In_ std::shared_ptr<lairedis::LaiInterface> vendorLai,
+            _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
             _In_ std::shared_ptr<CommandLineOptions> cmd,
             _In_ bool needCheckLink);
 
@@ -71,11 +71,11 @@ namespace syncd
             _In_ swss::ConsumerTable& consumer);
 
         const char* profileGetValue(
-            _In_ lai_linecard_profile_id_t profile_id,
+            _In_ otai_linecard_profile_id_t profile_id,
             _In_ const char* variable);
 
         int profileGetNextValue(
-            _In_ lai_linecard_profile_id_t profile_id,
+            _In_ otai_linecard_profile_id_t profile_id,
             _Out_ const char** variable,
             _Out_ const char** value);
 
@@ -83,183 +83,183 @@ namespace syncd
 
     public: // shutdown actions for all linecards
 
-        lai_status_t removeAllLinecards();
+        otai_status_t removeAllLinecards();
 
     private:
 
         void loadProfileMap();
 
-        void laiLoglevelNotify(
+        void otaiLoglevelNotify(
             _In_ std::string strApi,
             _In_ std::string strLogLevel);
 
-        void setLaiApiLogLevel();
+        void setOtaiApiLogLevel();
 
     private:
 
-        lai_status_t processSingleEvent(
+        otai_status_t processSingleEvent(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processAttrCapabilityQuery(
+        otai_status_t processAttrCapabilityQuery(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processAttrEnumValuesCapabilityQuery(
+        otai_status_t processAttrEnumValuesCapabilityQuery(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processObjectTypeGetAvailabilityQuery(
+        otai_status_t processObjectTypeGetAvailabilityQuery(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processClearStatsEvent(
+        otai_status_t processClearStatsEvent(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processGetStatsEvent(
+        otai_status_t processGetStatsEvent(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processQuadEvent(
-            _In_ lai_common_api_t api,
+        otai_status_t processQuadEvent(
+            _In_ otai_common_api_t api,
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processBulkQuadEvent(
-            _In_ lai_common_api_t api,
+        otai_status_t processBulkQuadEvent(
+            _In_ otai_common_api_t api,
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        lai_status_t processBulkOid(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processBulkOid(
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& object_ids,
-            _In_ lai_common_api_t api,
-            _In_ const std::vector<std::shared_ptr<laimeta::LaiAttributeList>>& attributes,
+            _In_ otai_common_api_t api,
+            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
             _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
 
-        lai_status_t processBulkEntry(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processBulkEntry(
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& object_ids,
-            _In_ lai_common_api_t api,
-            _In_ const std::vector<std::shared_ptr<laimeta::LaiAttributeList>>& attributes,
+            _In_ otai_common_api_t api,
+            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
             _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
 
-        lai_status_t processBulkCreateEntry(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processBulkCreateEntry(
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<laimeta::LaiAttributeList>>& attributes,
-            _Out_ std::vector<lai_status_t>& statuses);
+            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
+            _Out_ std::vector<otai_status_t>& statuses);
 
-        lai_status_t processBulkRemoveEntry(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processBulkRemoveEntry(
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& objectIds,
-            _Out_ std::vector<lai_status_t>& statuses);
+            _Out_ std::vector<otai_status_t>& statuses);
 
-        lai_status_t processBulkSetEntry(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processBulkSetEntry(
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<laimeta::LaiAttributeList>>& attributes,
-            _Out_ std::vector<lai_status_t>& statuses);
+            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
+            _Out_ std::vector<otai_status_t>& statuses);
 
-        lai_status_t processOid(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processOid(
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
-            _In_ lai_common_api_t api,
+            _In_ otai_common_api_t api,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
     private: // process quad oid
 
-        lai_status_t processOidCreate(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processOidCreate(
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
-        lai_status_t processOidRemove(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processOidRemove(
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId);
 
-        lai_status_t processOidSet(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processOidSet(
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
-            _In_ lai_attribute_t* attr);
+            _In_ otai_attribute_t* attr);
 
-        lai_status_t processOidGet(
-            _In_ lai_object_type_t objectType,
+        otai_status_t processOidGet(
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
     private: // process bulk oid
 
-        lai_status_t processBulkOidCreate(
-            _In_ lai_object_type_t objectType,
-            _In_ lai_bulk_op_error_mode_t mode,
+        otai_status_t processBulkOidCreate(
+            _In_ otai_object_type_t objectType,
+            _In_ otai_bulk_op_error_mode_t mode,
             _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<laimeta::LaiAttributeList>>& attributes,
-            _Out_ std::vector<lai_status_t>& statuses);
+            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
+            _Out_ std::vector<otai_status_t>& statuses);
 
-        lai_status_t processBulkOidRemove(
-            _In_ lai_object_type_t objectType,
-            _In_ lai_bulk_op_error_mode_t mode,
+        otai_status_t processBulkOidRemove(
+            _In_ otai_object_type_t objectType,
+            _In_ otai_bulk_op_error_mode_t mode,
             _In_ const std::vector<std::string>& objectIds,
-            _Out_ std::vector<lai_status_t>& statuses);
+            _Out_ std::vector<otai_status_t>& statuses);
 
     private:
 
         void syncUpdateRedisQuadEvent(
-            _In_ lai_status_t status,
-            _In_ lai_common_api_t api,
+            _In_ otai_status_t status,
+            _In_ otai_common_api_t api,
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
         void syncUpdateRedisBulkQuadEvent(
-            _In_ lai_common_api_t api,
-            _In_ const std::vector<lai_status_t>& statuses,
-            _In_ lai_object_type_t objectType,
+            _In_ otai_common_api_t api,
+            _In_ const std::vector<otai_status_t>& statuses,
+            _In_ otai_object_type_t objectType,
             _In_ const std::vector<std::string>& objectIds,
             _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
 
     public: // TODO to private
 
-        lai_status_t processEntry(
-            _In_ lai_object_meta_key_t meta_key,
-            _In_ lai_common_api_t api,
+        otai_status_t processEntry(
+            _In_ otai_object_meta_key_t meta_key,
+            _In_ otai_common_api_t api,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
         void syncProcessNotification(
             _In_ const swss::KeyOpFieldsValuesTuple& item);
 
         void handleLinecardStateChange(
-            _In_ const lai_oper_status_t& linecard_oper_status);
+            _In_ const otai_oper_status_t& linecard_oper_status);
 
     private:
 
         syncd_restart_type_t handleRestartQuery(
             _In_ swss::NotificationConsumer& restartQuery);
 
-        lai_oper_status_t handleLinecardState(
+        otai_oper_status_t handleLinecardState(
             _In_ swss::NotificationConsumer& linecardState);
 
-        void preprocessOidOps(lai_object_type_t objectType, lai_attribute_t* attr_list, uint32_t attr_count);
+        void preprocessOidOps(otai_object_type_t objectType, otai_attribute_t* attr_list, uint32_t attr_count);
 
     private:
 
         /**
          * @brief Send api response.
          *
-         * This function should be use to send response to lairedis for
+         * This function should be use to send response to otairedis for
          * create/remove/set API as well as their corresponding bulk versions.
          *
          * Should not be used on GET api.
          */
         void sendApiResponse(
-            _In_ lai_common_api_t api,
-            _In_ lai_status_t status,
+            _In_ otai_common_api_t api,
+            _In_ otai_status_t status,
             _In_ uint32_t object_count = 0,
-            _In_ lai_status_t* object_statuses = NULL);
+            _In_ otai_status_t* object_statuses = NULL);
 
         void sendGetResponse(
-            _In_ lai_object_type_t objectType,
+            _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
-            _In_ lai_object_id_t linecardVid,
-            _In_ lai_status_t status,
+            _In_ otai_object_id_t linecardVid,
+            _In_ otai_status_t status,
             _In_ uint32_t attr_count,
-            _In_ lai_attribute_t* attr_list);
+            _In_ otai_attribute_t* attr_list);
 
     private:
 
@@ -272,7 +272,7 @@ namespace syncd
 
         ServiceMethodTable m_smt;
 
-        lai_service_method_table_t m_test_services;
+        otai_service_method_table_t m_test_services;
 
     public: // TODO to private
 
@@ -287,15 +287,15 @@ namespace syncd
          *
          * Object ids here a VIDs.
          */
-        std::set<lai_object_id_t> m_initViewRemovedVidSet;
+        std::set<otai_object_id_t> m_initViewRemovedVidSet;
 
-        std::shared_ptr<lairedis::LaiInterface> m_vendorLai;
+        std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
         /*
          * TODO: Those are hard coded values for mlnx integration for v1.0.1 they need
          * to be updated.
          *
-         * Also DEVICE_MAC_ADDRESS is not present in lailinecard.h
+         * Also DEVICE_MAC_ADDRESS is not present in otailinecard.h
          */
         std::map<std::string, std::string> m_profileMap;
 
@@ -316,7 +316,7 @@ namespace syncd
          *
          * Key is linecard VID.
          */
-        std::map<lai_object_id_t, std::shared_ptr<syncd::LaiLinecard>> m_linecards;
+        std::map<otai_object_id_t, std::shared_ptr<syncd::OtaiLinecard>> m_linecards;
 
         std::shared_ptr<VirtualOidTranslator> m_translator;
 
@@ -369,17 +369,17 @@ namespace syncd
 
         std::shared_ptr<NotificationProducerBase> m_notifications;
 
-        std::shared_ptr<lairedis::LinecardConfigContainer> m_linecardConfigContainer;
-        std::shared_ptr<lairedis::RedisVidIndexGenerator> m_redisVidIndexGenerator;
-        std::shared_ptr<lairedis::VirtualObjectIdManager> m_virtualObjectIdManager;
+        std::shared_ptr<otairedis::LinecardConfigContainer> m_linecardConfigContainer;
+        std::shared_ptr<otairedis::RedisVidIndexGenerator> m_redisVidIndexGenerator;
+        std::shared_ptr<otairedis::VirtualObjectIdManager> m_virtualObjectIdManager;
 
-        std::shared_ptr<lairedis::ContextConfig> m_contextConfig;
+        std::shared_ptr<otairedis::ContextConfig> m_contextConfig;
 
         std::shared_ptr<swss::DBConnector> m_state_db;
         std::unique_ptr<swss::Table> m_linecardtable;
 
         std::mutex m_mtxAlarmTable;
         std::unique_ptr<swss::Table> m_curalarmtable;
-        lai_oper_status_t m_linecardState;
+        otai_oper_status_t m_linecardState;
     };
 }
