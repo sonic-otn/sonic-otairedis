@@ -8,7 +8,6 @@
 #include "ContextConfigContainer.h"
 #include "RedisNotificationProducer.h"
 #include "RedisSelectableChannel.h"
-#include "PerformanceIntervalTimer.h"
 
 #include "otairediscommon.h"
 
@@ -18,7 +17,8 @@
 #include "swss/notificationproducer.h"
 
 #include "meta/otai_serialize.h"
-#include "Common.h"
+#include "meta/PerformanceIntervalTimer.h"
+
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -181,189 +181,7 @@ otai_status_t Syncd::processSingleEvent(
     if (op == REDIS_ASIC_STATE_COMMAND_GET)
         return processQuadEvent(OTAI_COMMON_API_GET, kco);
 
-    if (op == REDIS_ASIC_STATE_COMMAND_ATTR_CAPABILITY_QUERY)
-        return processAttrCapabilityQuery(kco);
-
-    if (op == REDIS_ASIC_STATE_COMMAND_ATTR_ENUM_VALUES_CAPABILITY_QUERY)
-        return processAttrEnumValuesCapabilityQuery(kco);
-
-    if (op == REDIS_ASIC_STATE_COMMAND_OBJECT_TYPE_GET_AVAILABILITY_QUERY)
-        return processObjectTypeGetAvailabilityQuery(kco);
-
     SWSS_LOG_THROW("event op '%s' is not implemented, FIXME", op.c_str());
-}
-
-otai_status_t Syncd::processAttrCapabilityQuery(
-    _In_ const swss::KeyOpFieldsValuesTuple& kco)
-{
-    SWSS_LOG_ENTER();
-
-    auto& strLinecardVid = kfvKey(kco);
-
-    otai_object_id_t linecardVid;
-    otai_deserialize_object_id(strLinecardVid, linecardVid);
-
-    otai_object_id_t linecardRid = m_translator->translateVidToRid(linecardVid);
-
-    auto& values = kfvFieldsValues(kco);
-
-    if (values.size() != 2)
-    {
-        SWSS_LOG_ERROR("Invalid input: expected 2 arguments, received %zu", values.size());
-
-        m_selectableChannel->set(otai_serialize_status(OTAI_STATUS_INVALID_PARAMETER), {}, REDIS_ASIC_STATE_COMMAND_ATTR_CAPABILITY_RESPONSE);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    otai_object_type_t objectType;
-    otai_deserialize_object_type(fvValue(values[0]), objectType);
-
-    otai_attr_id_t attrId;
-    otai_deserialize_attr_id(fvValue(values[1]), attrId);
-
-    otai_attr_capability_t capability;
-
-    otai_status_t status = m_vendorOtai->queryAttributeCapability(linecardRid, objectType, attrId, &capability);
-
-    std::vector<swss::FieldValueTuple> entry;
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        entry =
-        {
-            swss::FieldValueTuple("CREATE_IMPLEMENTED", (capability.create_implemented ? "true" : "false")),
-            swss::FieldValueTuple("SET_IMPLEMENTED",    (capability.set_implemented ? "true" : "false")),
-            swss::FieldValueTuple("GET_IMPLEMENTED",    (capability.get_implemented ? "true" : "false"))
-        };
-
-        SWSS_LOG_INFO("Sending response: create_implemented:%d, set_implemented:%d, get_implemented:%d",
-            capability.create_implemented, capability.set_implemented, capability.get_implemented);
-    }
-
-    m_selectableChannel->set(otai_serialize_status(status), entry, REDIS_ASIC_STATE_COMMAND_ATTR_CAPABILITY_RESPONSE);
-
-    return status;
-}
-
-otai_status_t Syncd::processAttrEnumValuesCapabilityQuery(
-    _In_ const swss::KeyOpFieldsValuesTuple& kco)
-{
-    SWSS_LOG_ENTER();
-
-    auto& strLinecardVid = kfvKey(kco);
-
-    otai_object_id_t linecardVid;
-    otai_deserialize_object_id(strLinecardVid, linecardVid);
-
-    otai_object_id_t linecardRid = m_translator->translateVidToRid(linecardVid);
-
-    auto& values = kfvFieldsValues(kco);
-
-    if (values.size() != 3)
-    {
-        SWSS_LOG_ERROR("Invalid input: expected 3 arguments, received %zu", values.size());
-
-        m_selectableChannel->set(otai_serialize_status(OTAI_STATUS_INVALID_PARAMETER), {}, REDIS_ASIC_STATE_COMMAND_ATTR_ENUM_VALUES_CAPABILITY_RESPONSE);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    otai_object_type_t objectType;
-    otai_deserialize_object_type(fvValue(values[0]), objectType);
-
-    otai_attr_id_t attrId;
-    otai_deserialize_attr_id(fvValue(values[1]), attrId);
-
-    uint32_t list_size = std::stoi(fvValue(values[2]));
-
-    std::vector<int32_t> enum_capabilities_list(list_size);
-
-    otai_s32_list_t enumCapList;
-
-    enumCapList.count = list_size;
-    enumCapList.list = enum_capabilities_list.data();
-
-    otai_status_t status = m_vendorOtai->queryAattributeEnumValuesCapability(linecardRid, objectType, attrId, &enumCapList);
-
-    std::vector<swss::FieldValueTuple> entry;
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        std::vector<std::string> vec;
-        std::transform(enumCapList.list, enumCapList.list + enumCapList.count,
-            std::back_inserter(vec), [](int32_t& e) { return std::to_string(e); });
-
-        std::ostringstream join;
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<std::string>(join, ","));
-
-        auto strCap = join.str();
-
-        entry =
-        {
-            swss::FieldValueTuple("ENUM_CAPABILITIES", strCap),
-            swss::FieldValueTuple("ENUM_COUNT", std::to_string(enumCapList.count))
-        };
-
-        SWSS_LOG_DEBUG("Sending response: capabilities = '%s', count = %d", strCap.c_str(), enumCapList.count);
-    }
-
-    m_selectableChannel->set(otai_serialize_status(status), entry, REDIS_ASIC_STATE_COMMAND_ATTR_ENUM_VALUES_CAPABILITY_RESPONSE);
-
-    return status;
-}
-
-otai_status_t Syncd::processObjectTypeGetAvailabilityQuery(
-    _In_ const swss::KeyOpFieldsValuesTuple& kco)
-{
-    SWSS_LOG_ENTER();
-
-    auto& strLinecardVid = kfvKey(kco);
-
-    otai_object_id_t linecardVid;
-    otai_deserialize_object_id(strLinecardVid, linecardVid);
-
-    const otai_object_id_t linecardRid = m_translator->translateVidToRid(linecardVid);
-
-    std::vector<swss::FieldValueTuple> values = kfvFieldsValues(kco);
-
-    // Syncd needs to pop the object type off the end of the list in order to
-    // retrieve the attribute list
-
-    otai_object_type_t objectType;
-    otai_deserialize_object_type(fvValue(values.back()), objectType);
-
-    values.pop_back();
-
-    OtaiAttributeList list(objectType, values, false);
-
-    otai_attribute_t* attr_list = list.get_attr_list();
-
-    uint32_t attr_count = list.get_attr_count();
-
-    m_translator->translateVidToRid(objectType, attr_count, attr_list);
-
-    uint64_t count;
-
-    otai_status_t status = m_vendorOtai->objectTypeGetAvailability(
-        linecardRid,
-        objectType,
-        attr_count,
-        attr_list,
-        &count);
-
-    std::vector<swss::FieldValueTuple> entry;
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        entry.push_back(swss::FieldValueTuple("OBJECT_COUNT", std::to_string(count)));
-
-        SWSS_LOG_DEBUG("Sending response: count = %" PRIu64, count);
-    }
-
-    m_selectableChannel->set(otai_serialize_status(status), entry, REDIS_ASIC_STATE_COMMAND_OBJECT_TYPE_GET_AVAILABILITY_RESPONSE);
-
-    return status;
 }
 
 otai_status_t Syncd::processEntry(
@@ -919,37 +737,6 @@ otai_status_t Syncd::processOidRemove(
              */
 
             SWSS_LOG_THROW("remove linecard is not implemented, FIXME");
-        }
-        else
-        {
-            /*
-             * Removing some object succeeded. Let's check if that
-             * object was default created object, eg. vlan member.
-             * Then we need to update default created object map in
-             * OtaiLinecard to be in sync, and be prepared for apply
-             * view to transfer those synced default created
-             * objects to temporary view when it will be created,
-             * since that will be out basic linecard state.
-             *
-             * TODO: there can be some issues with reference count
-             * like for schedulers on scheduler groups since they
-             * should have internal references, and we still need
-             * to create dependency tree from otaiDiscovery and
-             * update those references to track them, this is
-             * printed in metadata sanitycheck as "default value
-             * needs to be stored".
-             *
-             * TODO lets add OTAI metadata flag for that this will
-             * also needs to be of internal/vendor default but we
-             * can already deduce that.
-             */
-
-            otai_object_id_t linecardVid = VidManager::linecardIdQuery(objectVid);
-
-            if (m_linecards.at(linecardVid)->isDiscoveredRid(rid))
-            {
-                m_linecards.at(linecardVid)->removeExistingObjectReference(rid);
-            }
         }
     }
 

@@ -1,6 +1,5 @@
 #include "FlexCounterReiniter.h"
 #include "VidManager.h"
-#include "CommandLineOptions.h"
 #include "NotificationHandler.h"
 #include "RedisClient.h"
 

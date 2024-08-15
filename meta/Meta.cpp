@@ -41,8 +41,6 @@ Meta::Meta(
 {
     SWSS_LOG_ENTER();
 
-    m_unittestsEnabled = false;
-
     // TODO if metadata supports multiple linecards
     // then warm boot must be per each linecard
 
@@ -89,10 +87,6 @@ void Meta::meta_init_db()
     m_oids.clear();
     m_otaiObjectCollection.clear();
     m_attrKeys.clear();
-    m_portRelatedSet.clear();
-
-    // m_meta_unittests_set_readonly_set.clear();
-    // m_unittestsEnabled = false
 
     m_warmBoot = false;
 
@@ -103,8 +97,7 @@ bool Meta::isEmpty()
 {
     SWSS_LOG_ENTER();
 
-    return m_portRelatedSet.getAllPorts().empty()
-        && m_oids.getAllOids().empty()
+    return m_oids.getAllOids().empty()
         && m_attrKeys.getAllKeys().empty()
         && m_otaiObjectCollection.getAllKeys().empty();
 }
@@ -320,178 +313,6 @@ otai_status_t Meta::get(
     if (!m_otaiObjectCollection.objectExists(_key)) {                                        \
         SWSS_LOG_ERROR("object %s don't exists", otai_serialize_object_id(oid).c_str()); } }
 
-otai_status_t Meta::objectTypeGetAvailability(
-        _In_ otai_object_id_t linecardId,
-        _In_ otai_object_type_t objectType,
-        _In_ uint32_t attrCount,
-        _In_ const otai_attribute_t *attrList,
-        _Out_ uint64_t *count)
-{
-    SWSS_LOG_ENTER();
-
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
-    PARAMETER_CHECK_POSITIVE(attrCount);
-    PARAMETER_CHECK_IF_NOT_NULL(attrList);
-    PARAMETER_CHECK_IF_NOT_NULL(count);
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    PARAMETER_CHECK_IF_NOT_NULL(info);
-
-    std::set<otai_attr_id_t> attrs;
-
-    for (uint32_t idx = 0; idx < attrCount; idx++)
-    {
-        auto id = attrList[idx].id;
-
-        auto mdp = otai_metadata_get_attr_metadata(objectType, id);
-
-        if (mdp == nullptr)
-        {
-            SWSS_LOG_ERROR("can't find attribute %s:%d",
-                    info->objecttypename,
-                    attrList[idx].id);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        if (attrs.find(id) != attrs.end())
-        {
-            SWSS_LOG_ERROR("attr %s already defined on list", mdp->attridname);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        attrs.insert(id);
-
-        if (!mdp->isresourcetype)
-        {
-            SWSS_LOG_ERROR("attr %s is not resource type", mdp->attridname);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        switch (mdp->attrvaluetype)
-        {
-            case OTAI_ATTR_VALUE_TYPE_INT32:
-
-                if (mdp->isenum && !otai_metadata_is_allowed_enum_value(mdp, attrList[idx].value.s32))
-                {
-                    SWSS_LOG_ERROR("%s is enum, but value %d not found on allowed values list",
-                            mdp->attridname,
-                            attrList[idx].value.s32);
-
-                    return OTAI_STATUS_INVALID_PARAMETER;
-                }
-
-                break;
-
-            default:
-
-                SWSS_LOG_THROW("value type %s not supported yet, FIXME!",
-                        otai_serialize_attr_value_type(mdp->attrvaluetype).c_str());
-        }
-    }
-
-    auto status = m_implementation->objectTypeGetAvailability(linecardId, objectType, attrCount, attrList, count);
-
-    // no post validation required
-
-    return status;
-}
-
-otai_status_t Meta::queryAttributeCapability(
-        _In_ otai_object_id_t linecardId,
-        _In_ otai_object_type_t objectType,
-        _In_ otai_attr_id_t attrId,
-        _Out_ otai_attr_capability_t *capability)
-{
-    SWSS_LOG_ENTER();
-
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
-
-    auto mdp = otai_metadata_get_attr_metadata(objectType, attrId);
-
-    if (!mdp)
-    {
-        SWSS_LOG_ERROR("unable to find attribute: %s:%d",
-                otai_serialize_object_type(objectType).c_str(),
-                attrId);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    PARAMETER_CHECK_IF_NOT_NULL(capability);
-
-    auto status = m_implementation->queryAttributeCapability(linecardId, objectType, attrId, capability);
-
-    return status;
-}
-
-otai_status_t Meta::queryAattributeEnumValuesCapability(
-        _In_ otai_object_id_t linecardId,
-        _In_ otai_object_type_t objectType,
-        _In_ otai_attr_id_t attrId,
-        _Inout_ otai_s32_list_t *enumValuesCapability)
-{
-    SWSS_LOG_ENTER();
-
-    PARAMETER_CHECK_OID_OBJECT_TYPE(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OID_EXISTS(linecardId, OTAI_OBJECT_TYPE_LINECARD);
-    PARAMETER_CHECK_OBJECT_TYPE_VALID(objectType);
-
-    auto mdp = otai_metadata_get_attr_metadata(objectType, attrId);
-
-    if (!mdp)
-    {
-        SWSS_LOG_ERROR("unable to find attribute: %s:%d",
-                otai_serialize_object_type(objectType).c_str(),
-                attrId);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    if (!mdp->isenum && !mdp->isenumlist)
-    {
-        SWSS_LOG_ERROR("%s is not enum/enum list", mdp->attridname);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    PARAMETER_CHECK_IF_NOT_NULL(enumValuesCapability);
-
-    if (meta_genetic_validation_list(*mdp, enumValuesCapability->count, enumValuesCapability->list)
-            != OTAI_STATUS_SUCCESS)
-    {
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    auto status = m_implementation->queryAattributeEnumValuesCapability(linecardId, objectType, attrId, enumValuesCapability);
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        if (enumValuesCapability->list)
-        {
-            // check if all returned values are members of defined enum
-            for (uint32_t idx = 0; idx < enumValuesCapability->count; idx++)
-            {
-                int val = enumValuesCapability->list[idx];
-
-                if (!otai_metadata_is_allowed_enum_value(mdp, val))
-                {
-                    SWSS_LOG_ERROR("returned value %d is not allowed on %s", val, mdp->attridname);
-                }
-            }
-        }
-    }
-
-    return status;
-}
-
 #define META_COUNTERS_COUNT_MSB (0x80000000)
 
 otai_status_t Meta::meta_validate_stats(
@@ -503,16 +324,6 @@ otai_status_t Meta::meta_validate_stats(
         _In_ otai_stats_mode_t mode)
 {
     SWSS_LOG_ENTER();
-
-    /*
-     * If last bit of counters count is set to high, and unittests are enabled,
-     * then this api can be used to SET counter values by user for debugging purposes.
-     */
-
-    if (m_unittestsEnabled)
-    {
-        number_of_counters &= ~(META_COUNTERS_COUNT_MSB);
-    }
 
     PARAMETER_CHECK_OBJECT_TYPE_VALID(object_type);
     PARAMETER_CHECK_OID_OBJECT_TYPE(object_id, object_type);
@@ -665,16 +476,6 @@ void Meta::clean_after_linecard_remove(
                 otai_serialize_object_id(linecardId).c_str());
     }
 
-    // clear port related objects
-
-    for (auto port: m_portRelatedSet.getAllPorts())
-    {
-        if (linecardIdQuery(port) == linecardId)
-        {
-            m_portRelatedSet.removePort(port);
-        }
-    }
-
     // clear oid references
 
     for (auto oid: m_oids.getAllOids())
@@ -796,137 +597,6 @@ otai_status_t Meta::meta_generic_validation_remove(
     // should be safe to remove
 
     return OTAI_STATUS_SUCCESS;
-}
-
-otai_status_t Meta::meta_port_remove_validation(
-        _In_ const otai_object_meta_key_t& meta_key)
-{
-    SWSS_LOG_ENTER();
-
-    otai_object_id_t port_id = meta_key.objectkey.key.object_id;
-
-    auto relatedObjects = m_portRelatedSet.getPortRelatedObjects(port_id);
-
-    if (relatedObjects.size() == 0)
-    {
-        // user didn't query any queues, ipgs or scheduler groups
-        // for this port, then we can just skip this
-        return OTAI_STATUS_SUCCESS;
-    }
-
-    if (!meta_is_object_in_default_state(port_id))
-    {
-        SWSS_LOG_ERROR("port %s is not in default state, can't remove",
-                otai_serialize_object_id(port_id).c_str());
-
-        return OTAI_STATUS_OBJECT_IN_USE;
-    }
-
-    for (auto oid: relatedObjects)
-    {
-        if (m_oids.getObjectReferenceCount(oid) != 0)
-        {
-            SWSS_LOG_ERROR("port %s related object %s reference count is not zero, can't remove",
-                    otai_serialize_object_id(port_id).c_str(),
-                    otai_serialize_object_id(oid).c_str());
-
-            return OTAI_STATUS_OBJECT_IN_USE;
-        }
-
-        if (!meta_is_object_in_default_state(oid))
-        {
-            SWSS_LOG_ERROR("port related object %s is not in default state, can't remove",
-                    otai_serialize_object_id(oid).c_str());
-
-            return OTAI_STATUS_OBJECT_IN_USE;
-        }
-    }
-
-    SWSS_LOG_NOTICE("all objects related to port %s are in default state, can be remove",
-                otai_serialize_object_id(port_id).c_str());
-
-    return OTAI_STATUS_SUCCESS;
-}
-
-bool Meta::meta_is_object_in_default_state(
-        _In_ otai_object_id_t oid)
-{
-    SWSS_LOG_ENTER();
-
-    if (oid == OTAI_NULL_OBJECT_ID)
-        SWSS_LOG_THROW("not expected NULL object id");
-
-    if (!m_oids.objectReferenceExists(oid))
-    {
-        SWSS_LOG_WARN("object %s reference not exists, bug!",
-                otai_serialize_object_id(oid).c_str());
-        return false;
-    }
-
-    otai_object_meta_key_t meta_key;
-
-    meta_key.objecttype = objectTypeQuery(oid);
-    meta_key.objectkey.key.object_id = oid;
-
-    if (!m_otaiObjectCollection.objectExists(meta_key))
-    {
-        SWSS_LOG_WARN("object %s don't exists in local database, bug!",
-                otai_serialize_object_id(oid).c_str());
-        return false;
-    }
-
-    auto attrs = m_otaiObjectCollection.getObject(meta_key)->getAttributes();
-
-    for (const auto& attr: attrs)
-    {
-        auto &md = *attr->getOtaiAttrMetadata();
-
-        auto *a = attr->getOtaiAttr();
-
-        if (md.isreadonly)
-            continue;
-
-        if (!md.isoidattribute)
-            continue;
-
-        if (md.attrvaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-        {
-            if (a->value.oid != OTAI_NULL_OBJECT_ID)
-            {
-                SWSS_LOG_ERROR("object %s has non default state on %s: %s, expected NULL",
-                        otai_serialize_object_id(oid).c_str(),
-                        md.attridname,
-                        otai_serialize_object_id(a->value.oid).c_str());
-
-                return false;
-            }
-        }
-        else if (md.attrvaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_LIST)
-        {
-            for (uint32_t i = 0; i < a->value.objlist.count; i++)
-            {
-                if (a->value.objlist.list[i] != OTAI_NULL_OBJECT_ID)
-                {
-                    SWSS_LOG_ERROR("object %s has non default state on %s[%u]: %s, expected NULL",
-                            otai_serialize_object_id(oid).c_str(),
-                            md.attridname,
-                            i,
-                            otai_serialize_object_id(a->value.objlist.list[i]).c_str());
-
-                    return false;
-                }
-            }
-        }
-        else
-        {
-            // unable to check whether object is in default state, need fix
-
-            SWSS_LOG_ERROR("unsupported oid attribute: %s, FIX ME!", md.attridname);
-            return false;
-        }
-    }
-
-    return true;
 }
 
 otai_status_t Meta::meta_otai_validate_oid(
@@ -1601,16 +1271,9 @@ otai_status_t Meta::meta_generic_validation_set(
 
     if (OTAI_HAS_FLAG_READ_ONLY(md.flags))
     {
-        if (meta_unittests_get_and_erase_set_readonly_flag(md))
-        {
-            META_LOG_NOTICE(md, "readonly attribute is allowed to be set (unittests enabled)");
-        }
-        else
-        {
-            META_LOG_ERROR(md, "attr is read only and cannot be modified");
+        META_LOG_ERROR(md, "attr is read only and cannot be modified");
 
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     if (OTAI_HAS_FLAG_CREATE_ONLY(md.flags))
@@ -2532,23 +2195,6 @@ std::vector<const otai_attr_metadata_t*> Meta::get_attributes_metadata(
     return attrs;
 }
 
-void Meta::meta_add_port_to_related_map(
-        _In_ otai_object_id_t port_id,
-        _In_ const otai_object_list_t& list)
-{
-    SWSS_LOG_ENTER();
-
-    for (uint32_t i = 0; i < list.count; i++)
-    {
-        otai_object_id_t rel = list.list[i];
-
-        if (rel == OTAI_NULL_OBJECT_ID)
-            SWSS_LOG_THROW("not expected NULL oid on the list");
-
-        m_portRelatedSet.insert(port_id, rel);
-    }
-}
-
 void Meta::meta_generic_validation_post_get_objlist(
         _In_ const otai_object_meta_key_t& meta_key,
         _In_ const otai_attr_metadata_t& md,
@@ -2967,81 +2613,6 @@ void Meta::meta_generic_validation_post_set(
     // save actual attributes and values to local db
 
     m_otaiObjectCollection.setObjectAttr(meta_key, md, attr);
-}
-
-bool Meta::meta_unittests_get_and_erase_set_readonly_flag(
-        _In_ const otai_attr_metadata_t& md)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_unittestsEnabled)
-    {
-        // explicitly to not produce false alarms
-        SWSS_LOG_NOTICE("unittests are not enabled");
-        return false;
-    }
-
-    const auto &it = m_meta_unittests_set_readonly_set.find(md.attridname);
-
-    if (it == m_meta_unittests_set_readonly_set.end())
-    {
-        SWSS_LOG_ERROR("%s is not present in readonly set", md.attridname);
-        return false;
-    }
-
-    SWSS_LOG_INFO("%s is present in readonly set, erasing", md.attridname);
-
-    m_meta_unittests_set_readonly_set.erase(it);
-
-    return true;
-}
-
-void Meta::meta_unittests_enable(
-        _In_ bool enable)
-{
-    SWSS_LOG_ENTER();
-
-    m_unittestsEnabled = enable;
-}
-
-bool Meta::meta_unittests_enabled()
-{
-    SWSS_LOG_ENTER();
-
-    return m_unittestsEnabled;
-}
-
-otai_status_t Meta::meta_unittests_allow_readonly_set_once(
-        _In_ otai_object_type_t object_type,
-        _In_ int32_t attr_id)
-{
-    SWSS_LOG_ENTER();
-
-    if (!m_unittestsEnabled)
-    {
-        SWSS_LOG_NOTICE("unittests are not enabled");
-        return OTAI_STATUS_FAILURE;
-    }
-
-    auto *md = otai_metadata_get_attr_metadata(object_type, attr_id);
-
-    if (md == NULL)
-    {
-        SWSS_LOG_ERROR("failed to get metadata for object type %d and attr id %d", object_type, attr_id);
-        return OTAI_STATUS_FAILURE;
-    }
-
-    if (!OTAI_HAS_FLAG_READ_ONLY(md->flags))
-    {
-        SWSS_LOG_ERROR("attribute %s is not marked as READ_ONLY", md->attridname);
-        return OTAI_STATUS_FAILURE;
-    }
-
-    m_meta_unittests_set_readonly_set.insert(md->attridname);
-
-    SWSS_LOG_INFO("enabling SET for readonly attribute: %s", md->attridname);
-
-    return OTAI_STATUS_SUCCESS;
 }
 
 void Meta::meta_otai_on_linecard_state_change(

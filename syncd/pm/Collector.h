@@ -7,7 +7,7 @@
 #include "swss/dbconnector.h"
 #include "swss/table.h"
 #include "swss/logger.h"
-#include "OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 namespace syncd
 {

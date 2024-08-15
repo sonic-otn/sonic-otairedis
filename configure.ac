@@ -52,18 +52,6 @@ AM_COND_IF([SYNCD], [
         AM_COND_IF([OTAIVS], [], [AC_CHECK_LIB([otai], [main], [AC_MSG_NOTICE(libotai found)], [AC_MSG_ERROR(libotai is required for syncd)])
 ])])
 
-AC_ARG_ENABLE(rpcserver,
-[  --enable-rpcserver      compile with thrift rpcserver included],
-[case "${enableval}" in
-   yes) rpcserver=true ;;
-   no)  rpcserver=false ;;
-   *) AC_MSG_ERROR(bad value ${enableval} for --enable-rpcserver) ;;
-esac],[rpcserver=false])
-AM_CONDITIONAL(OTAITHRIFT, test x$rpcserver = xtrue)
-AM_COND_IF([OTAITHRIFT], [
-        AC_CHECK_LIB([thrift], [main], [AC_MSG_NOTICE(libthrift found)], [AC_MSG_ERROR(libthrift is required for rpcserver)])
-])
-
 AC_ARG_ENABLE(redis-test,
 [  --enable-redis-test     test with redis service],
 [case "${enableval}" in
@@ -73,60 +61,65 @@ AC_ARG_ENABLE(redis-test,
 esac],[rtest=false])
 AM_CONDITIONAL(RTEST, test x$rtest = xtrue)
 
-AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+if test x$CONFIGURED_ARCH = xarmhf && test x$CROSS_BUILD_ENVIRON = xy; then
+	AM_CONDITIONAL(ARCH64, false)
+else
+	AM_CONDITIONAL(ARCH64, test `getconf LONG_BIT` = "64")
+fi
 
 AC_PATH_PROGS(SWIG, [swig3.0 swig])
 
-CFLAGS_COMMON=""
-CFLAGS_COMMON+=" -ansi"
-CFLAGS_COMMON+=" -fPIC"
-CFLAGS_COMMON+=" -std=c++11"
-CFLAGS_COMMON+=" -Wall"
-CFLAGS_COMMON+=" -Wcast-align"
-#CFLAGS_COMMON+=" -Wcast-qual"
-#CFLAGS_COMMON+=" -Wconversion"
-CFLAGS_COMMON+=" -Wdisabled-optimization"
-CFLAGS_COMMON+=" -Werror"
-CFLAGS_COMMON+=" -Wextra"
-CFLAGS_COMMON+=" -Wfloat-equal"
-CFLAGS_COMMON+=" -Wformat=2"
-CFLAGS_COMMON+=" -Wformat-nonliteral"
-CFLAGS_COMMON+=" -Wformat-security"
-CFLAGS_COMMON+=" -Wformat-y2k"
-CFLAGS_COMMON+=" -Wimport"
-CFLAGS_COMMON+=" -Winit-self"
-CFLAGS_COMMON+=" -Wno-inline"
-CFLAGS_COMMON+=" -Winvalid-pch"
-CFLAGS_COMMON+=" -Wmissing-field-initializers"
-CFLAGS_COMMON+=" -Wmissing-format-attribute"
-CFLAGS_COMMON+=" -Wmissing-include-dirs"
-CFLAGS_COMMON+=" -Wmissing-noreturn"
-CFLAGS_COMMON+=" -Wno-aggregate-return"
-CFLAGS_COMMON+=" -Wno-padded"
-CFLAGS_COMMON+=" -Wno-switch-enum"
-CFLAGS_COMMON+=" -Wno-unused-parameter"
-CFLAGS_COMMON+=" -Wpacked"
-CFLAGS_COMMON+=" -Wpointer-arith"
-CFLAGS_COMMON+=" -Wredundant-decls"
-CFLAGS_COMMON+=" -Wshadow"
-CFLAGS_COMMON+=" -Wstack-protector"
-CFLAGS_COMMON+=" -Wstrict-aliasing=3"
-CFLAGS_COMMON+=" -Wswitch"
-CFLAGS_COMMON+=" -Wswitch-default"
-CFLAGS_COMMON+=" -Wunreachable-code"
-CFLAGS_COMMON+=" -Wunused"
-CFLAGS_COMMON+=" -Wvariadic-macros"
-CFLAGS_COMMON+=" -Wwrite-strings"
-CFLAGS_COMMON+=" -Wno-switch-default"
-#CFLAGS_COMMON+=" -Wconversion"
-CFLAGS_COMMON+=" -Wno-psabi"
+CXXFLAGS_COMMON=""
+CXXFLAGS_COMMON+=" -ansi"
+CXXFLAGS_COMMON+=" -fPIC"
+CXXFLAGS_COMMON+=" -pipe"
+CXXFLAGS_COMMON+=" -std=c++14"
+CXXFLAGS_COMMON+=" -Wall"
+CXXFLAGS_COMMON+=" -Wcast-align"
+CXXFLAGS_COMMON+=" -Wcast-qual"
+CXXFLAGS_COMMON+=" -Wconversion"
+CXXFLAGS_COMMON+=" -Wdisabled-optimization"
+CXXFLAGS_COMMON+=" -Werror"
+CXXFLAGS_COMMON+=" -Wextra"
+CXXFLAGS_COMMON+=" -Wfloat-equal"
+CXXFLAGS_COMMON+=" -Wformat=2"
+CXXFLAGS_COMMON+=" -Wformat-nonliteral"
+CXXFLAGS_COMMON+=" -Wformat-security"
+CXXFLAGS_COMMON+=" -Wformat-y2k"
+CXXFLAGS_COMMON+=" -Wimport"
+CXXFLAGS_COMMON+=" -Winit-self"
+CXXFLAGS_COMMON+=" -Wno-inline"
+CXXFLAGS_COMMON+=" -Winvalid-pch"
+CXXFLAGS_COMMON+=" -Wmissing-field-initializers"
+CXXFLAGS_COMMON+=" -Wmissing-format-attribute"
+CXXFLAGS_COMMON+=" -Wmissing-include-dirs"
+CXXFLAGS_COMMON+=" -Wmissing-noreturn"
+CXXFLAGS_COMMON+=" -Wno-aggregate-return"
+CXXFLAGS_COMMON+=" -Wno-padded"
+CXXFLAGS_COMMON+=" -Wno-switch-enum"
+CXXFLAGS_COMMON+=" -Wno-unused-parameter"
+CXXFLAGS_COMMON+=" -Wpacked"
+CXXFLAGS_COMMON+=" -Wpointer-arith"
+CXXFLAGS_COMMON+=" -Wredundant-decls"
+CXXFLAGS_COMMON+=" -Wshadow"
+CXXFLAGS_COMMON+=" -Wstack-protector"
+CXXFLAGS_COMMON+=" -Wstrict-aliasing=3"
+CXXFLAGS_COMMON+=" -Wswitch"
+CXXFLAGS_COMMON+=" -Wswitch-default"
+CXXFLAGS_COMMON+=" -Wunreachable-code"
+CXXFLAGS_COMMON+=" -Wunused"
+CXXFLAGS_COMMON+=" -Wvariadic-macros"
+CXXFLAGS_COMMON+=" -Wwrite-strings"
+CXXFLAGS_COMMON+=" -Wno-switch-default"
+CXXFLAGS_COMMON+=" -Wconversion"
+CXXFLAGS_COMMON+=" -Wno-psabi"
 
 SAVED_FLAGS="$CXXFLAGS"
 CXXFLAGS="-Wcast-align=strict"
 AC_MSG_CHECKING([whether CXX supports -Wcast-align=strict])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([yes])]
-    [AC_SUBST([CFLAGS_COMMON], ["${CFLAGS_COMMON} -Wcast-align=strict"])],
+    [AC_SUBST([CXXFLAGS_COMMON], ["${CXXFLAGS_COMMON} -Wcast-align=strict"])],
     [AC_MSG_RESULT([no])])
 CXXFLAGS="$SAVED_FLAGS"
 
@@ -141,12 +134,11 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([no])])
 CXXFLAGS="$SAVED_FLAGS"
 
-AC_SUBST(CFLAGS_COMMON)
+AC_SUBST(CXXFLAGS_COMMON)
+AC_SUBST(OTAIINC, "-I\$(top_srcdir)/OTAI/inc -I\$(top_srcdir)/OTAI/meta")
 
 AC_OUTPUT(Makefile
           meta/Makefile
-	  lib/Makefile
-          lib/src/Makefile
+	      lib/Makefile
           vslib/Makefile
-          vslib/src/Makefile
-	  syncd/Makefile)
+	      syncd/Makefile)

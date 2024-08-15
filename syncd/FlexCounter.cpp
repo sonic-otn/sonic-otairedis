@@ -7,11 +7,10 @@
 #include "VidManager.h"
 
 #include "meta/otai_serialize.h"
-#include "lib/inc/OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 #include "swss/redisapi.h"
 #include "swss/tokenize.h"
-#include "Common.h"
 
 using namespace syncd;
 

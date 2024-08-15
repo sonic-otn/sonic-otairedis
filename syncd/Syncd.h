@@ -96,17 +96,7 @@ namespace syncd
         void setOtaiApiLogLevel();
 
     private:
-
         otai_status_t processSingleEvent(
-            _In_ const swss::KeyOpFieldsValuesTuple& kco);
-
-        otai_status_t processAttrCapabilityQuery(
-            _In_ const swss::KeyOpFieldsValuesTuple& kco);
-
-        otai_status_t processAttrEnumValuesCapabilityQuery(
-            _In_ const swss::KeyOpFieldsValuesTuple& kco);
-
-        otai_status_t processObjectTypeGetAvailabilityQuery(
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
         otai_status_t processClearStatsEvent(

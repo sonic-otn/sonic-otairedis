@@ -12,7 +12,7 @@ extern "C" {
 #include "otai.h"
 }
 
-#include "OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 #include "swss/table.h"
 

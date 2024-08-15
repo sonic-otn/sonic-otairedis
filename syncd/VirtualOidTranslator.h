@@ -7,7 +7,7 @@ extern "C"{
 #include "VirtualObjectIdManager.h"
 #include "RedisClient.h"
 
-#include "OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 #include <mutex>
 #include <unordered_map>

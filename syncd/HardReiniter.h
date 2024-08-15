@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 #include "OtaiLinecard.h"
 #include "VirtualOidTranslator.h"
 #include "RedisClient.h"

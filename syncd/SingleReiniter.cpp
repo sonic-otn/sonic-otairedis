@@ -2,7 +2,6 @@
 #include <chrono>
 #include "SingleReiniter.h"
 #include "VidManager.h"
-#include "CommandLineOptions.h"
 #include "NotificationHandler.h"
 #include "RedisClient.h"
 
@@ -425,7 +424,7 @@ void SingleReiniter::setBoardMode(std::string mode)
         {
             break;
         }
-    } while (wait_count < 10 * 60); /* 10 minutes is enough for P230C to change its boardmode */
+    } while (wait_count < 10 * 60); /* 10 minutes is enough for OTN to change its boardmode */
 
     SWSS_LOG_NOTICE("The end of setting board-mode");
 }
@@ -527,17 +526,6 @@ otai_object_id_t SingleReiniter::processSingleVid(
 
     otai_object_id_t rid;
 
-    if (m_sw->isDiscoveredRid(v2rMapIt->second))
-    {
-        rid = v2rMapIt->second;
-
-        createObject = false;
-
-        SWSS_LOG_DEBUG("object %s will not be created, processed VID %s to RID %s",
-            otai_serialize_object_type(objectType).c_str(),
-            otai_serialize_object_id(vid).c_str(),
-            otai_serialize_object_id(rid).c_str());
-    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     uint32_t attr_count = 0;            // attr count needed for create
     uint32_t attr_count_left = 0;       // attr count after create
@@ -642,20 +630,6 @@ otai_object_id_t SingleReiniter::processSingleVid(
 
             if (OTAI_HAS_FLAG_CREATE_ONLY(meta->flags))
             {
-                /*
-                 * If we will be performing this on default existing created
-                 * object then it may happen that during snoop in previous
-                 * iteration we put some attribute that is create only, then
-                 * this set will fail and we need to skip this set.
-                 *
-                 * NOTE: We could do get here to see if it actually matches.
-                 */
-
-                if (m_sw->isDiscoveredRid(rid))
-                {
-                    continue;
-                }
-
                 SWSS_LOG_WARN("skipping create only attr %s: %s",
                     meta->attridname,
                     otai_serialize_attr_value(*meta, *attr).c_str());

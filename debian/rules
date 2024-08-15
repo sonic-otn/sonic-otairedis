@@ -35,25 +35,19 @@ clean:
 build:
 	echo build stage is skipped. Please use binary to generate debian packages
 
-binary: binary-syncd-rpc binary-syncd
+binary: binary-syncd
 
 binary-otairedis:
 	echo '--enable-syncd=no' > /tmp/syncd-build
 	dh clean  --with autotools-dev
-	dh build  -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
-	dh binary -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
+	dh build  -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
+	dh binary -N syncd -N syncd-dbg -N syncd-rpc -N syncd-rpc-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
 
 binary-syncd:
 	echo > /tmp/syncd-build
 	dh clean  --with autotools-dev
-	dh build  -N syncd-rpc -N syncd-rpc-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
-	dh binary -N syncd-rpc -N syncd-rpc-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
-
-binary-syncd-rpc: | binary-syncd
-	echo '--enable-rpcserver=yes' > /tmp/syncd-build
-	dh clean  --with autotools-dev
-	dh build  -N syncd -N syncd-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
-	dh binary -N syncd -N syncd-dbg -N syncd-ot-vs -N syncd-ot-vs-dbg --with autotools-dev
+	dh build  -N syncd-rpc -N syncd-rpc-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
+	dh binary -N syncd-rpc -N syncd-rpc-dbg -N syncd-vs -N syncd-vs-dbg --with autotools-dev
 
 binary-syncd-ot-vs:
 	echo '--with-otai=vs' > /tmp/syncd-build
@@ -83,7 +77,7 @@ override_dh_shlibdeps:
 override_dh_strip:
 	dh_strip -psyncd-rpc --dbg-package=syncd-rpc-dbg
 	dh_strip -psyncd --dbg-package=syncd-dbg
-	dh_strip -psyncd-ot-vs --dbg-package=syncd-ot-vs-dbg
+	dh_strip -psyncd-vs --dbg-package=syncd-vs-dbg
 	dh_strip -plibotairedis --dbg-package=libotairedis-dbg
 	dh_strip -plibotaivs --dbg-package=libotaivs-dbg
 	dh_strip -plibotaimetadata --dbg-package=libotaimetadata-dbg

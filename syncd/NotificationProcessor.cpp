@@ -9,12 +9,14 @@
 
 #include "nlohmann/json.hpp"
 #include <inttypes.h>
-#include "Common.h"
 
 using json = nlohmann::json;
 using namespace syncd;
 using namespace otaimeta;
 using namespace swss;
+
+#define EXIPRE_TIME_SECONDS_2DAYS (2 * 24 * 3600)
+#define EXIPRE_TIME_SECONDS_7DAYS (7 * 24 * 3600)
 
 NotificationProcessor::NotificationProcessor(
     _In_ std::mutex& mtxAlarm,

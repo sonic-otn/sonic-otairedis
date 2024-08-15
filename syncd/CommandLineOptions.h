@@ -21,16 +21,6 @@ namespace syncd
             virtual std::string getCommandLineString() const;
 
         public:
-
-            bool m_enableDiagShell;
-            bool m_enableUnittests;
-
-            /**
-             * When set to true will enable DB vs ASIC consistency check after
-             * comparison logic.
-             */
-            bool m_enableConsistencyCheck;
-
             bool m_enableSyncMode;
 
             bool m_enableOtaiBulkSupport;
@@ -43,10 +33,5 @@ namespace syncd
 			uint32_t m_loglevel;
 
             std::string m_contextConfig;
-
-#ifdef OTAITHRIFT
-            bool m_runRPCServer;
-#endif // OTAITHRIFT
-
     };
 }

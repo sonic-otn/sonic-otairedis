@@ -175,7 +175,7 @@ void SoftReiniter::setBoardMode(std::string mode)
         {
             break;
         }
-    } while (wait_count < 10 * 60); /* 10 minutes is enough for P230C to change its boardmode */
+    } while (wait_count < 10 * 60); /* 10 minutes is enough for OTN to change its boardmode */
 
     SWSS_LOG_NOTICE("The end of setting board-mode");
 }

@@ -5,7 +5,7 @@
 #include "RedisClient.h"
 #include "NotificationHandler.h"
 
-#include "lib/inc/OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 #include "meta/OtaiAttributeList.h"
 #include "FlexCounterManager.h"

@@ -4,7 +4,7 @@ extern "C" {
 #include "otai.h"
 }
 
-#include "lib/inc/OtaiInterface.h"
+#include "meta/OtaiInterface.h"
 
 #include <string>
 #include <vector>
@@ -80,26 +80,6 @@ namespace syncd
             _In_ const otai_stat_id_t* counter_ids) override;
 
     public: // OTAI API
-
-        virtual otai_status_t objectTypeGetAvailability(
-            _In_ otai_object_id_t linecardId,
-            _In_ otai_object_type_t objectType,
-            _In_ uint32_t attrCount,
-            _In_ const otai_attribute_t* attrList,
-            _Out_ uint64_t* count) override;
-
-        virtual otai_status_t queryAttributeCapability(
-            _In_ otai_object_id_t linecard_id,
-            _In_ otai_object_type_t object_type,
-            _In_ otai_attr_id_t attr_id,
-            _Out_ otai_attr_capability_t* capability) override;
-
-        virtual otai_status_t queryAattributeEnumValuesCapability(
-            _In_ otai_object_id_t linecard_id,
-            _In_ otai_object_type_t object_type,
-            _In_ otai_attr_id_t attr_id,
-            _Inout_ otai_s32_list_t* enum_values_capability) override;
-
         virtual otai_object_type_t objectTypeQuery(
             _In_ otai_object_id_t objectId) override;
 
