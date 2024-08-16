@@ -478,60 +478,6 @@ otai_status_t VendorOtai::clearStats(
 }
 
 // OTAI API
-
-otai_status_t VendorOtai::objectTypeGetAvailability(
-    _In_ otai_object_id_t linecardId,
-    _In_ otai_object_type_t objectType,
-    _In_ uint32_t attrCount,
-    _In_ const otai_attribute_t* attrList,
-    _Out_ uint64_t* count)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VENDOR_CHECK_API_INITIALIZED();
-
-    return otai_object_type_get_availability(
-        linecardId,
-        objectType,
-        attrCount,
-        attrList,
-        count);
-}
-
-otai_status_t VendorOtai::queryAttributeCapability(
-    _In_ otai_object_id_t linecardId,
-    _In_ otai_object_type_t objectType,
-    _In_ otai_attr_id_t attrId,
-    _Out_ otai_attr_capability_t* capability)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VENDOR_CHECK_API_INITIALIZED();
-
-    return otai_query_attribute_capability(
-        linecardId,
-        objectType,
-        attrId,
-        capability);
-}
-
-otai_status_t VendorOtai::queryAattributeEnumValuesCapability(
-    _In_ otai_object_id_t linecardId,
-    _In_ otai_object_type_t objectType,
-    _In_ otai_attr_id_t attrId,
-    _Inout_ otai_s32_list_t* enum_values_capability)
-{
-    MUTEX();
-    SWSS_LOG_ENTER();
-    VENDOR_CHECK_API_INITIALIZED();
-
-    return otai_query_attribute_enum_values_capability(
-        linecardId,
-        objectType,
-        attrId,
-        enum_values_capability);
-}
-
 otai_object_type_t VendorOtai::objectTypeQuery(
     _In_ otai_object_id_t objectId)
 {

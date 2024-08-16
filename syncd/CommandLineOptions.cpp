@@ -14,9 +14,6 @@ CommandLineOptions::CommandLineOptions()
 
     // default values for command line options
 
-    m_enableDiagShell = false;
-    m_enableUnittests = false;
-    m_enableConsistencyCheck = false;
     m_enableSyncMode = false;
     m_enableOtaiBulkSupport = false;
 
@@ -29,13 +26,6 @@ CommandLineOptions::CommandLineOptions()
     m_globalContext = 0;
 
     m_contextConfig = "";
-
-#ifdef OTAITHRIFT
-
-    m_runRPCServer = false;
-
-#endif // OTAITHRIFT
-
 }
 
 std::string CommandLineOptions::getCommandLineString() const
@@ -44,20 +34,12 @@ std::string CommandLineOptions::getCommandLineString() const
 
     std::stringstream ss;
 
-    ss << " EnableDiagShell=" << (m_enableDiagShell ? "YES" : "NO");
-    ss << " EnableUnittests=" << (m_enableUnittests ? "YES" : "NO");
-    ss << " EnableConsistencyCheck=" << (m_enableConsistencyCheck ? "YES" : "NO");
     ss << " EnableSyncMode=" << (m_enableSyncMode ? "YES" : "NO");
     ss << " RedisCommunicationMode=" << otai_serialize_redis_communication_mode(m_redisCommunicationMode);
     ss << " EnableOtaiBulkSuport=" << (m_enableOtaiBulkSupport ? "YES" : "NO");
     ss << " ProfileMapFile=" << m_profileMapFile;
     ss << " GlobalContext=" << m_globalContext;
     ss << " ContextConfig=" << m_contextConfig;
-#ifdef OTAITHRIFT
-
-    ss << " RunRPCServer=" << (m_runRPCServer ? "YES" : "NO");
-
-#endif // OTAITHRIFT
 
     return ss.str();
 }

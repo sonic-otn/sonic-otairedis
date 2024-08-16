@@ -253,7 +253,7 @@ void OtaiGaugeCollector::updatePeriodicValue(entry &e, StatisticalCycle cycle)
     {
         v.m_accvalue.d64 += convertdBm2MilliWatt(e.m_statvalue.d64);
         v.m_accnum++;
-        avgvalue.d64 = convertMilliWatt2dBm(v.m_accvalue.d64 / v.m_accnum);
+        avgvalue.d64 = convertMilliWatt2dBm(v.m_accvalue.d64 / (double)v.m_accnum);
     }
     else
     {

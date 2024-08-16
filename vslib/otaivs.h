@@ -1,0 +1,12 @@
+#pragma once
+
+extern "C" {
+#include "otai.h"
+}
+
+#define OTAI_KEY_VS_LINECARD_TYPE              "OTAI_VS_LINECARD_TYPE"
+#define OTAI_KEY_VS_LINECARD_LOCATION          "OTAI_LINECARD_LOCATION"
+
+#define OTAI_VALUE_OTAI_LINECARD_TYPE_OTN     "OTAI_LINECARD_TYPE_OTN"
+
+#define OTAI_VALUE_VS_LINECARD_TYPE_OTN        "OTAI_VS_LINECARD_TYPE_OTN"
