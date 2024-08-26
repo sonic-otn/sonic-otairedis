@@ -58,4 +58,4 @@ libSyncdRequestShutdown_a_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMO
 
 syncd_request_shutdown_SOURCES = syncd_request_shutdown.cpp
 syncd_request_shutdown_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
-syncd_request_shutdown_LDADD = libSyncdRequestShutdown.a $(top_srcdir)/lib/libotaiRedis.a -lhiredis -lswsscommon -lpthread
+syncd_request_shutdown_LDADD = libSyncdRequestShutdown.a $(top_srcdir)/lib/libOtaiRedis.a -lhiredis -lswsscommon -lpthread
