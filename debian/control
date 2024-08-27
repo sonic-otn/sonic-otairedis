@@ -1,5 +1,5 @@
 Source: sonic
-Maintainer: Kamil Cudnik <kcudnik@microsoft.com>
+Maintainer: Weitang Zheng <zhengweitang.zwt@alibaba-inc.com>
 Section: net
 Priority: optional
 Build-Depends: debhelper (>=9), autotools-dev, libzmq5-dev
@@ -7,22 +7,15 @@ Standards-Version: 1.0.0
 
 Package: syncd
 Architecture: any
-Conflicts: syncd-rpc, syncd-ot-vs
+Conflicts: syncd-ot-vs
 Description: This package contains sync daemon for SONiC project.
-  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via OTAI.
-
-Package: syncd-rpc
-Architecture: any
-Conflicts: syncd, syncd-ot-vs
-Description: This package contains sync daemon with rpc for SONiC project.
-  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via OTAI.
-  This daemon contains otaithrift rpc library for remote control of an ASIC.
+  This sync daemon syncs the ASIC_DB in Redis database and the real Optical transport linecard via OTAI.
 
 Package: syncd-ot-vs
 Architecture: any
-Conflicts: syncd-rpc, syncd
-Description: This package contains sync daemon for SONiC project linked with virtual switch.
-  This sync daemon syncs the ASIC_DB in Redis database and the real ASIC via OTAI.
+Conflicts: syncd
+Description: This package contains sync daemon for SONiC project linked with virtual Optical transport linecard.
+  This sync daemon syncs the ASIC_DB in Redis database and the real Optical transport linecard via OTAI.
 
 Package: libotairedis
 Architecture: any
@@ -39,13 +32,13 @@ Description: This package contains development files for OTAI-Redis.
 Package: libotaivs
 Architecture: any
 Section: libs
-Description: This package contains OTAI-VirtualSwitch implementation for SONiC project.
+Description: This package contains OTAI-Virtual Optical transport linecard implementation for SONiC project.
 
 Package: libotaivs-dev
 Architecture: any
 Depends: libotaivs (= ${binary:Version})
 Section: libdevel
-Description: This package contains development files for OTAI-VirtualSwitch.
+Description: This package contains development files for OTAI-Optical transport linecard.
 
 Package: libotaimetadata
 Architecture: any
@@ -62,27 +55,17 @@ Package: syncd-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Conflicts: syncd-rpc-dbg, syncd-ot-vs
+Conflicts: syncd-ot-vs
 Depends:
     syncd (= ${binary:Version}),
     ${misc:Depends}
 Description: debugging symbols for syncd
 
-Package: syncd-rpc-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Conflicts: syncd-dbg, syncd-ot-vs
-Depends:
-    syncd-rpc (= ${binary:Version}),
-    ${misc:Depends}
-Description: debugging symbols for syncd-rpc
-
 Package: syncd-ot-vs-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Conflicts: syncd-dbg, syncd-rpc-dbg
+Conflicts: syncd-dbg
 Depends:
     syncd-ot-vs (= ${binary:Version}),
     ${misc:Depends}
