@@ -82,134 +82,6 @@ static_assert(OTAI_VS_GET_OBJECT_INDEX(OTAI_VS_TEST_OID) == 0x89abcdef, "test ob
 
 using namespace otaivs;
 
-RealObjectIdManager::RealObjectIdManager(
-        _In_ uint32_t globalContext,
-        _In_ std::shared_ptr<LinecardConfigContainer> container):
-    m_globalContext(globalContext),
-    m_container(container)
-{
-    SWSS_LOG_ENTER();
-
-    if (globalContext > OTAI_VS_GLOBAL_CONTEXT_MAX)
-    {
-        SWSS_LOG_THROW("specified globalContext(0x%x) > maximum global context 0x%llx",
-                globalContext,
-                OTAI_VS_GLOBAL_CONTEXT_MAX);
-    }
-}
-
-otai_object_id_t RealObjectIdManager::otaiLinecardIdQuery(
-        _In_ otai_object_id_t objectId) const
-{
-    SWSS_LOG_ENTER();
-
-    if (objectId == OTAI_NULL_OBJECT_ID)
-    {
-        return OTAI_NULL_OBJECT_ID;
-    }
-
-    otai_object_type_t objectType = otaiObjectTypeQuery(objectId);
-
-    if (objectType == OTAI_OBJECT_TYPE_NULL)
-    {
-        SWSS_LOG_THROW("invalid object type of oid %s",
-                otai_serialize_object_id(objectId).c_str());
-    }
-
-    if (objectType == OTAI_OBJECT_TYPE_LINECARD)
-    {
-        return objectId;
-    }
-
-    // NOTE: we could also check:
-    // - if object id has correct global context
-    // - if object id has existing linecard index
-    // but then this method can't be made static
-
-    uint32_t linecardIndex = (uint32_t)OTAI_VS_GET_LINECARD_INDEX(objectId);
-
-    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
-}
-
-otai_object_type_t RealObjectIdManager::otaiObjectTypeQuery(
-        _In_ otai_object_id_t objectId) const
-{
-    SWSS_LOG_ENTER();
-
-    if (objectId == OTAI_NULL_OBJECT_ID)
-    {
-        return OTAI_OBJECT_TYPE_NULL;
-    }
-
-    otai_object_type_t objectType = (otai_object_type_t)(OTAI_VS_GET_OBJECT_TYPE(objectId));
-
-    if (objectType == OTAI_OBJECT_TYPE_NULL || objectType >= OTAI_OBJECT_TYPE_EXTENSIONS_MAX)
-    {
-        SWSS_LOG_ERROR("invalid object id %s",
-                otai_serialize_object_id(objectId).c_str());
-
-        /*
-         * We can't throw here, since it would give no meaningful message.
-         * Throwing at one level up is better.
-         */
-
-        return OTAI_OBJECT_TYPE_NULL;
-    }
-
-    // NOTE: we could also check:
-    // - if object id has correct global context
-    // - if object id has existing linecard index
-    // but then this method can't be made static
-
-    return objectType;
-}
-
-void RealObjectIdManager::clear()
-{
-    SWSS_LOG_ENTER();
-
-    SWSS_LOG_NOTICE("clearing linecard index set");
-
-    m_linecardIndexes.clear();
-    m_indexer.clear();
-}
-
-uint32_t RealObjectIdManager::allocateNewLinecardIndex()
-{
-    SWSS_LOG_ENTER();
-
-    for (uint32_t index = 0; index < OTAI_VS_LINECARD_INDEX_MAX; ++index)
-    {
-        if (m_linecardIndexes.find(index) != m_linecardIndexes.end())
-            continue;
-
-        m_linecardIndexes.insert(index);
-
-        SWSS_LOG_NOTICE("allocated new linecard index 0x%x", index);
-
-        return index;
-    }
-
-    SWSS_LOG_THROW("no more available linecard indexes (used count is: %zu)", m_linecardIndexes.size());
-}
-
-void RealObjectIdManager::releaseLinecardIndex(
-        _In_ uint32_t index)
-{
-    SWSS_LOG_ENTER();
-
-    auto it = m_linecardIndexes.find(index);
-
-    if (it == m_linecardIndexes.end())
-    {
-        SWSS_LOG_THROW("linecard index 0x%x is invalid! programming error", index);
-    }
-
-    m_linecardIndexes.erase(it);
-
-    SWSS_LOG_DEBUG("released linecard index 0x%x", index);
-}
-
 uint64_t RealObjectIdManager::allocateNewObjectIndex(
         _In_ otai_object_type_t objectType,
         _In_ uint32_t attr_count,
@@ -266,7 +138,7 @@ otai_object_id_t RealObjectIdManager::allocateNewObjectId(
         SWSS_LOG_THROW("this function can't be used to allocate linecard id");
     }
 
-    otai_object_type_t linecardObjectType = otaiObjectTypeQuery(linecardId);
+    otai_object_type_t linecardObjectType = objectTypeQuery(linecardId);
 
     if (linecardObjectType != OTAI_OBJECT_TYPE_LINECARD)
     {
@@ -287,7 +159,7 @@ otai_object_id_t RealObjectIdManager::allocateNewObjectId(
                 OTAI_VS_OBJECT_INDEX_MAX);
     }
 
-    otai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex, m_globalContext);
+    otai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex);
 
     SWSS_LOG_DEBUG("created RID %s",
             otai_serialize_object_id(objectId).c_str());
@@ -295,47 +167,16 @@ otai_object_id_t RealObjectIdManager::allocateNewObjectId(
     return objectId;
 }
 
-otai_object_id_t RealObjectIdManager::allocateNewLinecardObjectId(
-        _In_ const std::string& hardwareInfo)
+otai_object_id_t RealObjectIdManager::allocateNewLinecardObjectId()
 {
     SWSS_LOG_ENTER();
 
-    auto config = m_container->getConfig(hardwareInfo);
-
-    if (config == nullptr)
-    {
-        SWSS_LOG_ERROR("no linecard config for hardware info: '%s'", hardwareInfo.c_str());
-
-        return OTAI_NULL_OBJECT_ID;
-    }
-
-    uint32_t linecardIndex = config->m_linecardIndex;
-
-    if (linecardIndex > OTAI_VS_LINECARD_INDEX_MAX)
-    {
-        SWSS_LOG_THROW("linecard index %u > %llu (max)", linecardIndex, OTAI_VS_LINECARD_INDEX_MAX);
-    }
-
-    m_linecardIndexes.insert(linecardIndex);
-
-    otai_object_id_t objectId = constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
-
-    SWSS_LOG_NOTICE("created LINECARD RID %s for hwinfo: '%s'",
-            otai_serialize_object_id(objectId).c_str(),
-            hardwareInfo.c_str());
+    uint32_t linecardIndex = 1;
+    otai_object_id_t objectId = constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex);
+    SWSS_LOG_NOTICE("created LINECARD RID %s",
+            otai_serialize_object_id(objectId).c_str());
 
     return objectId;
-}
-
-void RealObjectIdManager::releaseObjectId(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    if (otaiObjectTypeQuery(objectId) == OTAI_OBJECT_TYPE_LINECARD)
-    {
-        releaseLinecardIndex((uint32_t)OTAI_VS_GET_LINECARD_INDEX(objectId));
-    }
 }
 
 otai_object_id_t RealObjectIdManager::constructObjectId(

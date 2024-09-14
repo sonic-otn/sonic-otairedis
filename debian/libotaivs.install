@@ -1,1 +1,3 @@
 usr/lib/*/libotaivs.so.*
+vslib/otai_sim_data/*.json usr/include/vslib/otai_sim_data
+

@@ -2,31 +2,6 @@ AM_CPPFLAGS = $(OTAIINC) -I$(top_srcdir)/lib
 
 lib_LTLIBRARIES = libotaivs.la
 
-noinst_LIBRARIES = libotaiVS.a
-
-libotaiVS_a_SOURCES = \
-					  ../meta/Notification.cpp \
-					  ../meta/PerformanceIntervalTimer.cpp \
-					  ../meta/NotificationLinecardStateChange.cpp \
-					  EventPayloadNotification.cpp \
-					  OtaiEventQueue.cpp \
-					  Event.cpp \
-					  EventQueue.cpp \
-					  Signal.cpp \
-					  VirtualLinecardOtaiInterface.cpp \
-					  LinecardConfigContainer.cpp \
-					  LinecardConfig.cpp \
-                      OtaiCheckLink.cpp \
-					  Otai.cpp \
-					  LinecardStateBase.cpp \
-					  Linecard.cpp \
-					  LinecardContainer.cpp \
-					  RealObjectIdManager.cpp \
-					  OtaiAttrWrap.cpp \
-					  SelectableFd.cpp \
-					  LinecardState.cpp \
-					  LinecardOTN.cpp
-
 libotaivs_la_SOURCES = \
 					  otai_vs_linecard.cpp \
 					  otai_vs_interfacequery.cpp \
@@ -48,10 +23,12 @@ libotaivs_la_SOURCES = \
 					  otai_vs_wss.cpp \
 					  otai_vs_mediachannel.cpp \
 					  otai_vs_ocm.cpp \
-					  otai_vs_otdr.cpp
+					  otai_vs_otdr.cpp \
+					  Otai.cpp \
+					  RealObjectIdManager.cpp \
+					  OtaiObjectSimulator.cpp
 
-libotaiVS_a_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
 
 libotaivs_la_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
-libotaivs_la_LIBADD = -lhiredis -lswsscommon libotaiVS.a
+libotaivs_la_LIBADD = -lhiredis -lswsscommon
 

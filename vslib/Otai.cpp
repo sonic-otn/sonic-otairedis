@@ -1,12 +1,7 @@
 #include "Otai.h"
-#include "OtaiInternal.h"
 #include "RealObjectIdManager.h"
-#include "VirtualLinecardOtaiInterface.h"
-#include "LinecardStateBase.h"
-#include "LinecardConfigContainer.h"
 
 #include "swss/logger.h"
-
 #include "swss/notificationconsumer.h"
 #include "swss/select.h"
 
@@ -19,27 +14,21 @@
 #include <cstring>
 
 using namespace otaivs;
+using namespace std;
+
 
 #define VS_CHECK_API_INITIALIZED()                                          \
     if (!m_apiInitialized) {                                                \
         SWSS_LOG_ERROR("%s: api not initialized", __PRETTY_FUNCTION__);     \
         return OTAI_STATUS_FAILURE; }
 
-extern otai_object_id_t g_scanning_ocm_oid;
-extern bool g_ocm_scan;
-
-extern otai_object_id_t g_scanning_otdr_oid;
-extern bool g_otdr_scan;
+#define MUTEX() std::lock_guard<std::recursive_mutex> _lock(m_apimutex)
 
 Otai::Otai()
 {
     SWSS_LOG_ENTER();
-
     m_apiInitialized = false;
-
     m_isLinkUp = true;
-    m_isAlarm = false;
-    m_isEvent = false;
 }
 
 Otai::~Otai()
@@ -59,20 +48,17 @@ otai_status_t Otai::initialize(
         _In_ const otai_service_method_table_t *service_method_table)
 {
     MUTEX();
-
     SWSS_LOG_ENTER();
 
     if (m_apiInitialized)
     {
         SWSS_LOG_ERROR("%s: api already initialized", __PRETTY_FUNCTION__);
-
         return OTAI_STATUS_FAILURE;
     }
 
     if (flags != 0)
     {
         SWSS_LOG_ERROR("invalid flags passed to OTAI API initialize");
-
         return OTAI_STATUS_INVALID_PARAMETER;
     }
 
@@ -81,71 +67,22 @@ otai_status_t Otai::initialize(
             (service_method_table->profile_get_value == NULL))
     {
         SWSS_LOG_ERROR("invalid service_method_table handle passed to OTAI API initialize");
-
         return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    memcpy(&m_service_method_table, service_method_table, sizeof(m_service_method_table));
-
     auto linecard_type = service_method_table->profile_get_value(0, OTAI_KEY_VS_LINECARD_TYPE);
-
-    if (linecard_type == NULL)
+    if (linecard_type != NULL)
     {
-        SWSS_LOG_ERROR("failed to obtain service method table value: %s", OTAI_KEY_VS_LINECARD_TYPE);
-
-        return OTAI_STATUS_FAILURE;
+        SWSS_LOG_NOTICE("linecard type = %s", linecard_type);
     }
 
     auto linecard_location = service_method_table->profile_get_value(0, OTAI_KEY_VS_LINECARD_LOCATION);
-
-    if (linecard_location == NULL)
+    if (linecard_location != NULL)
     {
-        SWSS_LOG_ERROR("failed to obtain service method table value: %s", OTAI_KEY_VS_LINECARD_LOCATION);
-
-        return OTAI_STATUS_FAILURE;
-    } else {
         SWSS_LOG_NOTICE("location = %s", linecard_location);
     }
 
-    otai_vs_linecard_type_t linecardType;
-
-    if (!LinecardConfig::parseLinecardType(linecard_type, linecardType))
-    {
-        return OTAI_STATUS_FAILURE;
-    }
-
-    m_signal = std::make_shared<Signal>();
-
-    m_eventQueue = std::make_shared<EventQueue>(m_signal);
-
-    auto sc = std::make_shared<LinecardConfig>();
-
-    sc->m_linecardType = linecardType;
-    sc->m_linecardIndex = 0;
-    sc->m_eventQueue = m_eventQueue;
-
-    auto scc = std::make_shared<LinecardConfigContainer>();
-
-    // TODO add support for multiple linecards, (global context?) and config context will need
-    // to be passed over OTAI_KEY_ service method table, and here we need to load them
-    // we also need global context value for those linecards (VirtualLinecardOtaiInterface/RealObjectIdManager)
-
-    scc->insert(sc);
-
-    // most important
-
-    m_vsOtai = std::make_shared<VirtualLinecardOtaiInterface>(scc);
-
-    m_meta = std::make_shared<otaimeta::Meta>(m_vsOtai);
-
-    m_vsOtai->setMeta(m_meta);
-
-    startEventQueueThread();
-
-    startCheckLinkThread();
-
     m_apiInitialized = true;
-
     return OTAI_STATUS_SUCCESS;
 }
 
@@ -154,25 +91,7 @@ otai_status_t Otai::uninitialize(void)
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    SWSS_LOG_NOTICE("begin");
-
-    // no mutex on uninitialized to prevent deadlock
-    // if some thread would try to gram api mutex
-    // so threads must be stopped first
-
-    SWSS_LOG_NOTICE("stopping threads");
-
-    stopEventQueueThread();
-
-    stopCheckLinkThread();
-
-    m_vsOtai = nullptr;
-    m_meta = nullptr;
-
     m_apiInitialized = false;
-
-    SWSS_LOG_NOTICE("end");
-
     return OTAI_STATUS_SUCCESS;
 }
 
@@ -181,6 +100,7 @@ otai_status_t Otai::linkCheck(_Out_ bool *up)
     if (up == NULL) {
         return OTAI_STATUS_INVALID_PARAMETER;
     }
+
     *up = m_isLinkUp;
     return OTAI_STATUS_SUCCESS;
 }
@@ -198,8 +118,8 @@ otai_status_t Otai::create(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->create(
-            objectType,
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(objectType);
+    return otaiObjSim->create(
             objectId,
             linecardId,
             attr_count,
@@ -207,44 +127,31 @@ otai_status_t Otai::create(
 }
 
 otai_status_t Otai::remove(
-        _In_ otai_object_type_t objectType,
-        _In_ otai_object_id_t objectId)
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id)
 {
     MUTEX();
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->remove(objectType, objectId);
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->remove(object_id);
 }
-using namespace std;
 otai_status_t Otai::set(
-        _In_ otai_object_type_t objectType,
-        _In_ otai_object_id_t objectId,
+        _In_ otai_object_type_t object_type,
+        _In_ otai_object_id_t object_id,
         _In_ const otai_attribute_t *attr)
 {
-    std::unique_lock<std::recursive_mutex> _lock(m_apimutex);
+    MUTEX();
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    if (objectType == OTAI_OBJECT_TYPE_OCM)
-    {
-        if (attr)
-        {
-            if (attr->id == OTAI_OCM_ATTR_SCAN &&
-                attr->value.booldata == true)
-            {
-                g_scanning_ocm_oid = objectId;
-                g_ocm_scan = true;
-                return OTAI_STATUS_SUCCESS;
-            }
-        }
-    }
-
-    return m_meta->set(objectType, objectId, attr);
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->set(object_id, attr);
 }
 
 otai_status_t Otai::get(
-        _In_ otai_object_type_t objectType,
+        _In_ otai_object_type_t object_type,
         _In_ otai_object_id_t objectId,
         _In_ uint32_t attr_count,
         _Inout_ otai_attribute_t *attr_list)
@@ -253,58 +160,14 @@ otai_status_t Otai::get(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->get(
-            objectType,
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->get(
             objectId,
             attr_count,
             attr_list);
 }
 
-// QUAD SERIALIZED
-
-otai_status_t Otai::create(
-        _In_ otai_object_type_t object_type,
-        _In_ const std::string& serializedObjectId,
-        _In_ uint32_t attr_count,
-        _In_ const otai_attribute_t *attr_list)
-{
-    SWSS_LOG_ENTER();
-
-    return OTAI_STATUS_NOT_IMPLEMENTED;
-}
-
-otai_status_t Otai::remove(
-        _In_ otai_object_type_t objectType,
-        _In_ const std::string& serializedObjectId)
-{
-    SWSS_LOG_ENTER();
-
-    return OTAI_STATUS_NOT_IMPLEMENTED;
-}
-
-otai_status_t Otai::set(
-        _In_ otai_object_type_t objectType,
-        _In_ const std::string &serializedObjectId,
-        _In_ const otai_attribute_t *attr)
-{
-    SWSS_LOG_ENTER();
-
-    return OTAI_STATUS_NOT_IMPLEMENTED;
-}
-
-otai_status_t Otai::get(
-        _In_ otai_object_type_t objectType,
-        _In_ const std::string& serializedObjectId,
-        _In_ uint32_t attr_count,
-        _Inout_ otai_attribute_t *attr_list)
-{
-    SWSS_LOG_ENTER();
-
-    return OTAI_STATUS_NOT_IMPLEMENTED;
-}
-
 // STATS
-
 otai_status_t Otai::getStats(
         _In_ otai_object_type_t object_type,
         _In_ otai_object_id_t object_id,
@@ -316,11 +179,12 @@ otai_status_t Otai::getStats(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->getStats(
-            object_type,
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->getStatsExt(
             object_id,
             number_of_counters,
             counter_ids,
+            OTAI_STATS_MODE_READ,
             counters);
 }
 
@@ -336,8 +200,8 @@ otai_status_t Otai::getStatsExt(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->getStatsExt(
-            object_type,
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->getStatsExt(
             object_id,
             number_of_counters,
             counter_ids,
@@ -355,8 +219,8 @@ otai_status_t Otai::clearStats(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->clearStats(
-            object_type,
+    auto otaiObjSim = OtaiObjectSimulator::getOtaiObjectSimulator(object_type);
+    return otaiObjSim->clearStats(
             object_id,
             number_of_counters,
             counter_ids);
@@ -371,11 +235,8 @@ otai_object_type_t Otai::objectTypeQuery(
     if (!m_apiInitialized)
     {
         SWSS_LOG_ERROR("%s: OTAI API not initialized", __PRETTY_FUNCTION__);
-
         return OTAI_OBJECT_TYPE_NULL;
     }
-
-    // not need for metadata check or mutex since this method is static
 
     return RealObjectIdManager::objectTypeQuery(objectId);
 }
@@ -388,11 +249,8 @@ otai_object_id_t Otai::linecardIdQuery(
     if (!m_apiInitialized)
     {
         SWSS_LOG_ERROR("%s: OTAI API not initialized", __PRETTY_FUNCTION__);
-
         return OTAI_NULL_OBJECT_ID;
     }
-
-    // not need for metadata check or mutex since this method is static
 
     return RealObjectIdManager::linecardIdQuery(objectId);
 }
@@ -405,5 +263,5 @@ otai_status_t Otai::logSet(
     SWSS_LOG_ENTER();
     VS_CHECK_API_INITIALIZED();
 
-    return m_meta->logSet(api, log_level);
+    return OTAI_STATUS_SUCCESS;
 }
