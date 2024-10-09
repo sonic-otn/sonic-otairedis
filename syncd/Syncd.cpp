@@ -17,7 +17,6 @@
 #include "swss/notificationproducer.h"
 
 #include "meta/otai_serialize.h"
-#include "meta/PerformanceIntervalTimer.h"
 
 #include <unistd.h>
 #include <inttypes.h>
@@ -31,7 +30,6 @@
 
 using namespace syncd;
 using namespace otaimeta;
-using namespace otairediscommon;
 using namespace std::placeholders;
 using namespace swss;
 
@@ -391,10 +389,6 @@ void Syncd::syncUpdateRedisQuadEvent(
     otai_object_meta_key_t metaKey;
     otai_deserialize_object_meta_key(key, metaKey);
 
-    static PerformanceIntervalTimer timer("Syncd::syncUpdateRedisQuadEvent");
-
-    timer.start();
-
     switch (api)
     {
     case OTAI_COMMON_API_CREATE:
@@ -437,10 +431,6 @@ void Syncd::syncUpdateRedisQuadEvent(
 
         SWSS_LOG_THROW("api %d is not supported", api);
     }
-
-    timer.stop();
-
-    timer.inc();
 }
 
 otai_status_t Syncd::processQuadEvent(

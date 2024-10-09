@@ -10,13 +10,11 @@
 #include "meta/NotificationFactory.h"
 #include "meta/otai_serialize.h"
 #include "meta/OtaiAttributeList.h"
-#include "meta/PerformanceIntervalTimer.h"
 
 #include <inttypes.h>
 
 using namespace otairedis;
 using namespace otaimeta;
-using namespace otairediscommon;
 using namespace std::placeholders;
 
 std::string joinFieldValues(

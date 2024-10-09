@@ -35,8 +35,7 @@ libotaimetadata_la_SOURCES = \
 							OtaiInterface.cpp \
 							OtaiSerialize.cpp \
 							OtaiObject.cpp \
-							OtaiObjectCollection.cpp \
-							PerformanceIntervalTimer.cpp
+							OtaiObjectCollection.cpp
 
 
 libotaimetadata_la_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)

@@ -179,7 +179,7 @@ otai_status_t OtaiObjectSimulator::get(
         }
 
         string attriName(meta->attridname);
-        SWSS_LOG_NOTICE("Calling OtaiObjectSimulator::get type: %s, rid: %s, attr: %s",
+        SWSS_LOG_DEBUG("Calling OtaiObjectSimulator::get type: %s, rid: %s, attr: %s",
                 otai_serialize_object_type(m_objectType).c_str(), 
                 otai_serialize_object_id(objectId).c_str(),
                 attriName.c_str());
@@ -223,7 +223,7 @@ otai_status_t OtaiObjectSimulator::get(
                 break;
         }
 
-        SWSS_LOG_NOTICE("Finish OtaiObjectSimulator::get type: %s, rid: %s, attr: %s",
+        SWSS_LOG_DEBUG("Finish OtaiObjectSimulator::get type: %s, rid: %s, attr: %s",
                 otai_serialize_object_type(m_objectType).c_str(), 
                 otai_serialize_object_id(objectId).c_str(),
                 attriName.c_str());
@@ -247,7 +247,7 @@ otai_status_t OtaiObjectSimulator::getStatsExt(
         auto stat_metadata  = otai_metadata_get_stat_metadata(m_objectType, id);
         string statidname = stat_metadata->statidname;
 
-        SWSS_LOG_NOTICE("Calling OtaiObjectSimulator::getStatsExt type: %s, rid: %s, stat: %s",
+        SWSS_LOG_DEBUG("Calling OtaiObjectSimulator::getStatsExt type: %s, rid: %s, stat: %s",
             otai_serialize_object_type(m_objectType).c_str(), 
             otai_serialize_object_id(object_id).c_str(),
             statidname.c_str());
@@ -262,7 +262,7 @@ otai_status_t OtaiObjectSimulator::getStatsExt(
             counters[i].d64 = m_data[statidname];
         }
 
-        SWSS_LOG_NOTICE("finish OtaiObjectSimulator::getStatsExt type: %s, rid: %s, stat: %s",
+        SWSS_LOG_DEBUG("finish OtaiObjectSimulator::getStatsExt type: %s, rid: %s, stat: %s",
             otai_serialize_object_type(m_objectType).c_str(), 
             otai_serialize_object_id(object_id).c_str(),
             statidname.c_str());
