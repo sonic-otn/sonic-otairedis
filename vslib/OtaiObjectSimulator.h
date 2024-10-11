@@ -2,6 +2,7 @@
 
 #include "swss/logger.h"
 #include "otaitypes.h"
+#include "OtaiObjectNotificationSim.h"
 #include <nlohmann/json.hpp>
 
 namespace otaivs
@@ -51,5 +52,6 @@ namespace otaivs
         private:
             nlohmann::json m_data;
             otai_object_type_t m_objectType;
+            OtaiObjectNotificationSim m_objctNtfSim;
     };
 }

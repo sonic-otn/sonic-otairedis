@@ -26,7 +26,8 @@ libotaivs_la_SOURCES = \
 					  otai_vs_otdr.cpp \
 					  Otai.cpp \
 					  RealObjectIdManager.cpp \
-					  OtaiObjectSimulator.cpp
+					  OtaiObjectSimulator.cpp \
+					  OtaiObjectNotificationSim.cpp
 
 
 libotaivs_la_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)

@@ -5,11 +5,13 @@
 #include "RealObjectIdManager.h"
 #include "otaistatus.h"
 #include "swss/logger.h"
+#include "swss/selectabletimer.h"
 
 #include "meta/otai_serialize.h"
 
 using namespace std;
 using namespace otaivs;
+using namespace swss;
 using json = nlohmann::json;
 
 const string sim_data_path = "/usr/include/vslib/otai_sim_data/";
@@ -69,10 +71,31 @@ otai_status_t OtaiObjectSimulator::create(
     if (m_objectType == OTAI_OBJECT_TYPE_LINECARD)
     {
         *objectId = RealObjectIdManager::allocateNewLinecardObjectId();
+
+        // refresh notification callback pointers
+        m_objctNtfSim.updateNotificationCallback(attr_count, attr_list);
+        // send linecard notifications
+        m_objctNtfSim.triggerLinecardNtfs(*objectId);
+        
     }
     else
     {
         *objectId = RealObjectIdManager::allocateNewObjectId(m_objectType, linecardId, attr_count, attr_list);
+
+        if (m_objectType == OTAI_OBJECT_TYPE_OCM) {
+            m_objctNtfSim.triggerOcmScanNtfs(linecardId, *objectId);
+        }
+
+        if (m_objectType == OTAI_OBJECT_TYPE_OTDR) {
+            m_objctNtfSim.triggerOtdrScanNtfs(linecardId, *objectId);
+        }
+
+        if (m_objectType == OTAI_OBJECT_TYPE_APS) {
+            // refresh aps notification callback pointers
+            m_objctNtfSim.updateNotificationCallback(attr_count, attr_list);
+
+            m_objctNtfSim.triggerApsSwitchNtfs(*objectId);
+        }
     }
 
     SWSS_LOG_NOTICE("Calling OtaiObjectSimulator::create type:%s, rid:%s",
