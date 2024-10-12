@@ -1,9 +1,12 @@
+#include <nlohmann/json.hpp>
+
 #include "swss/logger.h"
 #include "OtaiObjectNotificationSim.h"
 
 using namespace std;
 using namespace otaivs;
 using namespace swss;
+using json = nlohmann::json;
 
 void OtaiObjectNotificationSim::triggerLinecardNtfs(otai_object_id_t linecard_id)
 {
@@ -55,16 +58,46 @@ void OtaiObjectNotificationSim::updateNotificationCallback(
     }
 }
 
-void OtaiObjectNotificationSim::sendLinecardNotifications(otai_object_id_t linecard_id)
+[[noreturn]] void OtaiObjectNotificationSim::sendLinecardNotifications(otai_object_id_t linecard_id)
 {
     this_thread::sleep_for(chrono::seconds(10));
     sendAlarmNotification(linecard_id);
+    otai_oper_status_t linecardOperStatus = OTAI_OPER_STATUS_ACTIVE;
+    while (true)
+    {
+        otai_oper_status_t operStatus = readOperStatus("otai_linecard_notification_sim.json");
+        if(operStatus != linecardOperStatus) {
+            sendLinecardStateNotification(linecard_id, operStatus);
+            linecardOperStatus = operStatus;
+        }
 
-    this_thread::sleep_for(chrono::seconds(300));
-    sendLinecardStateNotification(linecard_id, OTAI_OPER_STATUS_INACTIVE);
-    
-    this_thread::sleep_for(chrono::seconds(30));
-    sendLinecardStateNotification(linecard_id, OTAI_OPER_STATUS_ACTIVE);
+        this_thread::sleep_for(chrono::seconds(5));
+    }
+}
+
+otai_oper_status_t OtaiObjectNotificationSim::readOperStatus(string filename) 
+{
+    otai_oper_status_t result = OTAI_OPER_STATUS_ACTIVE;
+    string sim_data_file = sim_data_path + filename;
+
+    std::ifstream ifs(sim_data_file);
+    if (!ifs.good())
+    {
+        SWSS_LOG_ERROR("OtaiObjectSimulator failed to read '%s', err: %s", sim_data_file, strerror(errno));
+        return result;
+    }
+
+    try
+    {
+        nlohmann::json jsonData = json::parse(ifs);
+        result = (otai_oper_status_t)jsonData["linecard_oper_status"];
+    }
+    catch (const std::exception& e)
+    {
+        SWSS_LOG_ERROR("OtaiObjectSimulator Failed to parse '%s': %s", sim_data_file, e.what());
+    }
+
+    return result;
 }
 
 void OtaiObjectNotificationSim::sendAlarmNotification(otai_object_id_t linecard_id)
@@ -79,7 +112,7 @@ void OtaiObjectNotificationSim::sendAlarmNotification(otai_object_id_t linecard_
     alarm_info.text.count = static_cast<uint32_t>(strlen(text));
     alarm_info.text.list = (int8_t *)text;
 
-    SWSS_LOG_NOTICE("Sending notification for linecard:%s",
+    SWSS_LOG_NOTICE("Sending notification for linecard:%s alarm",
             otai_serialize_object_id(linecard_id).c_str());
     m_alarmCallback(linecard_id, alarm_type, alarm_info); 
 }
@@ -103,6 +136,9 @@ void OtaiObjectNotificationSim::sendOcmScanNotification(otai_object_id_t linecar
     otai_spectrum_power_list_t ocm_result;
     ocm_result.count = 96;
     ocm_result.list = list; 
+
+    SWSS_LOG_NOTICE("Sending notification for ocm %s scan info", 
+            otai_serialize_object_id(ocm_id).c_str());
     m_ocmScanCallback(linecard_id, ocm_id, ocm_result);
 }
 
@@ -152,11 +188,15 @@ void OtaiObjectNotificationSim::sendOtdrScanNotification(otai_object_id_t lineca
     result.trace.data.count = sizeof(data)/sizeof(uint8_t);
     result.trace.data.list = data;
 
+    SWSS_LOG_NOTICE("Sending notification for otdr %s scan info", 
+            otai_serialize_object_id(otdr_id).c_str());
     m_otdrScanCallback(linecard_id, otdr_id, result);
 }
 
 void OtaiObjectNotificationSim::sendLinecardStateNotification(otai_object_id_t linecard_id, otai_oper_status_t status)
 {
+    SWSS_LOG_NOTICE("Sending notification for linecard status change:%s",
+            otai_serialize_linecard_oper_status(linecard_id, status).c_str());
     m_stateChgCallback(linecard_id, status);  
 }
 
@@ -188,5 +228,7 @@ void OtaiObjectNotificationSim::sendApsSwitchNotification(otai_object_id_t aps_i
     }
     switch_info.info[0] = info;
 
+    SWSS_LOG_NOTICE("Sending notification for aps %s swith info for", 
+            otai_serialize_object_id(aps_id).c_str());
     m_apsSwitchCallback(aps_id, switch_info);
 }

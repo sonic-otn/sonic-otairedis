@@ -5,6 +5,7 @@
 #include "OtaiObjectNotificationSim.h"
 #include <nlohmann/json.hpp>
 
+
 namespace otaivs
 {
     class OtaiObjectSimulator 

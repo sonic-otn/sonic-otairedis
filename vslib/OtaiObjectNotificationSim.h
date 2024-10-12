@@ -1,7 +1,12 @@
 #pragma once
 
+#include <string>
 #include "otaitypes.h"
 #include "meta/otai_serialize.h"
+
+using namespace std;
+
+const string sim_data_path = "/usr/include/vslib/otai_sim_data/";
 
 namespace otaivs
 {
@@ -21,6 +26,8 @@ namespace otaivs
             void sendOtdrScanNotification(otai_object_id_t linecard_id, otai_object_id_t otdr_id);
             void sendLinecardStateNotification(otai_object_id_t linecard_id, otai_oper_status_t status);
             void sendApsSwitchNotification(otai_object_id_t aps_id);
+            otai_oper_status_t readOperStatus(string filename); 
+
 
         private:
             std::thread m_linecardNotifThread;

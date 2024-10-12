@@ -14,8 +14,6 @@ using namespace otaivs;
 using namespace swss;
 using json = nlohmann::json;
 
-const string sim_data_path = "/usr/include/vslib/otai_sim_data/";
-
 static std::shared_ptr<OtaiObjectSimulator> g_OtaiObjSims[OTAI_OBJECT_TYPE_MAX];
 bool OtaiObjectSimulator::isObjectSimulatorInitialed = false;
 
@@ -56,7 +54,7 @@ OtaiObjectSimulator::OtaiObjectSimulator(
     }
     catch (const std::exception& e)
     {
-        SWSS_LOG_ERROR("OtaiObjectSimulator Failed to parse '%s': %s", sim_data_path, e.what());
+        SWSS_LOG_ERROR("OtaiObjectSimulator Failed to parse '%s': %s", sim_data_file, e.what());
     }
 }
 
