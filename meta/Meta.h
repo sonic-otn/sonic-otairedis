@@ -232,10 +232,6 @@ namespace otaimeta
             OtaiObjectCollection m_otaiObjectCollection;
 
             AttrKeyMap m_attrKeys;
-
-        private: // warm boot
-
-            bool m_warmBoot;
     };
 }
 

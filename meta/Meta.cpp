@@ -40,11 +40,6 @@ Meta::Meta(
     m_implementation(impl)
 {
     SWSS_LOG_ENTER();
-
-    // TODO if metadata supports multiple linecards
-    // then warm boot must be per each linecard
-
-    m_warmBoot = false;
 }
 
 otai_status_t Meta::initialize(
@@ -87,8 +82,6 @@ void Meta::meta_init_db()
     m_oids.clear();
     m_otaiObjectCollection.clear();
     m_attrKeys.clear();
-
-    m_warmBoot = false;
 
     SWSS_LOG_NOTICE("end");
 }
@@ -2320,27 +2313,11 @@ void Meta::meta_generic_validation_post_create(
 
     if (m_otaiObjectCollection.objectExists(meta_key))
     {
-        if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
-        {
-            SWSS_LOG_NOTICE("post linecard create after WARM BOOT");
-        }
-        else
-        {
-            SWSS_LOG_ERROR("object key %s already exists (vendor bug?)",
-                    otai_serialize_object_meta_key(meta_key).c_str());
-
-            // this may produce inconsistency
-        }
+        SWSS_LOG_ERROR("object key %s already exists (vendor bug?)",
+                otai_serialize_object_meta_key(meta_key).c_str());
     }
 
-    if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
-    {
-        SWSS_LOG_NOTICE("skipping create linecard on WARM BOOT since it was already created");
-    }
-    else
-    {
-        m_otaiObjectCollection.createObject(meta_key);
-    }
+    m_otaiObjectCollection.createObject(meta_key);
 
     auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
@@ -2419,23 +2396,9 @@ void Meta::meta_generic_validation_post_create(
                 }
             }
 
-            if (m_warmBoot && meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
-            {
-                SWSS_LOG_NOTICE("skip insert linecard reference insert in WARM_BOOT");
-            }
-            else
-            {
-                m_oids.objectReferenceInsert(oid);
-            }
+            m_oids.objectReferenceInsert(oid);
 
         } while (false);
-    }
-
-    if (m_warmBoot)
-    {
-        SWSS_LOG_NOTICE("m_warmBoot = false");
-
-        m_warmBoot = false;
     }
 
     bool haskeys = false;
