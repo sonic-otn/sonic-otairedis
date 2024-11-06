@@ -2,13 +2,6 @@
 
 #include "OtaiInterface.h"
 
-#include "OtaiAttrWrapper.h"
-#include "OtaiObjectCollection.h"
-#include "AttrKeyMap.h"
-#include "OidRefCounter.h"
-
-#include "swss/table.h"
-
 #include <vector>
 #include <memory>
 #include <set>
@@ -95,12 +88,6 @@ namespace otaimeta
                     _In_ otai_api_t api,
                     _In_ otai_log_level_t log_level) override;
 
-        public:
-
-            void meta_init_db();
-
-            bool isEmpty();
-
         public: // notifications
 
             void meta_otai_on_linecard_state_change(
@@ -131,10 +118,6 @@ namespace otaimeta
                     _In_ const otai_object_meta_key_t& meta_key,
                     _In_ otai_object_id_t linecard_id);
 
-            std::shared_ptr<OtaiAttrWrapper> get_object_previous_attr(
-                    _In_ const otai_object_meta_key_t& metaKey,
-                    _In_ const otai_attr_metadata_t& md);
-
             std::vector<const otai_attr_metadata_t*> get_attributes_metadata(
                     _In_ otai_object_type_t objecttype);
 
@@ -145,14 +128,6 @@ namespace otaimeta
                     _In_ uint32_t count,
                     _In_ const otai_object_id_t* list);
 
-        public: 
-
-            int32_t getObjectReferenceCount(
-                    _In_ otai_object_id_t oid) const;
-
-            bool objectExists(
-                    _In_ const otai_object_meta_key_t& mk) const;
-
         public: // validation post QUAD
 
             void meta_generic_validation_post_create(
@@ -160,13 +135,6 @@ namespace otaimeta
                     _In_ otai_object_id_t linecard_id,
                     _In_ const uint32_t attr_count,
                     _In_ const otai_attribute_t *attr_list);
-
-            void meta_generic_validation_post_remove(
-                    _In_ const otai_object_meta_key_t& meta_key);
-
-            void meta_generic_validation_post_set(
-                    _In_ const otai_object_meta_key_t& meta_key,
-                    _In_ const otai_attribute_t *attr);
 
             void meta_generic_validation_post_get(
                     _In_ const otai_object_meta_key_t& meta_key,
@@ -213,25 +181,7 @@ namespace otaimeta
                     _In_ bool create);
 
         private:
-
-            void clean_after_linecard_remove(
-                    _In_ otai_object_id_t linecardId);
-
-        private:
-
             std::shared_ptr<otairedis::OtaiInterface> m_implementation;
-
-        private: // database objects
-            /*
-             * Non object ids don't need reference count since they are leafs and can be
-             * removed at any time.
-             */
-
-            OidRefCounter m_oids;
-
-            OtaiObjectCollection m_otaiObjectCollection;
-
-            AttrKeyMap m_attrKeys;
     };
 }
 

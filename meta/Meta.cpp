@@ -4,11 +4,11 @@
 #include "otai_serialize.h"
 
 #include "Globals.h"
-#include "OtaiAttributeList.h"
 
 #include <inttypes.h>
 
 #include <set>
+#include <unordered_map>
 
 // TODO add validation for all oids belong to the same linecard
 
@@ -65,36 +65,6 @@ otai_status_t Meta::linkCheck(_Out_ bool *up)
     return m_implementation->linkCheck(up);
 }
 
-void Meta::meta_init_db()
-{
-    SWSS_LOG_ENTER();
-
-    SWSS_LOG_NOTICE("begin");
-
-    /*
-     * This DB will contain objects from all linecards.
-     *
-     * TODO: later on we will have separate bases for each linecard.  This way
-     * should be easier to manage, on remove linecard we will just clear that db,
-     * instead of checking all objects.
-     */
-
-    m_oids.clear();
-    m_otaiObjectCollection.clear();
-    m_attrKeys.clear();
-
-    SWSS_LOG_NOTICE("end");
-}
-
-bool Meta::isEmpty()
-{
-    SWSS_LOG_ENTER();
-
-    return m_oids.getAllOids().empty()
-        && m_attrKeys.getAllKeys().empty()
-        && m_otaiObjectCollection.getAllKeys().empty();
-}
-
 otai_status_t Meta::remove(
         _In_ otai_object_type_t object_type,
         _In_ otai_object_id_t object_id)
@@ -126,11 +96,6 @@ otai_status_t Meta::remove(
     else
     {
         SWSS_LOG_ERROR("remove status: %s", otai_serialize_status(status).c_str());
-    }
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        meta_generic_validation_post_remove(meta_key);
     }
 
     return status;
@@ -227,11 +192,6 @@ otai_status_t Meta::set(
         SWSS_LOG_ERROR("set status: %s", otai_serialize_status(status).c_str());
     }
 
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        meta_generic_validation_post_set(meta_key, attr);
-    }
-
     return status;
 }
 
@@ -265,11 +225,6 @@ otai_status_t Meta::get(
     {
         otai_object_id_t linecard_id = linecardIdQuery(object_id);
 
-        if (!m_oids.objectReferenceExists(linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", linecard_id);
-        }
-
         meta_generic_validation_post_get(meta_key, linecard_id, attr_count, attr_list);
     }
 
@@ -300,12 +255,6 @@ otai_status_t Meta::get(
         SWSS_LOG_ERROR("parameter " #param " must be positive");                            \
         return OTAI_STATUS_INVALID_PARAMETER; } }
 
-#define PARAMETER_CHECK_OID_EXISTS(oid, OT) {                                               \
-    otai_object_meta_key_t _key = {                                                          \
-        .objecttype = (OT), .objectkey = { .key = { .object_id = (oid) } } };               \
-    if (!m_otaiObjectCollection.objectExists(_key)) {                                        \
-        SWSS_LOG_ERROR("object %s don't exists", otai_serialize_object_id(oid).c_str()); } }
-
 #define META_COUNTERS_COUNT_MSB (0x80000000)
 
 otai_status_t Meta::meta_validate_stats(
@@ -320,7 +269,6 @@ otai_status_t Meta::meta_validate_stats(
 
     PARAMETER_CHECK_OBJECT_TYPE_VALID(object_type);
     PARAMETER_CHECK_OID_OBJECT_TYPE(object_id, object_type);
-    PARAMETER_CHECK_OID_EXISTS(object_id, object_type);
     PARAMETER_CHECK_POSITIVE(number_of_counters);
     PARAMETER_CHECK_IF_NOT_NULL(counter_ids);
     PARAMETER_CHECK_IF_NOT_NULL(counters);
@@ -455,73 +403,10 @@ otai_status_t Meta::logSet(
     return m_implementation->logSet(api, log_level);
 }
 
-void Meta::clean_after_linecard_remove(
-        _In_ otai_object_id_t linecardId)
-{
-    SWSS_LOG_ENTER();
-
-    SWSS_LOG_NOTICE("cleaning metadata for linecard: %s",
-            otai_serialize_object_id(linecardId).c_str());
-
-    if (objectTypeQuery(linecardId) != OTAI_OBJECT_TYPE_LINECARD)
-    {
-        SWSS_LOG_THROW("oid %s is not LINECARD!",
-                otai_serialize_object_id(linecardId).c_str());
-    }
-
-    // clear oid references
-
-    for (auto oid: m_oids.getAllOids())
-    {
-        if (linecardIdQuery(oid) == linecardId)
-        {
-            m_oids.objectReferenceClear(oid);
-        }
-    }
-
-    // clear attr keys
-
-    for (auto& key: m_attrKeys.getAllKeys())
-    {
-        otai_object_meta_key_t mk;
-        otai_deserialize_object_meta_key(key, mk);
-
-        // we guarantee that linecard_id is first in the key structure so we can
-        // use that as object_id as well
-
-        if (linecardIdQuery(mk.objectkey.key.object_id) == linecardId)
-        {
-            m_attrKeys.eraseMetaKey(key);
-        }
-    }
-
-    for (auto& mk: m_otaiObjectCollection.getAllKeys())
-    {
-        // we guarantee that linecard_id is first in the key structure so we can
-        // use that as object_id as well
-
-        if (linecardIdQuery(mk.objectkey.key.object_id) == linecardId)
-        {
-            m_otaiObjectCollection.removeObject(mk);
-        }
-    }
-
-    SWSS_LOG_NOTICE("removed all objects related to linecard %s",
-            otai_serialize_object_id(linecardId).c_str());
-}
-
 otai_status_t Meta::meta_generic_validation_remove(
         _In_ const otai_object_meta_key_t& meta_key)
 {
     SWSS_LOG_ENTER();
-
-    if (!m_otaiObjectCollection.objectExists(meta_key))
-    {
-        SWSS_LOG_ERROR("object key %s doesn't exist",
-                otai_serialize_object_meta_key(meta_key).c_str());
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
 
     auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
@@ -556,35 +441,6 @@ otai_status_t Meta::meta_generic_validation_remove(
         SWSS_LOG_ERROR("oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
         return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    if (!m_oids.objectReferenceExists(oid))
-    {
-        SWSS_LOG_ERROR("object 0x%" PRIx64 " reference doesn't exist", oid);
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
-    int count = m_oids.getObjectReferenceCount(oid);
-
-    if (count != 0)
-    {
-        if (object_type == OTAI_OBJECT_TYPE_LINECARD)
-        {
-            /*
-             * We allow to remove linecard object even if there are ROUTE_ENTRY
-             * created and referencing this linecard, since remove could be used
-             * in WARM boot scenario.
-             */
-
-            SWSS_LOG_WARN("removing linecard object 0x%" PRIx64 " reference count is %d, removing all objects from meta DB", oid, count);
-
-            return OTAI_STATUS_SUCCESS;
-        }
-
-        SWSS_LOG_ERROR("object 0x%" PRIx64 " reference count is %d, can't remove", oid, count);
-
-        return OTAI_STATUS_OBJECT_IN_USE;
     }
 
     // should be safe to remove
@@ -657,128 +513,7 @@ otai_status_t Meta::meta_otai_validate_oid(
         return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    // check if object exists
-
-    otai_object_meta_key_t meta_key_oid = { .objecttype = expected, .objectkey = { .key = { .object_id = oid } } };
-
-    if (!m_otaiObjectCollection.objectExists(meta_key_oid))
-    {
-        SWSS_LOG_ERROR("object key %s doesn't exist",
-                otai_serialize_object_meta_key(meta_key_oid).c_str());
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
     return OTAI_STATUS_SUCCESS;
-}
-
-void Meta::meta_generic_validation_post_remove(
-        _In_ const otai_object_meta_key_t& meta_key)
-{
-    SWSS_LOG_ENTER();
-
-    if (meta_key.objecttype == OTAI_OBJECT_TYPE_LINECARD)
-    {
-        /*
-         * If linecard object was removed then meta db was cleared and there are
-         * no other attributes, no need for reference counting.
-         */
-
-        clean_after_linecard_remove(meta_key.objectkey.key.object_id);
-
-        return;
-    }
-
-    // get all attributes that was set
-
-    for (auto&it: m_otaiObjectCollection.getObject(meta_key)->getAttributes())
-    {
-        const otai_attribute_t* attr = it->getOtaiAttr();
-
-        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
-
-        const otai_attribute_value_t& value = attr->value;
-
-        const otai_attr_metadata_t& md = *mdp;
-
-        // decrease reference on object id types
-
-        switch (md.attrvaluetype)
-        {
-            case OTAI_ATTR_VALUE_TYPE_BOOL:
-            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
-            case OTAI_ATTR_VALUE_TYPE_UINT8:
-            case OTAI_ATTR_VALUE_TYPE_INT8:
-            case OTAI_ATTR_VALUE_TYPE_UINT16:
-            case OTAI_ATTR_VALUE_TYPE_INT16:
-            case OTAI_ATTR_VALUE_TYPE_UINT32:
-            case OTAI_ATTR_VALUE_TYPE_INT32:
-            case OTAI_ATTR_VALUE_TYPE_UINT64:
-            case OTAI_ATTR_VALUE_TYPE_INT64:
-            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
-            case OTAI_ATTR_VALUE_TYPE_POINTER:
-                // primitives, ok
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
-                m_oids.objectReferenceDecrement(value.oid);
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
-                m_oids.objectReferenceDecrement(value.objlist);
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
-                // no special action required
-                break;
-
-            default:
-                META_LOG_THROW(md, "serialization type is not supported yet FIXME");
-        }
-    }
-
-    // we don't keep track of fdb, neighbor, route since
-    // those are safe to remove any time (leafs)
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (info->isnonobjectid)
-    {
-        /*
-         * Decrease object reference count for all object ids in non object id
-         * members.
-         */
-
-        for (size_t j = 0; j < info->structmemberscount; ++j)
-        {
-            const otai_struct_member_info_t *m = info->structmembers[j];
-
-            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-            {
-                continue;
-            }
-
-            m_oids.objectReferenceDecrement(m->getoid(&meta_key));
-        }
-    }
-    else
-    {
-        m_oids.objectReferenceRemove(meta_key.objectkey.key.object_id);
-    }
-
-    m_otaiObjectCollection.removeObject(meta_key);
-
-    std::string metaKey = otai_serialize_object_meta_key(meta_key);
-
-    m_attrKeys.eraseMetaKey(metaKey);
-
 }
 
 otai_status_t Meta::meta_generic_validation_create(
@@ -861,24 +596,6 @@ otai_status_t Meta::meta_generic_validation_create(
             return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        // check if linecard exists
-
-        otai_object_meta_key_t linecard_meta_key = { .objecttype = OTAI_OBJECT_TYPE_LINECARD, .objectkey = { .key = { .object_id = linecard_id } } };
-
-        if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist yet", linecard_id);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        if (!m_oids.objectReferenceExists(linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist yet", linecard_id);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
         // ok
     }
 
@@ -892,8 +609,6 @@ otai_status_t Meta::meta_generic_validation_create(
     std::unordered_map<otai_attr_id_t, const otai_attribute_t*> attrs;
 
     SWSS_LOG_DEBUG("attr count = %u", attr_count);
-
-    bool haskeys = false;
 
     // check each attribute separately
     for (uint32_t idx = 0; idx < attr_count; ++idx)
@@ -929,13 +644,6 @@ otai_status_t Meta::meta_generic_validation_create(
             META_LOG_ERROR(md, "attr is read only and cannot be created");
 
             return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        if (OTAI_HAS_FLAG_KEY(md.flags))
-        {
-            haskeys = true;
-
-            META_LOG_DEBUG(md, "attr is key");
         }
 
         // if we set OID check if exists and if type is correct
@@ -1070,30 +778,6 @@ otai_status_t Meta::meta_generic_validation_create(
         // conditions are checked later on
     }
 
-    // we are creating object, no need for check if exists (only key values needs to be checked)
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (info->isnonobjectid)
-    {
-        // just sanity check if object already exists
-
-        if (m_otaiObjectCollection.objectExists(meta_key))
-        {
-            SWSS_LOG_ERROR("object key %s already exists",
-                    otai_serialize_object_meta_key(meta_key).c_str());
-
-            return OTAI_STATUS_ITEM_ALREADY_EXISTS;
-        }
-    }
-    else
-    {
-        /*
-         * We are creating OID object, and we don't have it's value yet so we
-         * can't do any check on it.
-         */
-    }
-
     const auto& metadata = get_attributes_metadata(meta_key.objecttype);
 
     if (metadata.empty())
@@ -1218,19 +902,6 @@ otai_status_t Meta::meta_generic_validation_create(
         }
     }
 
-    if (haskeys)
-    {
-        std::string key = AttrKeyMap::constructKey(meta_key, attr_count, attr_list);
-
-        // since we didn't created oid yet, we don't know if attribute key exists, check all
-        if (m_attrKeys.attrKeyExists(key))
-        {
-            SWSS_LOG_ERROR("attribute key %s already exists, can't create", key.c_str());
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-    }
-
     return OTAI_STATUS_SUCCESS;
 }
 
@@ -1290,12 +961,6 @@ otai_status_t Meta::meta_generic_validation_set(
     if (!info->isnonobjectid)
     {
         linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
-
-        if (!m_oids.objectReferenceExists(linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", linecard_id);
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
     }
 
     linecard_id = meta_extract_linecard_id(meta_key, linecard_id);
@@ -1450,34 +1115,6 @@ otai_status_t Meta::meta_generic_validation_set(
         }
     }
 
-    if (md.isconditional)
-    {
-        // check if it was set on local DB
-        // (this will not respect create_only with default)
-
-        if (get_object_previous_attr(meta_key, md) == NULL)
-        {
-            META_LOG_WARN(md, "set for conditional, but not found in local db, object %s created on linecard ?",
-                    otai_serialize_object_meta_key(meta_key).c_str());
-        }
-        else
-        {
-            META_LOG_DEBUG(md, "conditional attr found in local db");
-        }
-
-        META_LOG_DEBUG(md, "conditional attr found in local db");
-    }
-
-    // check if object on which we perform operation exists
-
-    if (!m_otaiObjectCollection.objectExists(meta_key))
-    {
-        META_LOG_ERROR(md, "object key %s doesn't exist",
-                otai_serialize_object_meta_key(meta_key).c_str());
-
-        return OTAI_STATUS_INVALID_PARAMETER;
-    }
-
     // object exists in DB so we can do "set" operation
 
     if (info->isnonobjectid)
@@ -1570,40 +1207,6 @@ otai_status_t Meta::meta_generic_validation_get(
             return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (md.isconditional)
-        {
-            /*
-             * XXX workaround
-             *
-             * TODO If object was created internally by switch (like bridge
-             * port) then current db will not have previous value of this
-             * attribute (like OTAI_BRIDGE_PORT_ATTR_PORT_ID) or even other oid.
-             * This can lead to inconsistency, that we queried one oid, and its
-             * attribute also oid, and then did a "set" on that value, and now
-             * reference is not decreased since previous oid was not snooped.
-             *
-             * TODO This concern all attributes not only conditionals
-             *
-             * If attribute is conditional, we need to check if condition is
-             * met, if not then this attribute is not mandatory so we can
-             * return fail in that case, for that we need all internal
-             * linecard objects after create.
-             */
-
-            // check if it was set on local DB
-            // (this will not respect create_only with default)
-            if (get_object_previous_attr(meta_key, md) == NULL)
-            {
-                // XXX produces too much noise
-                // META_LOG_WARN(md, "get for conditional, but not found in local db, object %s created on linecard ?",
-                //          otai_serialize_object_meta_key(meta_key).c_str());
-            }
-            else
-            {
-                META_LOG_DEBUG(md, "conditional attr found in local db");
-            }
-        }
-
         /*
          * When GET api is performed, later on same methods serialize/deserialize
          * are used for create/set/get apis. User may not clear input attributes
@@ -1676,14 +1279,6 @@ otai_status_t Meta::meta_generic_validation_get(
 
                 META_LOG_THROW(md, "serialization type is not supported yet FIXME");
         }
-    }
-
-    if (!m_otaiObjectCollection.objectExists(meta_key))
-    {
-        SWSS_LOG_ERROR("object key %s doesn't exist",
-                otai_serialize_object_meta_key(meta_key).c_str());
-
-        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
@@ -1928,13 +1523,6 @@ otai_status_t Meta::meta_generic_validation_objlist(
             return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (!m_oids.objectReferenceExists(oid))
-        {
-            META_LOG_ERROR(md, "object on list [%u] oid 0x%" PRIx64 " object type %d does not exists in local DB", i, oid, ot);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
         if (i > 1)
         {
             /*
@@ -1950,12 +1538,6 @@ otai_status_t Meta::meta_generic_validation_objlist(
         }
 
         otai_object_id_t query_linecard_id = linecardIdQuery(oid);
-
-        if (!m_oids.objectReferenceExists(query_linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", query_linecard_id);
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
 
         if (query_linecard_id != linecard_id)
         {
@@ -2053,15 +1635,6 @@ otai_status_t Meta::meta_generic_validate_non_object_on_create(
             return OTAI_STATUS_INVALID_PARAMETER;
         }
 
-        if (!m_oids.objectReferenceExists(oid))
-        {
-            SWSS_LOG_ERROR("object don't exist %s (%s)",
-                    otai_serialize_object_id(oid).c_str(),
-                    m->membername);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
         otai_object_type_t ot = objectTypeQuery(oid);
 
         /*
@@ -2089,13 +1662,6 @@ otai_status_t Meta::meta_generic_validate_non_object_on_create(
         }
 
         otai_object_id_t oid_linecard_id = linecardIdQuery(oid);
-
-        if (!m_oids.objectReferenceExists(oid_linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", oid_linecard_id);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
 
         if (linecard_id != oid_linecard_id)
         {
@@ -2160,15 +1726,6 @@ otai_object_id_t Meta::meta_extract_linecard_id(
     }
 }
 
-std::shared_ptr<OtaiAttrWrapper> Meta::get_object_previous_attr(
-        _In_ const otai_object_meta_key_t& metaKey,
-        _In_ const otai_attr_metadata_t& md)
-{
-    SWSS_LOG_ENTER();
-
-    return m_otaiObjectCollection.getObjectAttr(metaKey, md.attrid);
-}
-
 std::vector<const otai_attr_metadata_t*> Meta::get_attributes_metadata(
         _In_ otai_object_type_t objecttype)
 {
@@ -2196,30 +1753,6 @@ void Meta::meta_generic_validation_post_get_objlist(
         _In_ const otai_object_id_t* list)
 {
     SWSS_LOG_ENTER();
-
-    /*
-     * TODO This is not good enough when object was created by linecard
-     * internally and it have oid attributes, we need to insert them to local
-     * db and increase reference count if object don't exist.
-     *
-     * Also this function maybe not best place to do it since it's not executed
-     * when we doing get on acl field/action. But none of those are created
-     * internally by linecard.
-     *
-     * TODO Similar stuff is with SET, when we will set oid object on existing
-     * linecard object, but we will not have it's previous value.  We can check
-     * whether default value is present and it's const NULL.
-     */
-
-    if (!OTAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
-    {
-        if (get_object_previous_attr(meta_key, md) == NULL)
-        {
-            // XXX produces too much noise
-            // META_LOG_WARN(md, "post get, not in local db, FIX snoop!: %s",
-            //          otai_serialize_object_meta_key(meta_key).c_str());
-        }
-    }
 
     if (count > MAX_LIST_COUNT)
     {
@@ -2271,31 +1804,7 @@ void Meta::meta_generic_validation_post_get_objlist(
             META_LOG_ERROR(md, "returned get object on list [%u] oid 0x%" PRIx64 " object type %d is not allowed on this attribute", i, oid, ot);
         }
 
-        if (!m_oids.objectReferenceExists(oid))
-        {
-            // NOTE: there may happen that user will request multiple object lists
-            // and first list was retrieved ok, but second failed with overflow
-            // then we may forget to snoop
-
-            META_LOG_INFO(md, "returned get object on list [%u] oid 0x%" PRIx64 " object type %d does not exists in local DB (snoop)", i, oid, ot);
-
-            otai_object_meta_key_t key = { .objecttype = ot, .objectkey = { .key = { .object_id = oid } } };
-
-            m_oids.objectReferenceInsert(oid);
-
-            if (!m_otaiObjectCollection.objectExists(key))
-            {
-                m_otaiObjectCollection.createObject(key);
-            }
-        }
-
         otai_object_id_t query_linecard_id = linecardIdQuery(oid);
-
-        if (!m_oids.objectReferenceExists(query_linecard_id))
-        {
-            SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", query_linecard_id);
-        }
-
         if (query_linecard_id != linecard_id)
         {
             SWSS_LOG_ERROR("oid 0x%" PRIx64 " is from linecard 0x%" PRIx64 " but expected linecard 0x%" PRIx64 "", oid, query_linecard_id, linecard_id);
@@ -2311,36 +1820,9 @@ void Meta::meta_generic_validation_post_create(
 {
     SWSS_LOG_ENTER();
 
-    if (m_otaiObjectCollection.objectExists(meta_key))
-    {
-        SWSS_LOG_ERROR("object key %s already exists (vendor bug?)",
-                otai_serialize_object_meta_key(meta_key).c_str());
-    }
-
-    m_otaiObjectCollection.createObject(meta_key);
-
     auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
 
-    if (info->isnonobjectid)
-    {
-        /*
-         * Increase object reference count for all object ids in non object id
-         * members.
-         */
-
-        for (size_t j = 0; j < info->structmemberscount; ++j)
-        {
-            const otai_struct_member_info_t *m = info->structmembers[j];
-
-            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-            {
-                continue;
-            }
-
-            m_oids.objectReferenceIncrement(m->getoid(&meta_key));
-        }
-    }
-    else
+    if (!info->isnonobjectid)
     {
         /*
          * Check if object created was expected type as the type of CRATE
@@ -2382,12 +1864,6 @@ void Meta::meta_generic_validation_post_create(
 
                 otai_object_id_t query_linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
 
-                if (!m_oids.objectReferenceExists(query_linecard_id))
-                {
-                    SWSS_LOG_ERROR("linecard id 0x%" PRIx64 " doesn't exist", query_linecard_id);
-                    break;
-                }
-
                 if (linecard_id != query_linecard_id)
                 {
                     SWSS_LOG_ERROR("created oid 0x%" PRIx64 " linecard id 0x%" PRIx64 " is different than requested 0x%" PRIx64 "",
@@ -2395,187 +1871,8 @@ void Meta::meta_generic_validation_post_create(
                     break;
                 }
             }
-
-            m_oids.objectReferenceInsert(oid);
-
         } while (false);
     }
-
-    bool haskeys = false;
-
-    for (uint32_t idx = 0; idx < attr_count; ++idx)
-    {
-        const otai_attribute_t* attr = &attr_list[idx];
-
-        auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
-
-        const otai_attribute_value_t& value = attr->value;
-
-        const otai_attr_metadata_t& md = *mdp;
-
-        if (OTAI_HAS_FLAG_KEY(md.flags))
-        {
-            haskeys = true;
-            META_LOG_DEBUG(md, "attr is key");
-        }
-
-        // increase reference on object id types
-
-        switch (md.attrvaluetype)
-        {
-            case OTAI_ATTR_VALUE_TYPE_BOOL:
-            case OTAI_ATTR_VALUE_TYPE_CHARDATA:
-            case OTAI_ATTR_VALUE_TYPE_UINT8:
-            case OTAI_ATTR_VALUE_TYPE_INT8:
-            case OTAI_ATTR_VALUE_TYPE_UINT16:
-            case OTAI_ATTR_VALUE_TYPE_INT16:
-            case OTAI_ATTR_VALUE_TYPE_UINT32:
-            case OTAI_ATTR_VALUE_TYPE_INT32:
-            case OTAI_ATTR_VALUE_TYPE_UINT64:
-            case OTAI_ATTR_VALUE_TYPE_INT64:
-            case OTAI_ATTR_VALUE_TYPE_DOUBLE:
-            case OTAI_ATTR_VALUE_TYPE_POINTER:
-                // primitives
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
-                m_oids.objectReferenceIncrement(value.oid);
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
-                m_oids.objectReferenceIncrement(value.objlist);
-                break;
-
-            case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
-            case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
-            case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-            case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
-                // no special action required
-                break;
-
-            default:
-
-                META_LOG_THROW(md, "serialization type is not supported yet FIXME");
-        }
-
-        m_otaiObjectCollection.setObjectAttr(meta_key, md, attr);
-    }
-
-    if (haskeys)
-    {
-        auto mKey = otai_serialize_object_meta_key(meta_key);
-
-        auto attrKey = AttrKeyMap::constructKey(meta_key, attr_count, attr_list);
-
-        m_attrKeys.insert(mKey, attrKey);
-    }
-}
-
-void Meta::meta_generic_validation_post_set(
-        _In_ const otai_object_meta_key_t& meta_key,
-        _In_ const otai_attribute_t *attr)
-{
-    SWSS_LOG_ENTER();
-
-    auto mdp = otai_metadata_get_attr_metadata(meta_key.objecttype, attr->id);
-
-    const otai_attribute_value_t& value = attr->value;
-
-    const otai_attr_metadata_t& md = *mdp;
-
-    /*
-     * TODO We need to get previous value and make deal with references, check
-     * if there is default value and if it's const.
-     */
-
-    if (!OTAI_HAS_FLAG_READ_ONLY(md.flags) && md.isoidattribute)
-    {
-        if ((get_object_previous_attr(meta_key, md) == NULL) &&
-                (md.defaultvaluetype != OTAI_DEFAULT_VALUE_TYPE_CONST &&
-                 md.defaultvaluetype != OTAI_DEFAULT_VALUE_TYPE_EMPTY_LIST))
-        {
-            /*
-             * If default value type will be internal then we should warn.
-             */
-
-            // XXX produces too much noise
-            // META_LOG_WARN(md, "post set, not in local db, FIX snoop!: %s",
-            //              otai_serialize_object_meta_key(meta_key).c_str());
-        }
-    }
-
-    switch (md.attrvaluetype)
-    {
-        case OTAI_ATTR_VALUE_TYPE_BOOL:
-        case OTAI_ATTR_VALUE_TYPE_CHARDATA:
-        case OTAI_ATTR_VALUE_TYPE_UINT8:
-        case OTAI_ATTR_VALUE_TYPE_INT8:
-        case OTAI_ATTR_VALUE_TYPE_UINT16:
-        case OTAI_ATTR_VALUE_TYPE_INT16:
-        case OTAI_ATTR_VALUE_TYPE_UINT32:
-        case OTAI_ATTR_VALUE_TYPE_INT32:
-        case OTAI_ATTR_VALUE_TYPE_UINT64:
-        case OTAI_ATTR_VALUE_TYPE_INT64:
-        case OTAI_ATTR_VALUE_TYPE_DOUBLE:
-        case OTAI_ATTR_VALUE_TYPE_POINTER:
-            // primitives, ok
-            break;
-
-        case OTAI_ATTR_VALUE_TYPE_OBJECT_ID:
-
-            {
-                auto prev = get_object_previous_attr(meta_key, md);
-
-                if (prev != NULL)
-                {
-                    // decrease previous if it was set
-                    m_oids.objectReferenceDecrement(prev->getOtaiAttr()->value.oid);
-                }
-
-                m_oids.objectReferenceIncrement(value.oid);
-
-                break;
-            }
-
-        case OTAI_ATTR_VALUE_TYPE_OBJECT_LIST:
-
-            {
-                auto prev = get_object_previous_attr(meta_key, md);
-
-                if (prev != NULL)
-                {
-                    // decrease previous if it was set
-                    m_oids.objectReferenceDecrement(prev->getOtaiAttr()->value.objlist);
-                }
-
-                m_oids.objectReferenceIncrement(value.objlist);
-
-                break;
-            }
-
-        case OTAI_ATTR_VALUE_TYPE_UINT8_LIST:
-        case OTAI_ATTR_VALUE_TYPE_INT8_LIST:
-        case OTAI_ATTR_VALUE_TYPE_UINT16_LIST:
-        case OTAI_ATTR_VALUE_TYPE_INT16_LIST:
-        case OTAI_ATTR_VALUE_TYPE_UINT32_LIST:
-        case OTAI_ATTR_VALUE_TYPE_INT32_LIST:
-        case OTAI_ATTR_VALUE_TYPE_UINT32_RANGE:
-        case OTAI_ATTR_VALUE_TYPE_INT32_RANGE:
-            // no special action required
-            break;
-
-        default:
-            META_LOG_THROW(md, "serialization type is not supported yet FIXME");
-    }
-
-    // only on create we need to increase entry object types members
-    // save actual attributes and values to local db
-
-    m_otaiObjectCollection.setObjectAttr(meta_key, md, attr);
 }
 
 void Meta::meta_otai_on_linecard_state_change(
@@ -2591,14 +1888,6 @@ void Meta::meta_otai_on_linecard_state_change(
         SWSS_LOG_WARN("linecard_id %s is of type %s, but expected OTAI_OBJECT_TYPE_LINECARD",
                 otai_serialize_object_id(linecard_id).c_str(),
                 otai_serialize_object_type(ot).c_str());
-    }
-
-    otai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
-
-    if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
-    {
-        SWSS_LOG_ERROR("linecard_id %s don't exists in local database",
-                otai_serialize_object_id(linecard_id).c_str());
     }
 
     // we should not snoop linecard_id, since linecard id should be created directly by user
@@ -2626,30 +1915,7 @@ void Meta::meta_otai_on_linecard_shutdown_request(
                 otai_serialize_object_type(ot).c_str());
     }
 
-    otai_object_meta_key_t linecard_meta_key = { .objecttype = ot , .objectkey = { .key = { .object_id = linecard_id } } };
-
-    if (!m_otaiObjectCollection.objectExists(linecard_meta_key))
-    {
-        SWSS_LOG_ERROR("linecard_id %s don't exists in local database",
-                otai_serialize_object_id(linecard_id).c_str());
-    }
-
     // we should not snoop linecard_id, since linecard id should be created directly by user
 }
 
-int32_t Meta::getObjectReferenceCount(
-        _In_ otai_object_id_t oid) const
-{
-    SWSS_LOG_ENTER();
-
-    return m_oids.getObjectReferenceCount(oid);
-}
-
-bool Meta::objectExists(
-        _In_ const otai_object_meta_key_t& mk) const
-{
-    SWSS_LOG_ENTER();
-
-    return m_otaiObjectCollection.objectExists(mk);
-}
 

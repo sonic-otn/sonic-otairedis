@@ -981,11 +981,6 @@ void RedisRemoteOtaiInterface::clear_local_state()
                 m_redisVidIndexGenerator);
 
     auto meta = m_meta.lock();
-
-    if (meta)
-    {
-        meta->meta_init_db();
-    }
 }
 
 void RedisRemoteOtaiInterface::setMeta(

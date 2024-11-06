@@ -21,21 +21,15 @@ libotaimeta_la_SOURCES =  \
 libotaimeta_la_CFLAGS = $(DBGFLAGS) $(AM_CFLAGS)
 
 libotaimetadata_la_SOURCES = \
-							AttrKeyMap.cpp \
 							Globals.cpp \
 							Meta.cpp \
-                            MetaKeyHasher.cpp \
 							Notification.cpp \
 							NotificationFactory.cpp \
 							NotificationLinecardStateChange.cpp \
 							NotificationOcmNotify.cpp \
-							OidRefCounter.cpp \
 							OtaiAttributeList.cpp \
-							OtaiAttrWrapper.cpp \
 							OtaiInterface.cpp \
-							OtaiSerialize.cpp \
-							OtaiObject.cpp \
-							OtaiObjectCollection.cpp
+							OtaiSerialize.cpp 
 
 
 libotaimetadata_la_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
