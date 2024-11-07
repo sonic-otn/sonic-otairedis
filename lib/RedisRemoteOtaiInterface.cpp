@@ -65,8 +65,6 @@ otai_status_t RedisRemoteOtaiInterface::initialize(
         return OTAI_STATUS_FAILURE;
     }
 
-    m_asicInitViewMode = false; // default mode is apply mode
-    m_useTempView = false;
     m_syncMode = false;
     m_redisCommunicationMode = OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
 
@@ -248,16 +246,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
 
     switch (attr->id)
     {
-        case OTAI_REDIS_LINECARD_ATTR_NOTIFY_SYNCD:
-
-            return otai_redis_notify_syncd(objectId, attr);
-
-        case OTAI_REDIS_LINECARD_ATTR_USE_TEMP_VIEW:
-
-            m_useTempView = attr->value.booldata;
-
-            return OTAI_STATUS_SUCCESS;
-
         case OTAI_REDIS_LINECARD_ATTR_SYNC_OPERATION_RESPONSE_TIMEOUT:
 
             m_responseTimeoutMs = attr->value.u64;
@@ -265,21 +253,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
             m_communicationChannel->setResponseTimeout(m_responseTimeoutMs);
 
             SWSS_LOG_NOTICE("set response timeout to %" PRIu64 " ms", m_responseTimeoutMs);
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_SYNC_MODE:
-
-            SWSS_LOG_WARN("sync mode is depreacated, use communication mode");
-
-            m_syncMode = attr->value.booldata;
-
-            if (m_syncMode)
-            {
-                SWSS_LOG_NOTICE("disabling buffered pipeline in sync mode");
-
-                m_communicationChannel->setBuffered(false);
-            }
 
             return OTAI_STATUS_SUCCESS;
 
@@ -704,46 +677,6 @@ otai_status_t RedisRemoteOtaiInterface::waitForClearStatsResponse()
     return status;
 }
 
-otai_status_t RedisRemoteOtaiInterface::notifySyncd(
-        _In_ otai_object_id_t linecardId,
-        _In_ otai_redis_notify_syncd_t redisNotifySyncd)
-{
-    SWSS_LOG_ENTER();
-
-    std::vector<swss::FieldValueTuple> entry;
-
-    auto key = otai_serialize(redisNotifySyncd);
-
-    SWSS_LOG_NOTICE("sending syncd: %s", key.c_str());
-
-    // we need to use "GET" channel to be sure that
-    // all previous operations were applied, if we don't
-    // use GET channel then we may hit race condition
-    // on syncd side where syncd will start compare view
-    // when there are still objects in op queue
-    //
-    // other solution can be to use notify event
-    // and then on syncd side read all the asic state queue
-    // and apply changes before linecarding to init/apply mode
-
-    m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_NOTIFY);
-
-    auto status = waitForNotifySyncdResponse();
-
-    return status;
-}
-
-otai_status_t RedisRemoteOtaiInterface::waitForNotifySyncdResponse()
-{
-    SWSS_LOG_ENTER();
-
-    swss::KeyOpFieldsValuesTuple kco;
-
-    auto status = m_communicationChannel->wait(REDIS_ASIC_STATE_COMMAND_NOTIFY, kco);
-
-    return status;
-}
-
 bool RedisRemoteOtaiInterface::isRedisAttribute(
         _In_ otai_object_id_t objectType,
         _In_ const otai_attribute_t* attr)
@@ -814,68 +747,6 @@ otai_status_t RedisRemoteOtaiInterface::logSet(
     SWSS_LOG_ENTER();
 
     return OTAI_STATUS_SUCCESS;
-}
-
-otai_status_t RedisRemoteOtaiInterface::otai_redis_notify_syncd(
-        _In_ otai_object_id_t linecardId,
-        _In_ const otai_attribute_t *attr)
-{
-    SWSS_LOG_ENTER();
-
-    auto redisNotifySyncd = (otai_redis_notify_syncd_t)attr->value.s32;
-
-    switch (redisNotifySyncd)
-    {
-        case OTAI_REDIS_NOTIFY_SYNCD_INIT_VIEW:
-        case OTAI_REDIS_NOTIFY_SYNCD_APPLY_VIEW:
-        case OTAI_REDIS_NOTIFY_SYNCD_INSPECT_ASIC:
-            break;
-
-        default:
-
-            SWSS_LOG_ERROR("invalid notify syncd attr value %s", otai_serialize(redisNotifySyncd).c_str());
-
-            return OTAI_STATUS_FAILURE;
-    }
-
-    auto status = notifySyncd(linecardId, redisNotifySyncd);
-
-    if (status == OTAI_STATUS_SUCCESS)
-    {
-        switch (redisNotifySyncd)
-        {
-            case OTAI_REDIS_NOTIFY_SYNCD_INIT_VIEW:
-
-                SWSS_LOG_NOTICE("linecarded ASIC to INIT VIEW");
-
-                m_asicInitViewMode = true;
-
-                SWSS_LOG_NOTICE("clearing current local state since init view is called on initialized linecard");
-
-                clear_local_state();
-
-                break;
-
-            case OTAI_REDIS_NOTIFY_SYNCD_APPLY_VIEW:
-
-                SWSS_LOG_NOTICE("linecarded ASIC to APPLY VIEW");
-
-                m_asicInitViewMode = false;
-
-                break;
-
-            case OTAI_REDIS_NOTIFY_SYNCD_INSPECT_ASIC:
-
-                SWSS_LOG_NOTICE("inspect ASIC SUCCEEDED");
-
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    return status;
 }
 
 void RedisRemoteOtaiInterface::clear_local_state()

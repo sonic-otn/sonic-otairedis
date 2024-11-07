@@ -1193,34 +1193,6 @@ std::string otai_serialize_object_meta_key(
     return key;
 }
 
-#define SYNCD_INIT_VIEW     "INIT_VIEW"
-#define SYNCD_APPLY_VIEW    "APPLY_VIEW"
-#define SYNCD_INSPECT_ASIC  "SYNCD_INSPECT_ASIC"
-
-std::string otai_serialize(
-        _In_ const otai_redis_notify_syncd_t& value)
-{
-    SWSS_LOG_ENTER();
-
-    switch (value)
-    {
-        case OTAI_REDIS_NOTIFY_SYNCD_INIT_VIEW:
-            return SYNCD_INIT_VIEW;
-
-        case OTAI_REDIS_NOTIFY_SYNCD_APPLY_VIEW:
-            return SYNCD_APPLY_VIEW;
-
-        case OTAI_REDIS_NOTIFY_SYNCD_INSPECT_ASIC:
-            return SYNCD_INSPECT_ASIC;
-
-        default:
-
-            SWSS_LOG_WARN("unknown value on otai_redis_notify_syncd_t: %d", value);
-
-            return std::to_string(value);
-    }
-}
-
 #define REDIS_COMMUNICATION_MODE_REDIS_ASYNC_STRING "redis_async"
 #define REDIS_COMMUNICATION_MODE_REDIS_SYNC_STRING  "redis_sync"
 
@@ -1935,45 +1907,6 @@ void otai_deserialize_free_attribute_value(
 }
 
 // otairedis
-
-void otai_deserialize(
-        _In_ const std::string& s,
-        _Out_ otai_redis_notify_syncd_t& value)
-{
-    SWSS_LOG_ENTER();
-
-    if (s == SYNCD_INIT_VIEW)
-    {
-        value = OTAI_REDIS_NOTIFY_SYNCD_INIT_VIEW;
-    }
-    else if (s == SYNCD_APPLY_VIEW)
-    {
-        value = OTAI_REDIS_NOTIFY_SYNCD_APPLY_VIEW;
-    }
-    else if (s == SYNCD_INSPECT_ASIC)
-    {
-        value = OTAI_REDIS_NOTIFY_SYNCD_INSPECT_ASIC;
-    }
-    else
-    {
-        SWSS_LOG_WARN("enum %s not found in otai_redis_notify_syncd_t", s.c_str());
-
-        otai_deserialize_number(s, value);
-    }
-}
-
-otai_redis_notify_syncd_t otai_deserialize_redis_notify_syncd(
-        _In_ const std::string& s)
-{
-    SWSS_LOG_ENTER();
-
-    otai_redis_notify_syncd_t value;
-
-    otai_deserialize(s, value);
-
-    return value;
-}
-
 void otai_deserialize_redis_communication_mode(
         _In_ const std::string& s,
         _Out_ otai_redis_communication_mode_t& value)

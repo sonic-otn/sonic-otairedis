@@ -131,11 +131,6 @@ otai_status_t Otai::create(
     {
         uint32_t globalContext = 0; // default
 
-        if (attr_list[attr_count - 1].id == OTAI_REDIS_LINECARD_ATTR_CONTEXT)
-        {
-            globalContext = attr_list[--attr_count].value.u32;
-        }
-
         SWSS_LOG_NOTICE("request linecard create with context %u", globalContext);
 
         context = getContext(globalContext);

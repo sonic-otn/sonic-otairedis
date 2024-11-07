@@ -163,9 +163,6 @@ std::string otai_serialize_object_meta_key(
 
 // otairedis
 
-std::string otai_serialize(
-        _In_ const otai_redis_notify_syncd_t& value);
-
 std::string otai_serialize_redis_communication_mode(
         _In_ otai_redis_communication_mode_t value);
 
@@ -250,14 +247,6 @@ void otai_deserialize_free_attribute_value(
         _In_ otai_attribute_t &attr);
 
 // otairedis
-
-void otai_deserialize(
-        _In_ const std::string& s,
-        _Out_ otai_redis_notify_syncd_t& value);
-
-otai_redis_notify_syncd_t otai_deserialize_redis_notify_syncd(
-        _In_ const std::string& s);
-
 void otai_deserialize_redis_communication_mode(
         _In_ const std::string& s,
         _Out_ otai_redis_communication_mode_t& value);

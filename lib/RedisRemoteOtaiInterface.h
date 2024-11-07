@@ -100,12 +100,6 @@ namespace otairedis
                     _In_ otai_api_t api,
                     _In_ otai_log_level_t log_level) override;
 
-        public: // notify syncd
-
-            virtual otai_status_t notifySyncd(
-                    _In_ otai_object_id_t linecardId,
-                    _In_ otai_redis_notify_syncd_t redisNotifySyncd) override;
-
         public:
 
             /**
@@ -209,10 +203,6 @@ namespace otairedis
                     _In_ uint32_t object_count,
                     _Out_ otai_status_t *object_statuses);
 
-        private: // notify syncd response
-
-            otai_status_t waitForNotifySyncdResponse();
-
         private: // notification
 
             void notificationThreadFunction();
@@ -245,10 +235,6 @@ namespace otairedis
         private:
 
             std::shared_ptr<ContextConfig> m_contextConfig;
-
-            bool m_asicInitViewMode;
-
-            bool m_useTempView;
 
             bool m_syncMode;
 

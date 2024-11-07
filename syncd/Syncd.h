@@ -268,17 +268,6 @@ namespace syncd
 
         std::shared_ptr<FlexCounterManager> m_manager;
 
-        /**
-         * @brief set of objects removed by user when we are in init view
-         * mode. Those could be vlan members, bridge ports etc.
-         *
-         * We need this list to later on not put them back to temp view
-         * mode when doing populate existing objects in apply view mode.
-         *
-         * Object ids here a VIDs.
-         */
-        std::set<otai_object_id_t> m_initViewRemovedVidSet;
-
         std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
         /*

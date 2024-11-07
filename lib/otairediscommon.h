@@ -5,9 +5,6 @@
  * as libswsscommon (for producer/consumer) and lua scripts.
  */
 
-#define SYNCD_INIT_VIEW     "INIT_VIEW"
-#define SYNCD_APPLY_VIEW    "APPLY_VIEW"
-#define SYNCD_INSPECT_ASIC  "SYNCD_INSPECT_ASIC"
 #define ASIC_STATE_TABLE    "ASIC_STATE"
 #define FLEX_COUNTER_GROUP_TABLE    "FLEX_COUNTER_GROUP_TABLE"
 #define FLEX_COUNTER_TABLE    "FLEX_COUNTER_TABLE"
