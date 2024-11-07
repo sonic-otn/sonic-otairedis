@@ -24,7 +24,6 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
         static struct option long_options[] =
         {
             { "profile",                 required_argument, 0, 'p' },
-            { "syncMode",                no_argument,       0, 's' },
             { "redisCommunicationMode",  required_argument, 0, 'z' },
             { "enableOtaiBulkSupport",    no_argument,       0, 'l' },
             { "globalContext",           required_argument, 0, 'g' },
@@ -47,15 +46,6 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
         {
             case 'p':
                 options->m_profileMapFile = std::string(optarg);
-                break;
-
-            case 's':
-                SWSS_LOG_WARN("param -s is depreacated, use -z");
-                options->m_enableSyncMode = true;
-                break;
-
-            case 'z':
-                otai_deserialize_redis_communication_mode(optarg, options->m_redisCommunicationMode);
                 break;
 
             case 'l':

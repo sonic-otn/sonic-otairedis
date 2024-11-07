@@ -161,11 +161,6 @@ std::string otai_serialize_stat_id_camel_case(
 std::string otai_serialize_object_meta_key(
         _In_ const otai_object_meta_key_t& meta_key);
 
-// otairedis
-
-std::string otai_serialize_redis_communication_mode(
-        _In_ otai_redis_communication_mode_t value);
-
 // deserialize
 
 void otai_deserialize_enum(
@@ -245,11 +240,6 @@ void otai_deserialize_object_meta_key(
 void otai_deserialize_free_attribute_value(
         _In_ const otai_attr_value_type_t type,
         _In_ otai_attribute_t &attr);
-
-// otairedis
-void otai_deserialize_redis_communication_mode(
-        _In_ const std::string& s,
-        _Out_ otai_redis_communication_mode_t& value);
 
 std::string otai_serialize_transceiver_stat(
         _In_ const otai_transceiver_stat_t stat);

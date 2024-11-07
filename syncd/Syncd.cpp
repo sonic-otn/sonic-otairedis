@@ -41,8 +41,7 @@ Syncd::Syncd(
     _In_ bool needCheckLink) :
     m_commandLineOptions(cmd),
     m_linkCheckLoop(needCheckLink),
-    m_vendorOtai(vendorOtai),
-    m_enableSyncMode(false)
+    m_vendorOtai(vendorOtai)
 {
     SWSS_LOG_ENTER();
     //swss::Logger::getInstance().setMinPrio(swss::Logger::Priority(m_commandLineOptions->m_loglevel));//read level from db or set as default level
@@ -53,14 +52,6 @@ Syncd::Syncd(
     if (m_contextConfig == nullptr)
     {
         SWSS_LOG_THROW("no context config defined at global context %u", m_commandLineOptions->m_globalContext);
-    }
-    if (m_commandLineOptions->m_enableSyncMode)
-    {
-        SWSS_LOG_WARN("enable sync mode is deprecated, please use communication mode, FORCING redis sync mode");
-
-        m_enableSyncMode = true;
-
-        m_commandLineOptions->m_redisCommunicationMode = OTAI_REDIS_COMMUNICATION_MODE_REDIS_SYNC;
     }
     m_manager = std::make_shared<FlexCounterManager>(m_vendorOtai, m_contextConfig->m_dbCounters);
 
@@ -75,13 +66,11 @@ Syncd::Syncd(
     m_dbAsic = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbAsic, 0);
     m_dbFlexCounter = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbFlex, 0);
     m_notifications = std::make_shared<RedisNotificationProducer>(m_contextConfig->m_dbAsic);
-    m_enableSyncMode = m_commandLineOptions->m_redisCommunicationMode == OTAI_REDIS_COMMUNICATION_MODE_REDIS_SYNC;
-    bool modifyRedis = m_enableSyncMode ? false : true;
     m_selectableChannel = std::make_shared<RedisSelectableChannel>(
         m_dbAsic,
         ASIC_STATE_TABLE,
         REDIS_TABLE_GETRESPONSE,
-        modifyRedis);
+        false);
     m_client = std::make_shared<RedisClient>(m_dbAsic, m_dbFlexCounter);
 
     m_processor = std::make_shared<NotificationProcessor>(m_mtxAlarmTable, m_notifications, m_contextConfig->m_dbAsic, m_client, std::bind(&Syncd::syncProcessNotification, this, _1), std::bind(&Syncd::handleLinecardStateChange, this, _1));
@@ -220,18 +209,6 @@ void Syncd::sendApiResponse(
 {
     SWSS_LOG_ENTER();
 
-    /*
-     * By default synchronous mode is disabled and can be enabled by command
-     * line on syncd start. This will also require to enable synchronous mode
-     * in OA/otairedis because same GET RESPONSE channel is used to generate
-     * response for otairedis quad API.
-     */
-
-    if (!m_enableSyncMode)
-    {
-        return;
-    }
-
     switch (api)
     {
     case OTAI_COMMON_API_CREATE:
@@ -366,11 +343,6 @@ void Syncd::syncUpdateRedisQuadEvent(
     _In_ const swss::KeyOpFieldsValuesTuple& kco)
 {
     SWSS_LOG_ENTER();
-
-    if (!m_enableSyncMode)
-    {
-        return;
-    }
 
     if (status != OTAI_STATUS_SUCCESS)
     {
@@ -548,16 +520,6 @@ otai_status_t Syncd::processQuadEvent(
         for (const auto& v : values)
         {
             SWSS_LOG_ERROR("attr: %s: %s", fvField(v).c_str(), fvValue(v).c_str());
-        }
-
-        if (!m_enableSyncMode)
-        {
-            // throw only when sync mode is not enabled
-
-            SWSS_LOG_THROW("failed to execute api: %s, key: %s, status: %s",
-                op.c_str(),
-                key.c_str(),
-                otai_serialize_status(status).c_str());
         }
     }
     else // non GET api, status is SUCCESS

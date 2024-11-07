@@ -236,10 +236,6 @@ namespace otairedis
 
             std::shared_ptr<ContextConfig> m_contextConfig;
 
-            bool m_syncMode;
-
-            otai_redis_communication_mode_t m_redisCommunicationMode;
-
             bool m_initialized;
 
             std::shared_ptr<LinecardContainer> m_linecardContainer;
@@ -253,8 +249,6 @@ namespace otairedis
             std::weak_ptr<otaimeta::Meta> m_meta;
 
             std::shared_ptr<Channel> m_communicationChannel;
-
-            uint64_t m_responseTimeoutMs;
 
             std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> m_notificationCallback;
 

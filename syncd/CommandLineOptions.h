@@ -21,11 +21,7 @@ namespace syncd
             virtual std::string getCommandLineString() const;
 
         public:
-            bool m_enableSyncMode;
-
             bool m_enableOtaiBulkSupport;
-
-            otai_redis_communication_mode_t m_redisCommunicationMode;
 
             std::string m_profileMapFile;
 

@@ -1193,30 +1193,6 @@ std::string otai_serialize_object_meta_key(
     return key;
 }
 
-#define REDIS_COMMUNICATION_MODE_REDIS_ASYNC_STRING "redis_async"
-#define REDIS_COMMUNICATION_MODE_REDIS_SYNC_STRING  "redis_sync"
-
-std::string otai_serialize_redis_communication_mode(
-        _In_ otai_redis_communication_mode_t value)
-{
-    SWSS_LOG_ENTER();
-
-    switch (value)
-    {
-        case OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC:
-            return REDIS_COMMUNICATION_MODE_REDIS_ASYNC_STRING;
-
-        case OTAI_REDIS_COMMUNICATION_MODE_REDIS_SYNC:
-            return REDIS_COMMUNICATION_MODE_REDIS_SYNC_STRING;
-
-        default:
-
-            SWSS_LOG_WARN("unknown value on otai_redis_communication_mode_t: %d", value);
-
-            return std::to_string(value);
-    }
-}
-
 std::string otai_serialize_ocm_spectrum_power(
         _In_ otai_spectrum_power_t ocm_result)
 {
@@ -1903,27 +1879,6 @@ void otai_deserialize_free_attribute_value(
 
         default:
             SWSS_LOG_THROW("unsupported type %d on deserialize free, FIXME", type);
-    }
-}
-
-// otairedis
-void otai_deserialize_redis_communication_mode(
-        _In_ const std::string& s,
-        _Out_ otai_redis_communication_mode_t& value)
-{
-    SWSS_LOG_ENTER();
-
-    if (s == REDIS_COMMUNICATION_MODE_REDIS_ASYNC_STRING)
-    {
-        value = OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
-    }
-    else if (s == REDIS_COMMUNICATION_MODE_REDIS_SYNC_STRING)
-    {
-        value = OTAI_REDIS_COMMUNICATION_MODE_REDIS_SYNC;
-    }
-    else
-    {
-        SWSS_LOG_THROW("enum '%s' not found in otai_redis_communication_mode_t", s.c_str());
     }
 }
 

@@ -176,25 +176,6 @@ otai_status_t Otai::set(
 
     if (RedisRemoteOtaiInterface::isRedisAttribute(objectType, attr))
     {
-        if (attr->id == OTAI_REDIS_LINECARD_ATTR_REDIS_COMMUNICATION_MODE)
-        {
-            // Since communication mode destroys current channel and creates
-            // new one, it may happen, that during this SET api execution when
-            // api mutex is acquired, channel destructor will be blocking on
-            // thread->join() and channel thread will start processing
-            // incoming notification. That notification will be synchronized
-            // with api mutex and will cause deadlock, so to mitigate this
-            // scenario we will unlock api mutex here.
-            //
-            // This is not the perfect, but assuming that communication mode is
-            // changed in single thread and before linecard create then we should
-            // not hit race condition.
-
-            SWSS_LOG_NOTICE("unlocking api mutex for communication mode");
-
-            MUTEX_UNLOCK();
-        }
-
         // skip metadata if attribute is redis extension attribute
 
         // TODO this is setting on all contexts, but maybe we want one specific?

@@ -14,10 +14,7 @@ CommandLineOptions::CommandLineOptions()
 
     // default values for command line options
 
-    m_enableSyncMode = false;
     m_enableOtaiBulkSupport = false;
-
-    m_redisCommunicationMode = OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
 
     m_loglevel = swss::Logger::SWSS_INFO;
 
@@ -34,8 +31,6 @@ std::string CommandLineOptions::getCommandLineString() const
 
     std::stringstream ss;
 
-    ss << " EnableSyncMode=" << (m_enableSyncMode ? "YES" : "NO");
-    ss << " RedisCommunicationMode=" << otai_serialize_redis_communication_mode(m_redisCommunicationMode);
     ss << " EnableOtaiBulkSuport=" << (m_enableOtaiBulkSupport ? "YES" : "NO");
     ss << " ProfileMapFile=" << m_profileMapFile;
     ss << " GlobalContext=" << m_globalContext;

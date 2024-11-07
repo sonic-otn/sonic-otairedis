@@ -32,7 +32,6 @@ RedisRemoteOtaiInterface::RedisRemoteOtaiInterface(
         _In_ std::shared_ptr<ContextConfig> contextConfig,
         _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback):
     m_contextConfig(contextConfig),
-    m_redisCommunicationMode(OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC),
     m_notificationCallback(notificationCallback)
 {
     SWSS_LOG_ENTER();
@@ -65,14 +64,9 @@ otai_status_t RedisRemoteOtaiInterface::initialize(
         return OTAI_STATUS_FAILURE;
     }
 
-    m_syncMode = false;
-    m_redisCommunicationMode = OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC;
-
     m_communicationChannel = std::make_shared<RedisChannel>(
             m_contextConfig->m_dbAsic,
             std::bind(&RedisRemoteOtaiInterface::handleNotification, this, _1, _2, _3));
-
-    m_responseTimeoutMs = m_communicationChannel->getResponseTimeout();
 
     m_db = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbAsic, 0);
 
@@ -246,76 +240,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
 
     switch (attr->id)
     {
-        case OTAI_REDIS_LINECARD_ATTR_SYNC_OPERATION_RESPONSE_TIMEOUT:
-
-            m_responseTimeoutMs = attr->value.u64;
-
-            m_communicationChannel->setResponseTimeout(m_responseTimeoutMs);
-
-            SWSS_LOG_NOTICE("set response timeout to %" PRIu64 " ms", m_responseTimeoutMs);
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_REDIS_COMMUNICATION_MODE:
-
-            m_redisCommunicationMode = (otai_redis_communication_mode_t)attr->value.s32;
-
-            m_communicationChannel = nullptr;
-
-            switch (m_redisCommunicationMode)
-            {
-                case OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC:
-
-                    SWSS_LOG_NOTICE("enabling redis async mode");
-
-                    m_syncMode = false;
-
-                    m_communicationChannel = std::make_shared<RedisChannel>(
-                            m_contextConfig->m_dbAsic,
-                            std::bind(&RedisRemoteOtaiInterface::handleNotification, this, _1, _2, _3));
-
-                    m_communicationChannel->setResponseTimeout(m_responseTimeoutMs);
-
-                    m_communicationChannel->setBuffered(true);
-
-                    return OTAI_STATUS_SUCCESS;
-
-                case OTAI_REDIS_COMMUNICATION_MODE_REDIS_SYNC:
-
-                    SWSS_LOG_NOTICE("enabling redis sync mode");
-
-                    m_syncMode = true;
-
-                    m_communicationChannel = std::make_shared<RedisChannel>(
-                            m_contextConfig->m_dbAsic,
-                            std::bind(&RedisRemoteOtaiInterface::handleNotification, this, _1, _2, _3));
-
-                    m_communicationChannel->setResponseTimeout(m_responseTimeoutMs);
-
-                    m_communicationChannel->setBuffered(false);
-
-                    return OTAI_STATUS_SUCCESS;
-
-                default:
-
-                    SWSS_LOG_ERROR("invalid communication mode value: %d", m_redisCommunicationMode);
-
-                    return OTAI_STATUS_NOT_SUPPORTED;
-            }
-
-        case OTAI_REDIS_LINECARD_ATTR_USE_PIPELINE:
-
-            if (m_syncMode)
-            {
-                SWSS_LOG_WARN("use pipeline is not supported in sync mode");
-
-                return OTAI_STATUS_NOT_SUPPORTED;
-            }
-
-            m_communicationChannel->setBuffered(attr->value.booldata);
-
-            return OTAI_STATUS_SUCCESS;
-
         case OTAI_REDIS_LINECARD_ATTR_FLUSH:
 
             m_communicationChannel->flush();
@@ -471,21 +395,13 @@ otai_status_t RedisRemoteOtaiInterface::waitForResponse(
 {
     SWSS_LOG_ENTER();
 
-    if (m_syncMode)
-    {
-        swss::KeyOpFieldsValuesTuple kco;
 
-        auto status = m_communicationChannel->wait(REDIS_ASIC_STATE_COMMAND_GETRESPONSE, kco);
+    swss::KeyOpFieldsValuesTuple kco;
 
-        return status;
-    }
+    auto status = m_communicationChannel->wait(REDIS_ASIC_STATE_COMMAND_GETRESPONSE, kco);
 
-    /*
-     * By default sync mode is disabled and all create/set/remove are
-     * considered success operations.
-     */
+    return status;
 
-    return OTAI_STATUS_SUCCESS;
 }
 
 otai_status_t RedisRemoteOtaiInterface::waitForGetResponse(
