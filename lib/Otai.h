@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Recorder.h"
 #include "Context.h"
 
 #include "meta/Meta.h"
@@ -111,7 +110,5 @@ namespace otairedis
             std::map<uint32_t, std::shared_ptr<Context>> m_contextMap;
 
             otai_service_method_table_t m_service_method_table;
-
-            std::shared_ptr<Recorder> m_recorder;
     };
 }

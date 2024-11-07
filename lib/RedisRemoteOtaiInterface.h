@@ -3,9 +3,7 @@
 #include "RemoteOtaiInterface.h"
 #include "LinecardContainer.h"
 #include "VirtualObjectIdManager.h"
-#include "Recorder.h"
 #include "RedisVidIndexGenerator.h"
-#include "SkipRecordAttrContainer.h"
 #include "RedisChannel.h"
 #include "LinecardConfigContainer.h"
 #include "ContextConfig.h"
@@ -30,8 +28,7 @@ namespace otairedis
 
             RedisRemoteOtaiInterface(
                     _In_ std::shared_ptr<ContextConfig> contextConfig,
-                    _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback,
-                    _In_ std::shared_ptr<Recorder> recorder);
+                    _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback);
 
             virtual ~RedisRemoteOtaiInterface();
 
@@ -259,8 +256,6 @@ namespace otairedis
 
             bool m_initialized;
 
-            std::shared_ptr<Recorder> m_recorder;
-
             std::shared_ptr<LinecardContainer> m_linecardContainer;
 
             std::shared_ptr<VirtualObjectIdManager> m_virtualObjectIdManager;
@@ -270,8 +265,6 @@ namespace otairedis
             std::shared_ptr<RedisVidIndexGenerator> m_redisVidIndexGenerator;
 
             std::weak_ptr<otaimeta::Meta> m_meta;
-
-            std::shared_ptr<SkipRecordAttrContainer> m_skipRecordAttrContainer;
 
             std::shared_ptr<Channel> m_communicationChannel;
 

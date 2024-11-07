@@ -6,7 +6,6 @@
 #include "meta/Meta.h"
 #include "meta/otai_serialize.h"
 
-// TODO - simplify recorder
 
 using namespace otairedis;
 using namespace std::placeholders;
@@ -76,15 +75,13 @@ otai_status_t Otai::initialize(
 
     memcpy(&m_service_method_table, service_method_table, sizeof(m_service_method_table));
 
-    m_recorder = std::make_shared<Recorder>();
-
     const char* contextConfig = service_method_table->profile_get_value(0, OTAI_REDIS_KEY_CONTEXT_CONFIG);
 
     auto ccc = ContextConfigContainer::loadFromFile(contextConfig);
 
     for (auto&cc: ccc->getAllContextConfigs())
     {
-        auto context = std::make_shared<Context>(cc, m_recorder, std::bind(&Otai::handle_notification, this, _1, _2));
+        auto context = std::make_shared<Context>(cc, std::bind(&Otai::handle_notification, this, _1, _2));
 
         m_contextMap[cc->m_guid] = context;
     }
@@ -102,8 +99,6 @@ otai_status_t Otai::uninitialize(void)
     SWSS_LOG_NOTICE("begin");
 
     m_contextMap.clear();
-
-    m_recorder = nullptr;
 
     m_apiInitialized = false;
 

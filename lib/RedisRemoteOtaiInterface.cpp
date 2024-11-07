@@ -1,8 +1,6 @@
 #include "RedisRemoteOtaiInterface.h"
 #include "Utils.h"
-#include "Recorder.h"
 #include "VirtualObjectIdManager.h"
-#include "SkipRecordAttrContainer.h"
 #include "LinecardContainer.h"
 
 #include "otairediscommon.h"
@@ -32,11 +30,9 @@ std::vector<swss::FieldValueTuple> serialize_alarm_id_list(
 
 RedisRemoteOtaiInterface::RedisRemoteOtaiInterface(
         _In_ std::shared_ptr<ContextConfig> contextConfig,
-        _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback,
-        _In_ std::shared_ptr<Recorder> recorder):
+        _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback):
     m_contextConfig(contextConfig),
     m_redisCommunicationMode(OTAI_REDIS_COMMUNICATION_MODE_REDIS_ASYNC),
-    m_recorder(recorder),
     m_notificationCallback(notificationCallback)
 {
     SWSS_LOG_ENTER();
@@ -68,8 +64,6 @@ otai_status_t RedisRemoteOtaiInterface::initialize(
 
         return OTAI_STATUS_FAILURE;
     }
-
-    m_skipRecordAttrContainer = std::make_shared<SkipRecordAttrContainer>();
 
     m_asicInitViewMode = false; // default mode is apply mode
     m_useTempView = false;
@@ -254,24 +248,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
 
     switch (attr->id)
     {
-        case OTAI_REDIS_LINECARD_ATTR_PERFORM_LOG_ROTATE:
-
-            if (m_recorder)
-            {
-                m_recorder->requestLogRotate();
-            }
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_RECORD:
-
-            if (m_recorder)
-            {
-                m_recorder->enableRecording(attr->value.booldata);
-            }
-
-            return OTAI_STATUS_SUCCESS;
-
         case OTAI_REDIS_LINECARD_ATTR_NOTIFY_SYNCD:
 
             return otai_redis_notify_syncd(objectId, attr);
@@ -279,12 +255,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
         case OTAI_REDIS_LINECARD_ATTR_USE_TEMP_VIEW:
 
             m_useTempView = attr->value.booldata;
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_RECORD_STATS:
-
-            m_recorder->recordStats(attr->value.booldata);
 
             return OTAI_STATUS_SUCCESS;
 
@@ -376,24 +346,6 @@ otai_status_t RedisRemoteOtaiInterface::setRedisExtensionAttribute(
         case OTAI_REDIS_LINECARD_ATTR_FLUSH:
 
             m_communicationChannel->flush();
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_RECORDING_OUTPUT_DIR:
-
-            if (m_recorder)
-            {
-                m_recorder->setRecordingOutputDirectory(*attr);
-            }
-
-            return OTAI_STATUS_SUCCESS;
-
-        case OTAI_REDIS_LINECARD_ATTR_RECORDING_FILENAME:
-
-            if (m_recorder)
-            {
-                m_recorder->setRecordingFilename(*attr);
-            }
 
             return OTAI_STATUS_SUCCESS;
             
@@ -488,14 +440,10 @@ otai_status_t RedisRemoteOtaiInterface::create(
 
     SWSS_LOG_NOTICE("generic create key: %s, fields: %zu", key.c_str(), entry.size());
 
-    m_recorder->recordGenericCreate(key, entry);
-
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_CREATE);
 
     auto status = waitForResponse(OTAI_COMMON_API_CREATE);
     SWSS_LOG_NOTICE("generic create key end: %s, fields: %zu", key.c_str(), entry.size());
-
-    m_recorder->recordGenericCreateResponse(status);
 
     return status;
 }
@@ -512,13 +460,9 @@ otai_status_t RedisRemoteOtaiInterface::remove(
 
     SWSS_LOG_NOTICE("generic remove key: %s", key.c_str());
 
-    m_recorder->recordGenericRemove(key);
-
     m_communicationChannel->del(key, REDIS_ASIC_STATE_COMMAND_REMOVE);
 
     auto status = waitForResponse(OTAI_COMMON_API_REMOVE);
-
-    m_recorder->recordGenericRemoveResponse(status);
 
     return status;
 }
@@ -542,13 +486,9 @@ otai_status_t RedisRemoteOtaiInterface::set(
 
     SWSS_LOG_DEBUG("generic set key: %s, fields: %zu", key.c_str(), entry.size());
 
-    m_recorder->recordGenericSet(key, entry);
-
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_SET);
 
     auto status = waitForResponse(OTAI_COMMON_API_SET);
-
-    m_recorder->recordGenericSetResponse(status);
 
     return status;
 }
@@ -639,23 +579,11 @@ otai_status_t RedisRemoteOtaiInterface::get(
 
     SWSS_LOG_DEBUG("generic get key: %s, fields: %lu", key.c_str(), entry.size());
 
-    bool record = !m_skipRecordAttrContainer->canSkipRecording(objectType, attr_count, attr_list);
-
-    if (record)
-    {
-        m_recorder->recordGenericGet(key, entry);
-    }
-
     // get is special, it will not put data
     // into asic view, only to message queue
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_GET);
 
     auto status = waitForGetResponse(objectType, attr_count, attr_list);
-
-    if (record)
-    {
-        m_recorder->recordGenericGetResponse(status, objectType, attr_count, attr_list);
-    }
 
     return status;
 }
@@ -758,14 +686,9 @@ otai_status_t RedisRemoteOtaiInterface::clearStats(
     SWSS_LOG_DEBUG("generic clear stats key: %s, fields: %zu", key.c_str(), values.size());
 
     // clear_stats will not put data into asic view, only to message queue
-
-    m_recorder->recordGenericClearStats(object_type, object_id, number_of_counters, counter_ids);
-
     m_communicationChannel->set(key, values, REDIS_ASIC_STATE_COMMAND_CLEAR_STATS);
 
     auto status = waitForClearStatsResponse();
-
-    m_recorder->recordGenericClearStatsResponse(status);
 
     return status;
 }
@@ -803,13 +726,9 @@ otai_status_t RedisRemoteOtaiInterface::notifySyncd(
     // and then on syncd side read all the asic state queue
     // and apply changes before linecarding to init/apply mode
 
-    m_recorder->recordNotifySyncd(linecardId, redisNotifySyncd);
-
     m_communicationChannel->set(key, entry, REDIS_ASIC_STATE_COMMAND_NOTIFY);
 
     auto status = waitForNotifySyncdResponse();
-
-    m_recorder->recordNotifySyncdResponse(status);
 
     return status;
 }
@@ -859,10 +778,6 @@ void RedisRemoteOtaiInterface::handleNotification(
     // sending notifications from one linecard to another linecard handler.
     //
     // But before that we will extract linecard id from notification itself.
-
-    // TODO record should also be under api mutex, all other apis are
-
-    m_recorder->recordNotification(name, serializedNotification, values);
 
     auto notification = NotificationFactory::deserialize(name, serializedNotification);
 

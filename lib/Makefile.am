@@ -17,10 +17,8 @@ libOtaiRedis_a_SOURCES = \
 						 LinecardContainer.cpp \
 						 VirtualObjectIdManager.cpp \
 						 RedisVidIndexGenerator.cpp \
-						 Recorder.cpp \
 						 RedisRemoteOtaiInterface.cpp \
-						 Utils.cpp \
-						 SkipRecordAttrContainer.cpp
+						 Utils.cpp 
 
 libotairedis_la_SOURCES = \
                          otai_redis_interfacequery.cpp \

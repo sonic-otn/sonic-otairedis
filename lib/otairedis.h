@@ -45,22 +45,13 @@ typedef enum _otai_redis_communication_mode_t
 typedef enum _otai_redis_linecard_attr_t
 {
     /**
-     * @brief Will start or stop recording history file for player
-     *
-     * @type bool
-     * @flags CREATE_AND_SET
-     * @default true
-     */
-    OTAI_REDIS_LINECARD_ATTR_RECORD = OTAI_LINECARD_ATTR_CUSTOM_RANGE_START,
-
-    /**
      * @brief Will notify syncd whether to init or apply view
      *
      * @type otai_redis_notify_syncd_t
      * @flags CREATE_AND_SET
      * @default OTAI_REDIS_NOTIFY_SYNCD_APPLY_VIEW
      */
-    OTAI_REDIS_LINECARD_ATTR_NOTIFY_SYNCD,
+    OTAI_REDIS_LINECARD_ATTR_NOTIFY_SYNCD = OTAI_LINECARD_ATTR_CUSTOM_RANGE_START,
 
     /**
      * @brief Use temporary view for all actions between
@@ -93,39 +84,6 @@ typedef enum _otai_redis_linecard_attr_t
     OTAI_REDIS_LINECARD_ATTR_FLUSH,
 
     /**
-     * @brief Recording output directory.
-     *
-     * By default is current directory. Also setting empty will force default
-     * directory.
-     *
-     * It will have only impact on next created recording.
-     *
-     * @type otai_s8_list_t
-     * @flags CREATE_AND_SET
-     * @default empty
-     */
-    OTAI_REDIS_LINECARD_ATTR_RECORDING_OUTPUT_DIR,
-
-    /**
-     * @brief Log rotate.
-     *
-     * This is action attribute. When set to true then at the next log line
-     * write it will close recording file and open it again. This is desired
-     * when doing log rotate, since otairedis holds handle to recording file for
-     * performance reasons. We are assuming logrotate will move recording file
-     * to ".n" suffix, and when we reopen file, we will actually create new
-     * one.
-     *
-     * This attribute is only setting variable in memory, it's safe to call
-     * this from signal handler.
-     *
-     * @type bool
-     * @flags CREATE_AND_SET
-     * @default false
-     */
-    OTAI_REDIS_LINECARD_ATTR_PERFORM_LOG_ROTATE,
-
-    /**
      * @brief Synchronous mode.
      *
      * Enable or disable synchronous mode. When enabled syncd also needs to be
@@ -155,20 +113,6 @@ typedef enum _otai_redis_linecard_attr_t
     OTAI_REDIS_LINECARD_ATTR_REDIS_COMMUNICATION_MODE,
 
     /**
-     * @brief Record statistics counters API calls.
-     *
-     * Get statistic counters can be queried periodically and can produce a lot
-     * of logs in otairedis recording file. There are no OIDs retrieved in those
-     * APIs, so user can disable recording statistics calls by setting this
-     * attribute to false.
-     *
-     * @type bool
-     * @flags CREATE_AND_SET
-     * @default true
-     */
-    OTAI_REDIS_LINECARD_ATTR_RECORD_STATS,
-
-    /**
      * @brief Global context.
      *
      * When creating linecard, this attribute can be specified (and must be
@@ -182,17 +126,6 @@ typedef enum _otai_redis_linecard_attr_t
      * @default 0
      */
     OTAI_REDIS_LINECARD_ATTR_CONTEXT,
-
-    /**
-     * @brief Recording log filename.
-     *
-     * Default value is otairedis.rec
-     *
-     * @type otai_s8_list_t
-     * @flags CREATE_AND_SET
-     * @default otairedis.rec
-     */
-    OTAI_REDIS_LINECARD_ATTR_RECORDING_FILENAME,
 
     /**
      * @brief Synchronous operation response timeout in milliseconds.

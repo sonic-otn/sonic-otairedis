@@ -14,7 +14,6 @@ namespace otairedis
 
             Context(
                     _In_ std::shared_ptr<ContextConfig> contextConfig,
-                    _In_ std::shared_ptr<Recorder> recorder,
                     _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>, Context*)> notificationCallback);
 
             virtual ~Context();
@@ -27,8 +26,6 @@ namespace otairedis
         private:
 
             std::shared_ptr<ContextConfig> m_contextConfig;
-
-            std::shared_ptr<Recorder> m_recorder;
 
         public:
 
