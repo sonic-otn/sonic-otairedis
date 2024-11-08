@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RemoteOtaiInterface.h"
 #include "LinecardContainer.h"
 #include "VirtualObjectIdManager.h"
 #include "RedisVidIndexGenerator.h"
@@ -9,6 +8,7 @@
 #include "ContextConfig.h"
 
 #include "meta/Notification.h"
+#include "meta/OtaiInterface.h"
 
 #include "swss/producertable.h"
 #include "swss/consumertable.h"
@@ -22,7 +22,7 @@
 namespace otairedis
 {
     class RedisRemoteOtaiInterface:
-        public RemoteOtaiInterface
+        public OtaiInterface
     {
         public:
 
