@@ -4,7 +4,6 @@
 #include "VirtualObjectIdManager.h"
 #include "RedisVidIndexGenerator.h"
 #include "RedisChannel.h"
-#include "LinecardConfigContainer.h"
 #include "ContextConfig.h"
 
 #include "meta/Notification.h"
@@ -111,10 +110,6 @@ namespace otairedis
                     _In_ otai_object_id_t obejctType,
                     _In_ const otai_attribute_t* attr);
 
-            otai_status_t setRedisAttribute(
-                    _In_ otai_object_id_t linecardId,
-                    _In_ const otai_attribute_t* attr);
-
             void setMeta(
                     _In_ std::weak_ptr<otaimeta::Meta> meta);
 
@@ -181,32 +176,7 @@ namespace otairedis
 
             otai_status_t waitForClearStatsResponse();
 
-        private: // alarms API response
-
-            otai_status_t waitForGetAlarmsResponse(
-                    _In_ uint32_t number_of_alarms,
-                    _Out_ otai_alarm_info_t *alarm_info);
-
-            otai_status_t waitForClearAlarmsResponse();
-
-        private: // bulk QUAD API response
-
-            /**
-             * @brief Wait for bulk response.
-             *
-             * Will wait for response from syncd. Method used only for bulk
-             * object create/remove/set since they have common output which is
-             * otai_status_t and object_statuses.
-             */
-            otai_status_t waitForBulkResponse(
-                    _In_ otai_common_api_t api,
-                    _In_ uint32_t object_count,
-                    _Out_ otai_status_t *object_statuses);
-
         private: // notification
-
-            void notificationThreadFunction();
-
             void handleNotification(
                     _In_ const std::string &name,
                     _In_ const std::string &serializedNotification,
@@ -218,15 +188,7 @@ namespace otairedis
                     _In_ const otai_attribute_t *attr);
 
         private:
-
-            otai_status_t otai_redis_notify_syncd(
-                    _In_ otai_object_id_t linecardId,
-                    _In_ const otai_attribute_t *attr);
-
             void clear_local_state();
-
-            otai_linecard_notifications_t processNotification(
-                    _In_ std::shared_ptr<Notification> notification);
 
             std::string getHardwareInfo(
                     _In_ uint32_t attrCount,

@@ -4,8 +4,6 @@ extern "C" {
 #include <otai.h>
 }
 
-#include "LinecardConfigContainer.h"
-
 #include <set>
 #include <map>
 

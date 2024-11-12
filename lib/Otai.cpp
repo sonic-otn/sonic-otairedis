@@ -1,6 +1,5 @@
 #include "Otai.h"
 #include "OtaiInternal.h"
-#include "LinecardConfigContainer.h"
 #include "ContextConfigContainer.h"
 
 #include "meta/Meta.h"
