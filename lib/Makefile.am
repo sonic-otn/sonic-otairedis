@@ -7,14 +7,9 @@ noinst_LIBRARIES = libOtaiRedis.a
 libOtaiRedis_a_SOURCES = \
 						 Channel.cpp \
 						 Context.cpp \
-						 ContextConfigContainer.cpp \
-						 ContextConfig.cpp \
-						 LinecardConfig.cpp \
-						 LinecardConfigContainer.cpp \
 						 RedisChannel.cpp \
 						 Otai.cpp \
 						 Linecard.cpp \
-						 LinecardContainer.cpp \
 						 VirtualObjectIdManager.cpp \
 						 RedisVidIndexGenerator.cpp \
 						 RedisRemoteOtaiInterface.cpp \

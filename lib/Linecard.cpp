@@ -29,10 +29,7 @@ Linecard::Linecard(
     SWSS_LOG_ENTER();
 
     updateNotifications(attrCount, attrList);
-
-    m_hardwareInfo = getHardwareInfo(attrCount, attrList);
-
-    SWSS_LOG_NOTICE("created linecard with hwinfo = '%s'", m_hardwareInfo.c_str());
+    SWSS_LOG_NOTICE("created linecard");
 }
 
 void Linecard::clearNotificationsPointers()
@@ -106,21 +103,5 @@ const otai_linecard_notifications_t& Linecard::getLinecardNotifications() const
     SWSS_LOG_ENTER();
 
     return m_linecardNotifications;
-}
-
-const std::string& Linecard::getHardwareInfo() const
-{
-    SWSS_LOG_ENTER();
-
-    return m_hardwareInfo;
-}
-
-std::string Linecard::getHardwareInfo(
-        _In_ uint32_t attrCount,
-        _In_ const otai_attribute_t *attrList)
-{
-    SWSS_LOG_ENTER();
-
-    return "";
 }
 

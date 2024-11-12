@@ -26,8 +26,6 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
             { "profile",                 required_argument, 0, 'p' },
             { "redisCommunicationMode",  required_argument, 0, 'z' },
             { "enableOtaiBulkSupport",    no_argument,       0, 'l' },
-            { "globalContext",           required_argument, 0, 'g' },
-            { "contextContig",           required_argument, 0, 'x' },
             { "help",                    no_argument,       0, 'h' },
             { "fordebug",                no_argument,       0, 'f' },
             { 0,                         0,                 0,  0  }
@@ -50,14 +48,6 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
 
             case 'l':
                 options->m_enableOtaiBulkSupport = true;
-                break;
-
-            case 'g':
-                options->m_globalContext = (uint32_t)std::stoul(optarg);
-                break;
-
-            case 'x':
-                options->m_contextConfig = std::string(optarg);
                 break;
 
             case 'f':
@@ -86,19 +76,11 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
 void CommandLineOptionsParser::printUsage()
 {
     SWSS_LOG_ENTER();
-    std::cout << "Usage: syncd [-p profile] [-s] [-z mode] [-l] [-g idx] [-x contextConfig] [-f fordebug] [-h]" << std::endl;
+    std::cout << "Usage: syncd [-p profile] [-l] [-f fordebug] [-h]" << std::endl;
     std::cout << "    -p --profile profile" << std::endl;
     std::cout << "        Provide profile map file" << std::endl;
-    std::cout << "    -s --syncMode" << std::endl;
-    std::cout << "        Enable synchronous mode (depreacated, use -z)" << std::endl;
-    std::cout << "    -z --redisCommunicationMode" << std::endl;
-    std::cout << "        Redis communication mode (redis_async|redis_sync), default: redis_async" << std::endl;
     std::cout << "    -l --enableBulk" << std::endl;
     std::cout << "        Enable OTAI Bulk support" << std::endl;
-    std::cout << "    -g --globalContext" << std::endl;
-    std::cout << "        Global context index to load from context config file" << std::endl;
-    std::cout << "    -x --contextConfig" << std::endl;
-    std::cout << "        Context configuration file" << std::endl;
     std::cout << "    -f --fordebug" << std::endl;
     std::cout << "        debug level(0-EMERGE,1-ALERT,2-CRIT,3-ERROR,4-WARN,5-NOTICE,6-INFO,7-DEBUG)" << std::endl;
     std::cout << "    -h --help" << std::endl;

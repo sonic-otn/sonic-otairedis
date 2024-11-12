@@ -1,7 +1,6 @@
 #include "RedisRemoteOtaiInterface.h"
 #include "Utils.h"
 #include "VirtualObjectIdManager.h"
-#include "LinecardContainer.h"
 
 #include "otairediscommon.h"
 
@@ -29,9 +28,7 @@ std::vector<swss::FieldValueTuple> serialize_alarm_id_list(
         _In_ const otai_alarm_type_t *alarm_id_list);
 
 RedisRemoteOtaiInterface::RedisRemoteOtaiInterface(
-        _In_ std::shared_ptr<ContextConfig> contextConfig,
         _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback):
-    m_contextConfig(contextConfig),
     m_notificationCallback(notificationCallback)
 {
     SWSS_LOG_ENTER();
@@ -65,10 +62,10 @@ otai_status_t RedisRemoteOtaiInterface::initialize(
     }
 
     m_communicationChannel = std::make_shared<RedisChannel>(
-            m_contextConfig->m_dbAsic,
+            "ASIC_DB",
             std::bind(&RedisRemoteOtaiInterface::handleNotification, this, _1, _2, _3));
 
-    m_db = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbAsic, 0);
+    m_db = std::make_shared<swss::DBConnector>("ASIC_DB", 0);
 
     m_redisVidIndexGenerator = std::make_shared<RedisVidIndexGenerator>(m_db, REDIS_KEY_VIDCOUNTER);
 
@@ -112,16 +109,6 @@ otai_status_t RedisRemoteOtaiInterface::linkCheck(_Out_ bool *up)
     return OTAI_STATUS_SUCCESS;
 }
 
-std::string RedisRemoteOtaiInterface::getHardwareInfo(
-        _In_ uint32_t attrCount,
-        _In_ const otai_attribute_t *attrList) const
-{
-    SWSS_LOG_ENTER();
-
-    return "";
-}
-
-
 otai_status_t RedisRemoteOtaiInterface::create(
         _In_ otai_object_type_t objectType,
         _Out_ otai_object_id_t* objectId,
@@ -137,10 +124,7 @@ otai_status_t RedisRemoteOtaiInterface::create(
     {
         // for given hardware info we always return same linecard id,
         // this is required since we could be performing warm boot here
-
-        auto hwinfo = getHardwareInfo(attr_count, attr_list);
-
-        linecardId = m_virtualObjectIdManager->allocateNewLinecardObjectId(hwinfo);
+        linecardId = m_virtualObjectIdManager->allocateNewLinecardObjectId();
 
         *objectId = linecardId;
 
@@ -183,14 +167,7 @@ otai_status_t RedisRemoteOtaiInterface::create(
          * TODO: should be moved inside to redis_generic_create
          */
 
-        auto sw = std::make_shared<Linecard>(*objectId, attr_count, attr_list);
-
-        m_linecardContainer->insert(sw);
-    }
-    else if (status != OTAI_STATUS_SUCCESS)
-    {
-        // if create failed, then release allocated object
-        m_virtualObjectIdManager->releaseObjectId(*objectId);
+        m_linecard = std::make_shared<Linecard>(*objectId, attr_count, attr_list);
     }
 
     return status;
@@ -209,11 +186,7 @@ otai_status_t RedisRemoteOtaiInterface::remove(
     if (objectType == OTAI_OBJECT_TYPE_LINECARD && status == OTAI_STATUS_SUCCESS)
     {
         SWSS_LOG_NOTICE("removing linecard id %s", otai_serialize_object_id(objectId).c_str());
-
-        m_virtualObjectIdManager->releaseObjectId(objectId);
-
-        // remove linecard from container
-        m_linecardContainer->removeLinecard(objectId);
+        m_linecard =  nullptr;
     }
 
     return status;
@@ -274,20 +247,14 @@ otai_status_t RedisRemoteOtaiInterface::set(
 
     if (objectType == OTAI_OBJECT_TYPE_LINECARD && status == OTAI_STATUS_SUCCESS)
     {
-        auto sw = m_linecardContainer->getLinecard(objectId);
-
-        if (!sw)
-        {
-            SWSS_LOG_THROW("failed to find linecard %s in container",
-                    otai_serialize_object_id(objectId).c_str());
-        }
-
         /*
          * When doing SET operation user may want to update notification
          * pointers.
          */
-
-        sw->updateNotifications(1, attr);
+        if (m_linecard) 
+        {
+            m_linecard->updateNotifications(1, attr);
+        }
     }
 
     return status;
@@ -673,13 +640,10 @@ void RedisRemoteOtaiInterface::clear_local_state()
 
     // Will need to be executed after init VIEW
 
-    // will clear linecard container
-    m_linecardContainer = std::make_shared<LinecardContainer>();
+    m_linecard = nullptr;
 
     m_virtualObjectIdManager = 
         std::make_shared<VirtualObjectIdManager>(
-                m_contextConfig->m_guid,
-                m_contextConfig->m_scc,
                 m_redisVidIndexGenerator);
 
     auto meta = m_meta.lock();
@@ -717,11 +681,9 @@ otai_linecard_notifications_t RedisRemoteOtaiInterface::syncProcessNotification(
 
     auto linecardId = m_virtualObjectIdManager->otaiLinecardIdQuery(objectId);
 
-    auto sw = m_linecardContainer->getLinecard(linecardId);
-
-    if (sw)
+    if (m_linecard)
     {
-        return sw->getLinecardNotifications(); // explicit copy
+        return m_linecard->getLinecardNotifications(); // explicit copy
     }
 
     SWSS_LOG_WARN("linecard %s not present in container, returning empty linecard notifications",

@@ -58,20 +58,6 @@ namespace syncd
                     _In_ otai_object_id_t objectId);
 
             /**
-             * @brief Get global context ID.
-             *
-             * Context range is <0..255>.
-             *
-             * Returns linecard index for given oid. 
-             *
-             * For OTAI_NULL_OBJECT_ID returns 0.
-             *
-             * Throws for invalid object ID.
-             */
-            static uint32_t getGlobalContext(
-                    _In_ otai_object_id_t objectId);
-
-            /**
              * @brief Get object index.
              *
              * Returns object index.

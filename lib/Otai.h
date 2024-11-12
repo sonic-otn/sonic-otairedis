@@ -107,7 +107,7 @@ namespace otairedis
 
             std::recursive_mutex m_apimutex;
 
-            std::map<uint32_t, std::shared_ptr<Context>> m_contextMap;
+            std::shared_ptr<Context> m_context;
 
             otai_service_method_table_t m_service_method_table;
     };

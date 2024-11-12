@@ -5,15 +5,6 @@ extern "C" {
 }
 
 /**
- * @brief Redis key context config.
- *
- * Optional. Should point to a context_config.json which will contain how many
- * contexts (syncd) we have in the system globally and each context how many
- * linecards it manages.
- */
-#define OTAI_REDIS_KEY_CONTEXT_CONFIG              "OTAI_REDIS_CONTEXT_CONFIG"
-
-/**
  * @brief Default synchronous operation response timeout in milliseconds.
  */
 #define OTAI_REDIS_DEFAULT_SYNC_OPERATION_RESPONSE_TIMEOUT (17*1000)

@@ -20,9 +20,6 @@ CommandLineOptions::CommandLineOptions()
 
     m_profileMapFile = "";
 
-    m_globalContext = 0;
-
-    m_contextConfig = "";
 }
 
 std::string CommandLineOptions::getCommandLineString() const
@@ -33,8 +30,6 @@ std::string CommandLineOptions::getCommandLineString() const
 
     ss << " EnableOtaiBulkSuport=" << (m_enableOtaiBulkSupport ? "YES" : "NO");
     ss << " ProfileMapFile=" << m_profileMapFile;
-    ss << " GlobalContext=" << m_globalContext;
-    ss << " ContextConfig=" << m_contextConfig;
 
     return ss.str();
 }

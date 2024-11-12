@@ -39,12 +39,6 @@ namespace otairedis
 
             otai_object_id_t getLinecardId() const;
 
-            const std::string& getHardwareInfo() const;
-
-            static std::string getHardwareInfo(
-                    _In_ uint32_t attrCount,
-                    _In_ const otai_attribute_t *attrList);
-
         private:
 
             otai_object_id_t m_linecardId;
@@ -55,7 +49,5 @@ namespace otairedis
              * Each linecard instance can have it's own notifications defined.
              */
             otai_linecard_notifications_t m_linecardNotifications;
-
-            std::string m_hardwareInfo;
     };
 }

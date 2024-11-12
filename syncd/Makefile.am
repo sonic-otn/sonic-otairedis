@@ -16,7 +16,6 @@ libSyncd_a_SOURCES = \
 				RedisNotificationProducer.cpp \
 				Syncd.cpp \
 				RedisClient.cpp \
-				RequestShutdownCommandLineOptions.cpp \
 				MetadataLogger.cpp \
 				ServiceMethodTable.cpp \
 				LinecardNotifications.cpp \
@@ -49,10 +48,7 @@ syncd_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
 syncd_LDADD = libSyncd.a $(top_srcdir)/lib/libOtaiRedis.a -L$(top_srcdir)/meta/.libs -lotaimetadata -lotaimeta \
 			  -ldl -lhiredis -lswsscommon $(OTAILIB) -lpthread
 
-libSyncdRequestShutdown_a_SOURCES = \
-								 RequestShutdown.cpp \
-								 RequestShutdownCommandLineOptions.cpp \
-								 RequestShutdownCommandLineOptionsParser.cpp
+libSyncdRequestShutdown_a_SOURCES = RequestShutdown.cpp 
 
 libSyncdRequestShutdown_a_CXXFLAGS = $(DBGFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS_COMMON)
 

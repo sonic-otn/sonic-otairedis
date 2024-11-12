@@ -1,6 +1,5 @@
 #include "Otai.h"
 #include "OtaiInternal.h"
-#include "ContextConfigContainer.h"
 
 #include "meta/Meta.h"
 #include "meta/otai_serialize.h"
@@ -12,15 +11,6 @@ using namespace std::placeholders;
 #define REDIS_CHECK_API_INITIALIZED()                                       \
     if (!m_apiInitialized) {                                                \
         SWSS_LOG_ERROR("%s: api not initialized", __PRETTY_FUNCTION__);     \
-        return OTAI_STATUS_FAILURE; }
-
-#define REDIS_CHECK_CONTEXT(oid)                                            \
-    auto _globalContext = VirtualObjectIdManager::getGlobalContext(oid);    \
-    auto context = getContext(_globalContext);                              \
-    if (context == nullptr) {                                               \
-        SWSS_LOG_ERROR("no context at index %u for oid %s",                 \
-                _globalContext,                                             \
-                otai_serialize_object_id(oid).c_str());                      \
         return OTAI_STATUS_FAILURE; }
 
 Otai::Otai()
@@ -74,16 +64,7 @@ otai_status_t Otai::initialize(
 
     memcpy(&m_service_method_table, service_method_table, sizeof(m_service_method_table));
 
-    const char* contextConfig = service_method_table->profile_get_value(0, OTAI_REDIS_KEY_CONTEXT_CONFIG);
-
-    auto ccc = ContextConfigContainer::loadFromFile(contextConfig);
-
-    for (auto&cc: ccc->getAllContextConfigs())
-    {
-        auto context = std::make_shared<Context>(cc, std::bind(&Otai::handle_notification, this, _1, _2));
-
-        m_contextMap[cc->m_guid] = context;
-    }
+    m_context = std::make_shared<Context>(std::bind(&Otai::handle_notification, this, _1, _2));
 
     m_apiInitialized = true;
 
@@ -96,8 +77,6 @@ otai_status_t Otai::uninitialize(void)
     REDIS_CHECK_API_INITIALIZED();
 
     SWSS_LOG_NOTICE("begin");
-
-    m_contextMap.clear();
 
     m_apiInitialized = false;
 
@@ -124,25 +103,7 @@ otai_status_t Otai::create(
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
 
-    REDIS_CHECK_CONTEXT(linecardId);
-
-    if (objectType == OTAI_OBJECT_TYPE_LINECARD && attr_count > 0 && attr_list)
-    {
-        uint32_t globalContext = 0; // default
-
-        SWSS_LOG_NOTICE("request linecard create with context %u", globalContext);
-
-        context = getContext(globalContext);
-
-        if (context == nullptr)
-        {
-            SWSS_LOG_ERROR("no global context defined at index %u", globalContext);
-
-            return OTAI_STATUS_FAILURE;
-        }
-    }
-
-    auto status = context->m_meta->create(
+    auto status = m_context->m_meta->create(
             objectType,
             objectId,
             linecardId,
@@ -159,9 +120,8 @@ otai_status_t Otai::remove(
     MUTEX();
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(objectId);
 
-    return context->m_meta->remove(objectType, objectId);
+    return m_context->m_meta->remove(objectType, objectId);
 }
 
 otai_status_t Otai::set(
@@ -182,23 +142,18 @@ otai_status_t Otai::set(
 
         bool success = true;
 
-        for (auto& kvp: m_contextMap)
-        {
-            otai_status_t status = kvp.second->m_redisOtai->set(objectType, objectId, attr);
+        otai_status_t status = m_context->m_redisOtai->set(objectType, objectId, attr);
 
-            success &= (status == OTAI_STATUS_SUCCESS);
+        success &= (status == OTAI_STATUS_SUCCESS);
 
-            SWSS_LOG_INFO("setting attribute 0x%x status: %s",
-                    attr->id,
-                    otai_serialize_status(status).c_str());
-        }
+        SWSS_LOG_INFO("setting attribute 0x%x status: %s",
+                attr->id,
+                otai_serialize_status(status).c_str());
 
         return success ? OTAI_STATUS_SUCCESS : OTAI_STATUS_FAILURE;
     }
 
-    REDIS_CHECK_CONTEXT(objectId);
-
-    return context->m_meta->set(objectType, objectId, attr);
+    return m_context->m_meta->set(objectType, objectId, attr);
 }
 
 otai_status_t Otai::get(
@@ -210,9 +165,8 @@ otai_status_t Otai::get(
     MUTEX();
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(objectId);
 
-    return context->m_meta->get(
+    return m_context->m_meta->get(
             objectType,
             objectId,
             attr_count,
@@ -233,9 +187,8 @@ otai_status_t Otai::getStats(
     MUTEX();
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(object_id);
 
-    return context->m_meta->getStats(
+    return m_context->m_meta->getStats(
             object_type,
             object_id,
             number_of_counters,
@@ -254,9 +207,8 @@ otai_status_t Otai::getStatsExt(
     MUTEX();
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(object_id);
 
-    return context->m_meta->getStatsExt(
+    return m_context->m_meta->getStatsExt(
             object_type,
             object_id,
             number_of_counters,
@@ -274,9 +226,8 @@ otai_status_t Otai::clearStats(
     MUTEX();
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
-    REDIS_CHECK_CONTEXT(object_id);
 
-    return context->m_meta->clearStats(
+    return m_context->m_meta->clearStats(
             object_type,
             object_id,
             number_of_counters,
@@ -321,10 +272,7 @@ otai_status_t Otai::logSet(
     SWSS_LOG_ENTER();
     REDIS_CHECK_API_INITIALIZED();
 
-    for (auto&kvp: m_contextMap)
-    {
-        kvp.second->m_meta->logSet(api, log_level);
-    }
+    m_context->m_meta->logSet(api, log_level);
 
     return OTAI_STATUS_SUCCESS;
 }
@@ -366,12 +314,7 @@ std::shared_ptr<Context> Otai::getContext(
 {
     SWSS_LOG_ENTER();
 
-    auto it = m_contextMap.find(globalContext);
-
-    if (it == m_contextMap.end())
-        return nullptr;
-
-    return it->second;
+    return m_context;
 }
 
 std::string joinFieldValues(

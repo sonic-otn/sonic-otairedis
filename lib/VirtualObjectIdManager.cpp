@@ -17,21 +17,16 @@ static_assert(sizeof(otai_object_id_t) == sizeof(uint64_t), "OTAI object ID size
 #define OTAI_REDIS_LINECARD_INDEX_MAX ( (1ULL << OTAI_REDIS_LINECARD_INDEX_BITS_SIZE) - 1 )
 #define OTAI_REDIS_LINECARD_INDEX_MASK (OTAI_REDIS_LINECARD_INDEX_MAX)
 
-#define OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE ( 8 )
-#define OTAI_REDIS_GLOBAL_CONTEXT_MAX ( (1ULL << OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE) - 1 )
-#define OTAI_REDIS_GLOBAL_CONTEXT_MASK (OTAI_REDIS_GLOBAL_CONTEXT_MAX)
-
 #define OTAI_REDIS_OBJECT_TYPE_BITS_SIZE ( 8 )
 #define OTAI_REDIS_OBJECT_TYPE_MAX ( (1ULL << OTAI_REDIS_OBJECT_TYPE_BITS_SIZE) - 1 )
 #define OTAI_REDIS_OBJECT_TYPE_MASK (OTAI_REDIS_OBJECT_TYPE_MAX)
 
-#define OTAI_REDIS_OBJECT_INDEX_BITS_SIZE ( 40 )
+#define OTAI_REDIS_OBJECT_INDEX_BITS_SIZE ( 48 )
 #define OTAI_REDIS_OBJECT_INDEX_MAX ( (1ULL << OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) - 1 )
 #define OTAI_REDIS_OBJECT_INDEX_MASK (OTAI_REDIS_OBJECT_INDEX_MAX)
 
 #define OTAI_REDIS_OBJECT_ID_BITS_SIZE (      \
         OTAI_REDIS_LINECARD_INDEX_BITS_SIZE +   \
-        OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE + \
         OTAI_REDIS_OBJECT_TYPE_BITS_SIZE +    \
         OTAI_REDIS_OBJECT_INDEX_BITS_SIZE )
 
@@ -48,7 +43,6 @@ static_assert(OTAI_OBJECT_TYPE_EXTENSIONS_MAX < OTAI_REDIS_OBJECT_TYPE_MAX, "red
  *
  * bits 63..56 - linecard index
  * bits 55..48 - OTAI object type
- * bits 47..40 - global context
  * bits 40..0  - object index
  *
  * So large number of bits is required, otherwise we would need to have map of
@@ -59,40 +53,25 @@ static_assert(OTAI_OBJECT_TYPE_EXTENSIONS_MAX < OTAI_REDIS_OBJECT_TYPE_MAX, "red
 #define OTAI_REDIS_GET_OBJECT_INDEX(oid) \
     ( ((uint64_t)oid) & ( OTAI_REDIS_OBJECT_INDEX_MASK ) )
 
-#define OTAI_REDIS_GET_GLOBAL_CONTEXT(oid) \
-    ( (((uint64_t)oid) >> (OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_REDIS_GLOBAL_CONTEXT_MASK ) )
-
 #define OTAI_REDIS_GET_OBJECT_TYPE(oid) \
-    ( (((uint64_t)oid) >> ( OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_REDIS_OBJECT_TYPE_MASK ) )
+    ( (((uint64_t)oid) >> ( OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_REDIS_OBJECT_TYPE_MASK ) )
 
 #define OTAI_REDIS_GET_LINECARD_INDEX(oid) \
-    ( (((uint64_t)oid) >> ( OTAI_REDIS_OBJECT_TYPE_BITS_SIZE + OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_REDIS_LINECARD_INDEX_MASK ) )
+    ( (((uint64_t)oid) >> ( OTAI_REDIS_OBJECT_TYPE_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) ) & ( OTAI_REDIS_LINECARD_INDEX_MASK ) )
 
 #define OTAI_REDIS_TEST_OID (0x0123456789abcdef)
 
 static_assert(OTAI_REDIS_GET_LINECARD_INDEX(OTAI_REDIS_TEST_OID) == 0x01, "test linecard index");
 static_assert(OTAI_REDIS_GET_OBJECT_TYPE(OTAI_REDIS_TEST_OID) == 0x23, "test object type");
-static_assert(OTAI_REDIS_GET_GLOBAL_CONTEXT(OTAI_REDIS_TEST_OID) == 0x45, "test global context");
-static_assert(OTAI_REDIS_GET_OBJECT_INDEX(OTAI_REDIS_TEST_OID) == 0x6789abcdef, "test object index");
+static_assert(OTAI_REDIS_GET_OBJECT_INDEX(OTAI_REDIS_TEST_OID) == 0x456789abcdef, "test object index");
 
 using namespace otairedis;
 
 VirtualObjectIdManager::VirtualObjectIdManager(
-        _In_ uint32_t globalContext,
-        _In_ std::shared_ptr<LinecardConfigContainer> scc,
         _In_ std::shared_ptr<OidIndexGenerator> oidIndexGenerator):
-    m_globalContext(globalContext),
-    m_container(scc),
     m_oidIndexGenerator(oidIndexGenerator)
 {
     SWSS_LOG_ENTER();
-
-    if (globalContext > OTAI_REDIS_GLOBAL_CONTEXT_MAX)
-    {
-        SWSS_LOG_THROW("specified globalContext(0x%x) > maximum global context 0x%llx",
-                globalContext,
-                OTAI_REDIS_GLOBAL_CONTEXT_MAX);
-    }
 }
 
 otai_object_id_t VirtualObjectIdManager::otaiLinecardIdQuery(
@@ -122,15 +101,12 @@ otai_object_id_t VirtualObjectIdManager::otaiLinecardIdQuery(
     }
 
     // NOTE: we could also check:
-    // - if object id has correct global context
     // - if object id has existing linecard index
     // but then this method can't be made static
 
     uint32_t linecardIndex = (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(objectId);
 
-    uint32_t globalContext = (uint32_t)OTAI_REDIS_GET_GLOBAL_CONTEXT(objectId);
-
-    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, globalContext);
+    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex);
 }
 
 otai_object_type_t VirtualObjectIdManager::otaiObjectTypeQuery(
@@ -159,7 +135,6 @@ otai_object_type_t VirtualObjectIdManager::otaiObjectTypeQuery(
     }
 
     // NOTE: we could also check:
-    // - if object id has correct global context
     // - if object id has existing linecard index
     // but then this method can't be made static
 
@@ -172,43 +147,6 @@ void VirtualObjectIdManager::clear()
 
     SWSS_LOG_NOTICE("clearing linecard index set");
 
-    m_linecardIndexes.clear();
-}
-
-uint32_t VirtualObjectIdManager::allocateNewLinecardIndex()
-{
-    SWSS_LOG_ENTER();
-
-    for (uint32_t index = 0; index < OTAI_REDIS_LINECARD_INDEX_MAX; ++index)
-    {
-        if (m_linecardIndexes.find(index) != m_linecardIndexes.end())
-            continue;
-
-        m_linecardIndexes.insert(index);
-
-        SWSS_LOG_NOTICE("allocated new linecard index 0x%x", index);
-
-        return index;
-    }
-
-    SWSS_LOG_THROW("no more available linecard indexes (used count is: %zu)", m_linecardIndexes.size());
-}
-
-void VirtualObjectIdManager::releaseLinecardIndex(
-        _In_ uint32_t index)
-{
-    SWSS_LOG_ENTER();
-
-    auto it = m_linecardIndexes.find(index);
-
-    if (it == m_linecardIndexes.end())
-    {
-        SWSS_LOG_THROW("linecard index 0x%x is invalid! programming error", index);
-    }
-
-    m_linecardIndexes.erase(it);
-
-    SWSS_LOG_DEBUG("released linecard index 0x%x", index);
 }
 
 
@@ -248,7 +186,7 @@ otai_object_id_t VirtualObjectIdManager::allocateNewObjectId(
                 OTAI_REDIS_OBJECT_INDEX_MAX);
     }
 
-    otai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex, m_globalContext);
+    otai_object_id_t objectId = constructObjectId(objectType, linecardIndex, objectIndex);
 
     SWSS_LOG_DEBUG("created VID %s",
             otai_serialize_object_id(objectId).c_str());
@@ -256,62 +194,29 @@ otai_object_id_t VirtualObjectIdManager::allocateNewObjectId(
     return objectId;
 }
 
-otai_object_id_t VirtualObjectIdManager::allocateNewLinecardObjectId(
-        _In_ const std::string& hardwareInfo)
+otai_object_id_t VirtualObjectIdManager::allocateNewLinecardObjectId()
 {
     SWSS_LOG_ENTER();
 
-    auto config = m_container->getConfig(hardwareInfo);
+    uint32_t linecardIndex = 0;
+    otai_object_id_t objectId = constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex);
 
-    if (config == nullptr)
-    {
-        SWSS_LOG_ERROR("no linecard config for hardware info: '%s'", hardwareInfo.c_str());
-
-        return OTAI_NULL_OBJECT_ID;
-    }
-
-    uint32_t linecardIndex = config->m_linecardIndex;
-
-    if (linecardIndex > OTAI_REDIS_LINECARD_INDEX_MAX)
-    {
-        SWSS_LOG_THROW("linecard index %u > %llu (max)", linecardIndex, OTAI_REDIS_LINECARD_INDEX_MAX);
-    }
-
-    m_linecardIndexes.insert(linecardIndex);
-
-    otai_object_id_t objectId = constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, m_globalContext);
-
-    SWSS_LOG_NOTICE("created LINECARD VID %s for hwinfo: '%s'",
-            otai_serialize_object_id(objectId).c_str(),
-            hardwareInfo.c_str());
+    SWSS_LOG_NOTICE("created LINECARD VID %s for ",
+            otai_serialize_object_id(objectId).c_str());
 
     return objectId;
-}
-
-
-void VirtualObjectIdManager::releaseObjectId(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    if (otaiObjectTypeQuery(objectId) == OTAI_OBJECT_TYPE_LINECARD)
-    {
-        releaseLinecardIndex((uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(objectId));
-    }
 }
 
 otai_object_id_t VirtualObjectIdManager::constructObjectId(
         _In_ otai_object_type_t objectType,
         _In_ uint32_t linecardIndex,
-        _In_ uint64_t objectIndex,
-        _In_ uint32_t globalContext)
+        _In_ uint64_t objectIndex)
 {
     SWSS_LOG_ENTER();
 
     return (otai_object_id_t)(
-            ((uint64_t)linecardIndex << (OTAI_REDIS_OBJECT_TYPE_BITS_SIZE + OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE)) |
-            ((uint64_t)objectType << (OTAI_REDIS_GLOBAL_CONTEXT_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE)) |
-            ((uint64_t)globalContext << (OTAI_REDIS_OBJECT_INDEX_BITS_SIZE)) |
+            ((uint64_t)linecardIndex << (OTAI_REDIS_OBJECT_TYPE_BITS_SIZE + OTAI_REDIS_OBJECT_INDEX_BITS_SIZE)) |
+            ((uint64_t)objectType << OTAI_REDIS_OBJECT_INDEX_BITS_SIZE) |
             objectIndex);
 }
 
@@ -341,9 +246,8 @@ otai_object_id_t VirtualObjectIdManager::linecardIdQuery(
     }
 
     uint32_t linecardIndex = (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(objectId);
-    uint32_t globalContext = (uint32_t)OTAI_REDIS_GET_GLOBAL_CONTEXT(objectId);
 
-    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex, globalContext);
+    return constructObjectId(OTAI_OBJECT_TYPE_LINECARD, linecardIndex, linecardIndex);
 }
 
 otai_object_type_t VirtualObjectIdManager::objectTypeQuery(
@@ -379,16 +283,6 @@ uint32_t VirtualObjectIdManager::getLinecardIndex(
     return (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(linecardId);
 }
 
-uint32_t VirtualObjectIdManager::getGlobalContext(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    auto linecardId = linecardIdQuery(objectId);
-
-    return (uint32_t)OTAI_REDIS_GET_GLOBAL_CONTEXT(linecardId);
-}
-
 uint64_t VirtualObjectIdManager::getObjectIndex(
         _In_ otai_object_id_t objectId)
 {
@@ -422,7 +316,6 @@ otai_object_id_t VirtualObjectIdManager::updateObjectIndex(
     }
 
     uint32_t linecardIndex = (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(objectId);
-    uint32_t globalContext = (uint32_t)OTAI_REDIS_GET_GLOBAL_CONTEXT(objectId);
 
-    return constructObjectId(objectType, linecardIndex, objectIndex, globalContext);
+    return constructObjectId(objectType, linecardIndex, objectIndex);
 }

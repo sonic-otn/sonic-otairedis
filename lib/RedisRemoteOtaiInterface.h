@@ -1,10 +1,9 @@
 #pragma once
 
-#include "LinecardContainer.h"
+#include "Linecard.h"
 #include "VirtualObjectIdManager.h"
 #include "RedisVidIndexGenerator.h"
 #include "RedisChannel.h"
-#include "ContextConfig.h"
 
 #include "meta/Notification.h"
 #include "meta/OtaiInterface.h"
@@ -26,7 +25,6 @@ namespace otairedis
         public:
 
             RedisRemoteOtaiInterface(
-                    _In_ std::shared_ptr<ContextConfig> contextConfig,
                     _In_ std::function<otai_linecard_notifications_t(std::shared_ptr<Notification>)> notificationCallback);
 
             virtual ~RedisRemoteOtaiInterface();
@@ -195,12 +193,9 @@ namespace otairedis
                     _In_ const otai_attribute_t *attrList) const;
 
         private:
-
-            std::shared_ptr<ContextConfig> m_contextConfig;
-
             bool m_initialized;
 
-            std::shared_ptr<LinecardContainer> m_linecardContainer;
+            std::shared_ptr<Linecard> m_linecard;
 
             std::shared_ptr<VirtualObjectIdManager> m_virtualObjectIdManager;
 

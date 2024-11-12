@@ -25,9 +25,6 @@ namespace syncd
 
             std::string m_profileMapFile;
 
-            uint32_t m_globalContext;
 			uint32_t m_loglevel;
-
-            std::string m_contextConfig;
     };
 }

@@ -1,4 +1,3 @@
-#include "RequestShutdownCommandLineOptionsParser.h"
 #include "RequestShutdown.h"
 
 #include "swss/logger.h"
@@ -11,9 +10,7 @@ int main(int argc, char **argv)
 
     SWSS_LOG_ENTER();
 
-    auto options = RequestShutdownCommandLineOptionsParser::parseCommandLine(argc, argv);
-
-    RequestShutdown rs(options);
+    RequestShutdown rs;
 
     rs.send();
 

@@ -66,22 +66,6 @@ uint32_t VidManager::getLinecardIndex(
             otai_serialize_object_id(objectId).c_str());
 }
 
-uint32_t VidManager::getGlobalContext(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    auto swid = otairedis::VirtualObjectIdManager::linecardIdQuery(objectId);
-
-    if (swid == OTAI_NULL_OBJECT_ID)
-    {
-        SWSS_LOG_THROW("invalid object id %s",
-                otai_serialize_object_id(objectId).c_str());
-    }
-
-    return otairedis::VirtualObjectIdManager::getGlobalContext(objectId);
-}
-
 uint64_t VidManager::getObjectIndex(
         _In_ otai_object_id_t objectId)
 {

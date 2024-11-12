@@ -14,8 +14,6 @@
 #include "LinecardNotifications.h"
 #include "ServiceMethodTable.h"
 #include "RedisVidIndexGenerator.h"
-#include "RequestShutdown.h"
-#include "ContextConfig.h"
 #include "NotificationProducerBase.h"
 #include "SelectableChannel.h"
 
@@ -218,10 +216,6 @@ namespace syncd
             _In_ const otai_oper_status_t& linecard_oper_status);
 
     private:
-
-        syncd_restart_type_t handleRestartQuery(
-            _In_ swss::NotificationConsumer& restartQuery);
-
         otai_oper_status_t handleLinecardState(
             _In_ swss::NotificationConsumer& linecardState);
 
@@ -346,11 +340,8 @@ namespace syncd
 
         std::shared_ptr<NotificationProducerBase> m_notifications;
 
-        std::shared_ptr<otairedis::LinecardConfigContainer> m_linecardConfigContainer;
         std::shared_ptr<otairedis::RedisVidIndexGenerator> m_redisVidIndexGenerator;
         std::shared_ptr<otairedis::VirtualObjectIdManager> m_virtualObjectIdManager;
-
-        std::shared_ptr<otairedis::ContextConfig> m_contextConfig;
 
         std::shared_ptr<swss::DBConnector> m_state_db;
         std::unique_ptr<swss::Table> m_linecardtable;

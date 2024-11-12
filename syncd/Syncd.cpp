@@ -5,7 +5,6 @@
 #include "SoftReiniter.h"
 #include "RedisClient.h"
 #include "RequestShutdown.h"
-#include "ContextConfigContainer.h"
 #include "RedisNotificationProducer.h"
 #include "RedisSelectableChannel.h"
 
@@ -47,13 +46,7 @@ Syncd::Syncd(
     //swss::Logger::getInstance().setMinPrio(swss::Logger::Priority(m_commandLineOptions->m_loglevel));//read level from db or set as default level
     SWSS_LOG_NOTICE("command line: %s", m_commandLineOptions->getCommandLineString().c_str());
 
-    auto ccc = otairedis::ContextConfigContainer::loadFromFile(m_commandLineOptions->m_contextConfig.c_str());
-    m_contextConfig = ccc->get(m_commandLineOptions->m_globalContext);
-    if (m_contextConfig == nullptr)
-    {
-        SWSS_LOG_THROW("no context config defined at global context %u", m_commandLineOptions->m_globalContext);
-    }
-    m_manager = std::make_shared<FlexCounterManager>(m_vendorOtai, m_contextConfig->m_dbCounters);
+    m_manager = std::make_shared<FlexCounterManager>(m_vendorOtai, "COUNTERS_DB");
 
     m_state_db = std::shared_ptr<DBConnector>(new DBConnector("STATE_DB", 0));
     m_linecardtable = std::unique_ptr<Table>(new Table(m_state_db.get(), "LINECARD"));
@@ -63,9 +56,9 @@ Syncd::Syncd(
     m_profileIter = m_profileMap.begin();
 
     // we need STATE_DB ASIC_DB and COUNTERS_DB
-    m_dbAsic = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbAsic, 0);
-    m_dbFlexCounter = std::make_shared<swss::DBConnector>(m_contextConfig->m_dbFlex, 0);
-    m_notifications = std::make_shared<RedisNotificationProducer>(m_contextConfig->m_dbAsic);
+    m_dbAsic = std::make_shared<swss::DBConnector>("ASIC_DB", 0);
+    m_dbFlexCounter = std::make_shared<swss::DBConnector>("FLEX_COUNTER_DB", 0);
+    m_notifications = std::make_shared<RedisNotificationProducer>("ASIC_DB");
     m_selectableChannel = std::make_shared<RedisSelectableChannel>(
         m_dbAsic,
         ASIC_STATE_TABLE,
@@ -73,7 +66,7 @@ Syncd::Syncd(
         false);
     m_client = std::make_shared<RedisClient>(m_dbAsic, m_dbFlexCounter);
 
-    m_processor = std::make_shared<NotificationProcessor>(m_mtxAlarmTable, m_notifications, m_contextConfig->m_dbAsic, m_client, std::bind(&Syncd::syncProcessNotification, this, _1), std::bind(&Syncd::handleLinecardStateChange, this, _1));
+    m_processor = std::make_shared<NotificationProcessor>(m_mtxAlarmTable, m_notifications, "ASIC_DB", m_client, std::bind(&Syncd::syncProcessNotification, this, _1), std::bind(&Syncd::handleLinecardStateChange, this, _1));
     m_handler = std::make_shared<NotificationHandler>(m_processor);
     m_ln.onLinecardStateChange = std::bind(&NotificationHandler::onLinecardStateChange, m_handler.get(), _1, _2);
     m_ln.onLinecardAlarm = std::bind(&NotificationHandler::onLinecardAlarm, m_handler.get(), _1, _2, _3);
@@ -87,12 +80,9 @@ Syncd::Syncd(
 
     m_flexCounter = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_TABLE);
     m_flexCounterGroup = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_GROUP_TABLE);
-    m_linecardConfigContainer = std::make_shared<otairedis::LinecardConfigContainer>();
     m_redisVidIndexGenerator = std::make_shared<otairedis::RedisVidIndexGenerator>(m_dbAsic, REDIS_KEY_VIDCOUNTER);
     m_virtualObjectIdManager =
         std::make_shared<otairedis::VirtualObjectIdManager>(
-            m_commandLineOptions->m_globalContext,
-            m_linecardConfigContainer,
             m_redisVidIndexGenerator);
     // TODO move to syncd object
     m_translator = std::make_shared<VirtualOidTranslator>(m_client, m_virtualObjectIdManager, vendorOtai);
@@ -1312,21 +1302,21 @@ void Syncd::run()
     SWSS_LOG_NOTICE("uninitialize finished");
 }
 
-syncd_restart_type_t Syncd::handleRestartQuery(
-    _In_ swss::NotificationConsumer& restartQuery)
-{
-    SWSS_LOG_ENTER();
+// syncd_restart_type_t Syncd::handleRestartQuery(
+//     _In_ swss::NotificationConsumer& restartQuery)
+// {
+//     SWSS_LOG_ENTER();
 
-    std::string op;
-    std::string data;
-    std::vector<swss::FieldValueTuple> values;
+//     std::string op;
+//     std::string data;
+//     std::vector<swss::FieldValueTuple> values;
 
-    restartQuery.pop(op, data, values);
+//     restartQuery.pop(op, data, values);
 
-    SWSS_LOG_NOTICE("received %s linecard shutdown event", op.c_str());
+//     SWSS_LOG_NOTICE("received %s linecard shutdown event", op.c_str());
 
-    return RequestShutdownCommandLineOptions::stringToRestartType(op);
-}
+//     return RequestShutdownCommandLineOptions::stringToRestartType(op);
+// }
 
 otai_oper_status_t Syncd::handleLinecardState(
     _In_ swss::NotificationConsumer& linecardState)

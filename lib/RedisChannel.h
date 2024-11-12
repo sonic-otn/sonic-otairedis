@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Channel.h"
-#include "LinecardContainer.h"
 #include "VirtualObjectIdManager.h"
 
 #include "meta/Notification.h"

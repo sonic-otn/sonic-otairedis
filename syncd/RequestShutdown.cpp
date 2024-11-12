@@ -1,5 +1,4 @@
 #include "RequestShutdown.h"
-#include "ContextConfigContainer.h"
 
 #include "swss/logger.h"
 #include "swss/notificationproducer.h"
@@ -8,20 +7,9 @@
 
 using namespace syncd;
 
-RequestShutdown::RequestShutdown(
-        _In_ std::shared_ptr<RequestShutdownCommandLineOptions> options):
-    m_options(options)
+RequestShutdown::RequestShutdown()
 {
     SWSS_LOG_ENTER();
-
-    auto ccc = otairedis::ContextConfigContainer::loadFromFile(m_options->m_contextConfig.c_str());
-
-    m_contextConfig = ccc->get(m_options->m_globalContext);
-
-    if (m_contextConfig == nullptr)
-    {
-        SWSS_LOG_THROW("no context config defined at global context %u", m_options->m_globalContext);
-    }
 }
 
 RequestShutdown::~RequestShutdown()
@@ -35,15 +23,15 @@ void RequestShutdown::send()
 {
     SWSS_LOG_ENTER();
 
-    swss::DBConnector db(m_contextConfig->m_dbAsic, 0);
+    swss::DBConnector db("ASIC_DB", 0);
 
     swss::NotificationProducer restartQuery(&db, SYNCD_NOTIFICATION_CHANNEL_RESTARTQUERY);
 
     std::vector<swss::FieldValueTuple> values;
 
-    auto op = RequestShutdownCommandLineOptions::restartTypeToString(m_options->getRestartType());
+    auto op = "COLD";
 
-    SWSS_LOG_NOTICE("requested %s shutdown", op.c_str());
+    SWSS_LOG_NOTICE("requested COLD shutdown");
 
     std::cerr << "requested " << op << " shutdown" << std::endl;
 

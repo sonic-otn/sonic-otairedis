@@ -5,7 +5,6 @@ extern "C" {
 }
 
 #include "OidIndexGenerator.h"
-#include "LinecardConfigContainer.h"
 
 #include <set>
 #include <memory>
@@ -18,8 +17,6 @@ namespace otairedis
         public:
 
             VirtualObjectIdManager(
-                    _In_ uint32_t globalContext,
-                    _In_ std::shared_ptr<LinecardConfigContainer> scc,
                     _In_ std::shared_ptr<OidIndexGenerator> oidIndexGenerator);
 
             virtual ~VirtualObjectIdManager() = default;
@@ -70,34 +67,9 @@ namespace otairedis
             /**
              * @brief Allocate new linecard object id.
              */
-            otai_object_id_t allocateNewLinecardObjectId(
-                    _In_ const std::string& hardwareInfo);
-
-            /**
-             * @brief release allocated object id.
-             *
-             * If object type is linecard, then linecard index will be released.
-             */
-            void releaseObjectId(
-                    _In_ otai_object_id_t objectId);
+            otai_object_id_t allocateNewLinecardObjectId();
 
         private:
-
-            /**
-             * @brief Release given linecard index.
-             *
-             * Will throw if index is not allocated.
-             */
-            void releaseLinecardIndex(
-                    _In_ uint32_t index);
-
-            /**
-             * @brief Allocate new linecard index.
-             *
-             * Will throw if there are no more available linecard indexes.
-             */
-            uint32_t allocateNewLinecardIndex();
-
             /**
              * @brief Construct object id.
              *
@@ -106,8 +78,7 @@ namespace otairedis
             static otai_object_id_t constructObjectId(
                     _In_ otai_object_type_t objectType,
                     _In_ uint32_t linecardIndex,
-                    _In_ uint64_t objectIndex,
-                    _In_ uint32_t globalContext);
+                    _In_ uint64_t objectIndex);
 
         public:
 
@@ -142,16 +113,6 @@ namespace otairedis
                     _In_ otai_object_id_t objectId);
 
             /**
-             * @brief Get global context.
-             *
-             * Index range is <0..255>.
-             *
-             * Returns global context for given oid. If oid is invalid, returns 0.
-             */
-            static uint32_t getGlobalContext(
-                    _In_ otai_object_id_t objectId);
-
-            /**
              * @brief Get object index.
              *
              * Returns object index.
@@ -169,25 +130,9 @@ namespace otairedis
                     _In_ uint64_t objectIndex);
 
         private:
-
-            /**
-             * @brief Global context value.
-             *
-             * Will be encoded in every object id, and it will point to global
-             * (system wide) syncd instance.
-             */
-            uint32_t m_globalContext;
-
-            std::shared_ptr<LinecardConfigContainer> m_container;
-
             /**
              * @brief Oid index generator.
              */
             std::shared_ptr<OidIndexGenerator> m_oidIndexGenerator;
-
-            /**
-             * @brief Set of allocated linecard indexes.
-             */
-            std::set<uint32_t> m_linecardIndexes;
     };
 }

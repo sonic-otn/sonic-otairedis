@@ -1,8 +1,5 @@
 #pragma once
 
-#include "RequestShutdownCommandLineOptions.h"
-#include "ContextConfig.h"
-
 #include "swss/sal.h"
 
 #include <memory>
@@ -15,8 +12,7 @@ namespace syncd
     {
         public:
 
-            RequestShutdown(
-                    _In_ std::shared_ptr<RequestShutdownCommandLineOptions> options);
+            RequestShutdown();
 
             virtual ~RequestShutdown();
 
@@ -24,10 +20,5 @@ namespace syncd
 
             void send();
 
-        private:
-
-            std::shared_ptr<RequestShutdownCommandLineOptions> m_options;
-
-            std::shared_ptr<otairedis::ContextConfig> m_contextConfig;
     };
 }
