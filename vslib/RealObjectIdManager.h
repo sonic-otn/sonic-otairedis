@@ -53,16 +53,6 @@ namespace otaivs
             static otai_object_type_t objectTypeQuery(
                     _In_ otai_object_id_t objectId);
 
-            /**
-             * @brief Get linecard index.
-             *
-             * Index range is <0..255>.
-             *
-             * Returns linecard index for given oid. If oid is invalid, returns 0.
-             */
-            static uint32_t getLinecardIndex(
-                    _In_ otai_object_id_t objectId);
-
             static uint32_t getObjectIndex(
                     _In_ otai_object_id_t objectId);
         private:

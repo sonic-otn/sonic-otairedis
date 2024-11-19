@@ -273,49 +273,10 @@ otai_object_type_t VirtualObjectIdManager::objectTypeQuery(
     return objectType;
 }
 
-uint32_t VirtualObjectIdManager::getLinecardIndex(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    auto linecardId = linecardIdQuery(objectId);
-
-    return (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(linecardId);
-}
-
 uint64_t VirtualObjectIdManager::getObjectIndex(
         _In_ otai_object_id_t objectId)
 {
     SWSS_LOG_ENTER();
 
     return (uint32_t)OTAI_REDIS_GET_OBJECT_INDEX(objectId);
-}
-
-otai_object_id_t VirtualObjectIdManager::updateObjectIndex(
-        _In_ otai_object_id_t objectId,
-        _In_ uint64_t objectIndex)
-{
-    SWSS_LOG_ENTER();
-
-    if (objectId == OTAI_NULL_OBJECT_ID)
-    {
-        SWSS_LOG_THROW("can't update object index on NULL_OBJECT_ID");
-    }
-
-    if (objectIndex > OTAI_REDIS_OBJECT_INDEX_MAX)
-    {
-        SWSS_LOG_THROW("object index %" PRIu64 " over maximum %llu", objectIndex, OTAI_REDIS_OBJECT_INDEX_MAX);
-    }
-
-    otai_object_type_t objectType = objectTypeQuery(objectId);
-
-    if (objectType == OTAI_OBJECT_TYPE_NULL)
-    {
-        SWSS_LOG_THROW("invalid object type of oid %s",
-                otai_serialize_object_id(objectId).c_str());
-    }
-
-    uint32_t linecardIndex = (uint32_t)OTAI_REDIS_GET_LINECARD_INDEX(objectId);
-
-    return constructObjectId(objectType, linecardIndex, objectIndex);
 }

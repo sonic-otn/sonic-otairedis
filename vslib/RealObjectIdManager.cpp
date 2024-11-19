@@ -248,16 +248,6 @@ otai_object_type_t RealObjectIdManager::objectTypeQuery(
     return objectType;
 }
 
-uint32_t RealObjectIdManager::getLinecardIndex(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    auto linecardId = linecardIdQuery(objectId);
-
-    return OTAI_VS_GET_LINECARD_INDEX(linecardId);
-}
-
 uint32_t RealObjectIdManager::getObjectIndex(
         _In_ otai_object_id_t objectId)
 {

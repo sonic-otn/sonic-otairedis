@@ -50,22 +50,6 @@ otai_object_type_t VidManager::objectTypeQuery(
     return ot;
 }
 
-uint32_t VidManager::getLinecardIndex(
-        _In_ otai_object_id_t objectId)
-{
-    SWSS_LOG_ENTER();
-
-    otai_object_id_t swid = VidManager::linecardIdQuery(objectId);
-
-    if (swid != OTAI_NULL_OBJECT_ID)
-    {
-        return otairedis::VirtualObjectIdManager::getLinecardIndex(swid);
-    }
-
-    SWSS_LOG_THROW("invalid obejct id: %s, should be LINECARD",
-            otai_serialize_object_id(objectId).c_str());
-}
-
 uint64_t VidManager::getObjectIndex(
         _In_ otai_object_id_t objectId)
 {
@@ -80,13 +64,4 @@ uint64_t VidManager::getObjectIndex(
     }
 
     return otairedis::VirtualObjectIdManager::getObjectIndex(objectId);
-}
-
-otai_object_id_t VidManager::updateObjectIndex(
-        _In_ otai_object_id_t objectId,
-        _In_ uint64_t objectIndex)
-{
-    SWSS_LOG_ENTER();
-
-    return otairedis::VirtualObjectIdManager::updateObjectIndex(objectId, objectIndex);
 }

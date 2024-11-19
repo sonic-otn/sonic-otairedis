@@ -15,6 +15,13 @@ using namespace syncd;
         SWSS_LOG_ERROR("%s: api not initialized", __PRETTY_FUNCTION__);     \
         return OTAI_STATUS_FAILURE; }
 
+#define VENDOR_CHECK_META_OBJECT_TYPE()                                      \
+    auto info = otai_metadata_get_object_type_info(object_type);            \
+    if (!info) {                                                            \
+        SWSS_LOG_ERROR("unable to get info for object type: %s",            \
+            otai_serialize_object_type(object_type).c_str());               \
+        return OTAI_STATUS_FAILURE; }
+
 VendorOtai::VendorOtai()
 {
     SWSS_LOG_ENTER();
@@ -106,7 +113,7 @@ otai_status_t VendorOtai::linkCheck(_Out_ bool* up)
 // QUAD OID
 
 otai_status_t VendorOtai::create(
-    _In_ otai_object_type_t objectType,
+    _In_ otai_object_type_t object_type,
     _Out_ otai_object_id_t* objectId,
     _In_ otai_object_id_t linecardId,
     _In_ uint32_t attr_count,
@@ -115,21 +122,12 @@ otai_status_t VendorOtai::create(
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    if (!info)
-    {
-        SWSS_LOG_ERROR("unable to get info for object type: %s",
-            otai_serialize_object_type(objectType).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
     if (!info->create)
     {
         SWSS_LOG_ERROR("object type %s has no create method",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
@@ -137,12 +135,12 @@ otai_status_t VendorOtai::create(
     if (info->isnonobjectid)
     {
         SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
 
-    otai_object_meta_key_t mk = { .objecttype = objectType, .objectkey = {.key = {.object_id = 0 } } };
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = 0 } } };
 
     auto status = info->create(&mk, linecardId, attr_count, attr_list);
 
@@ -155,27 +153,18 @@ otai_status_t VendorOtai::create(
 }
 
 otai_status_t VendorOtai::remove(
-    _In_ otai_object_type_t objectType,
+    _In_ otai_object_type_t object_type,
     _In_ otai_object_id_t objectId)
 {
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    if (!info)
-    {
-        SWSS_LOG_ERROR("unable to get info for object type: %s",
-            otai_serialize_object_type(objectType).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
     if (!info->remove)
     {
         SWSS_LOG_ERROR("object type %s has no remove method",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
@@ -183,39 +172,30 @@ otai_status_t VendorOtai::remove(
     if (info->isnonobjectid)
     {
         SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
 
-    otai_object_meta_key_t mk = { .objecttype = objectType, .objectkey = {.key = {.object_id = objectId } } };
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = objectId } } };
 
     return info->remove(&mk);
 }
 
 otai_status_t VendorOtai::set(
-    _In_ otai_object_type_t objectType,
+    _In_ otai_object_type_t object_type,
     _In_ otai_object_id_t objectId,
     _In_ const otai_attribute_t* attr)
 {
     std::unique_lock<std::mutex> _lock(m_apimutex);
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    if (!info)
-    {
-        SWSS_LOG_ERROR("unable to get info for object type: %s",
-            otai_serialize_object_type(objectType).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
     if (!info->set)
     {
         SWSS_LOG_ERROR("object type %s has no set method",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
@@ -223,18 +203,18 @@ otai_status_t VendorOtai::set(
     if (info->isnonobjectid)
     {
         SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
 
-    otai_object_meta_key_t mk = { .objecttype = objectType, .objectkey = {.key = {.object_id = objectId } } };
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = objectId } } };
 
     return info->set(&mk, attr);
 }
 
 otai_status_t VendorOtai::get(
-    _In_ otai_object_type_t objectType,
+    _In_ otai_object_type_t object_type,
     _In_ otai_object_id_t objectId,
     _In_ uint32_t attr_count,
     _Inout_ otai_attribute_t* attr_list)
@@ -242,21 +222,12 @@ otai_status_t VendorOtai::get(
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    if (!info)
-    {
-        SWSS_LOG_ERROR("unable to get info for object type: %s",
-            otai_serialize_object_type(objectType).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
     if (!info->get)
     {
         SWSS_LOG_ERROR("object type %s has no get method",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
@@ -264,19 +235,18 @@ otai_status_t VendorOtai::get(
     if (info->isnonobjectid)
     {
         SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(objectType).c_str());
+            otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
     }
 
-    otai_object_meta_key_t mk = { .objecttype = objectType, .objectkey = {.key = {.object_id = objectId } } };
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = objectId } } };
 
     return info->get(&mk, attr_count, attr_list);
 }
 
 
 // STATS
-
 otai_status_t VendorOtai::getStats(
     _In_ otai_object_type_t object_type,
     _In_ otai_object_id_t object_id,
@@ -287,12 +257,7 @@ otai_status_t VendorOtai::getStats(
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
-
-    otai_status_t(*ptr)(
-        _In_ otai_object_id_t id,
-        _In_ uint32_t number_of_counters,
-        _In_ const otai_stat_id_t * counter_ids,
-        _Out_ otai_stat_value_t * counters) = nullptr;
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
     if (!counter_ids || !counters)
     {
@@ -300,74 +265,16 @@ otai_status_t VendorOtai::getStats(
         return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    switch ((int)object_type)
+    if (!info->getstats)
     {
-    case OTAI_OBJECT_TYPE_LINECARD:
-        ptr = m_apis.linecard_api->get_linecard_stats;
-        break;
-    case OTAI_OBJECT_TYPE_PORT:
-        ptr = m_apis.port_api->get_port_stats;
-        break;
-    case OTAI_OBJECT_TYPE_TRANSCEIVER:
-        ptr = m_apis.transceiver_api->get_transceiver_stats;
-        break;
-    case OTAI_OBJECT_TYPE_LOGICALCHANNEL:
-        ptr = m_apis.logicalchannel_api->get_logicalchannel_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OTN:
-        ptr = m_apis.otn_api->get_otn_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ETHERNET:
-        ptr = m_apis.ethernet_api->get_ethernet_stats;
-        break;
-    case OTAI_OBJECT_TYPE_PHYSICALCHANNEL:
-        ptr = m_apis.physicalchannel_api->get_physicalchannel_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OCH:
-        ptr = m_apis.och_api->get_och_stats;
-        break;
-    case OTAI_OBJECT_TYPE_LLDP:
-        ptr = m_apis.lldp_api->get_lldp_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ASSIGNMENT:
-        ptr = m_apis.assignment_api->get_assignment_stats;
-        break;
-    case OTAI_OBJECT_TYPE_INTERFACE:
-        ptr = m_apis.interface_api->get_interface_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OA:
-        ptr = m_apis.oa_api->get_oa_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OSC:
-        ptr = m_apis.osc_api->get_osc_stats;
-        break;
-    case OTAI_OBJECT_TYPE_APS:
-        ptr = m_apis.aps_api->get_aps_stats;
-        break;
-    case OTAI_OBJECT_TYPE_APSPORT:
-        ptr = m_apis.apsport_api->get_apsport_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ATTENUATOR:
-        ptr = m_apis.attenuator_api->get_attenuator_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OCM:
-        ptr = m_apis.ocm_api->get_ocm_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OTDR:
-        ptr = m_apis.otdr_api->get_otdr_stats;
-        break;
-    default:
-        SWSS_LOG_ERROR("not implemented, FIXME");
+        SWSS_LOG_ERROR("object type %s has no getstats method",
+            otai_serialize_object_type(object_type).c_str());
+
         return OTAI_STATUS_FAILURE;
     }
 
-    if (nullptr == ptr)
-    {
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return OTAI_STATUS_FAILURE;
-    }
-
-    return ptr(object_id, number_of_counters, counter_ids, counters);
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = { .key = { .object_id = object_id} } };
+    return info->getstats(&mk, number_of_counters, counter_ids, counters);
 }
 
 otai_status_t VendorOtai::getStatsExt(
@@ -381,21 +288,24 @@ otai_status_t VendorOtai::getStatsExt(
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
-    otai_status_t(*ptr)(
-        _In_ otai_object_id_t id,
-        _In_ uint32_t number_of_counters,
-        _In_ const otai_stat_id_t * counter_ids,
-        _In_ otai_stats_mode_t mode,
-        _Out_ otai_stat_value_t * counters) = nullptr;
-
-    switch ((int)object_type)
+    if (!counter_ids || !counters)
     {
-    default:
-        SWSS_LOG_ERROR("not implemented, FIXME");
+        SWSS_LOG_ERROR("NULL pointer function argument");
+        return OTAI_STATUS_INVALID_PARAMETER;
+    }
+
+    if (!info->getstatsext)
+    {
+        SWSS_LOG_ERROR("object type %s has no getstatsext method",
+            otai_serialize_object_type(object_type).c_str());
+
         return OTAI_STATUS_FAILURE;
     }
-    return ptr(object_id, number_of_counters, counter_ids, mode, counters);
+
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = { .key = { .object_id = object_id} } };
+    return info->getstatsext(&mk, number_of_counters, counter_ids, mode, counters);
 }
 
 otai_status_t VendorOtai::clearStats(
@@ -407,74 +317,18 @@ otai_status_t VendorOtai::clearStats(
     MUTEX();
     SWSS_LOG_ENTER();
     VENDOR_CHECK_API_INITIALIZED();
+    VENDOR_CHECK_META_OBJECT_TYPE();
 
-    otai_status_t(*ptr)(
-        _In_ otai_object_id_t id,
-        _In_ uint32_t number_of_counters,
-        _In_ const otai_stat_id_t * counter_ids) = nullptr;
-
-    switch ((int)object_type)
+    if (!info->clearstats)
     {
-    case OTAI_OBJECT_TYPE_LINECARD:
-        ptr = m_apis.linecard_api->clear_linecard_stats;
-        break;
-    case OTAI_OBJECT_TYPE_PORT:
-        ptr = m_apis.port_api->clear_port_stats;
-        break;
-    case OTAI_OBJECT_TYPE_TRANSCEIVER:
-        ptr = m_apis.transceiver_api->clear_transceiver_stats;
-        break;
-    case OTAI_OBJECT_TYPE_LOGICALCHANNEL:
-        ptr = m_apis.logicalchannel_api->clear_logicalchannel_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OTN:
-        ptr = m_apis.otn_api->clear_otn_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ETHERNET:
-        ptr = m_apis.ethernet_api->clear_ethernet_stats;
-        break;
-    case OTAI_OBJECT_TYPE_PHYSICALCHANNEL:
-        ptr = m_apis.physicalchannel_api->clear_physicalchannel_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OCH:
-        ptr = m_apis.och_api->clear_och_stats;
-        break;
-    case OTAI_OBJECT_TYPE_LLDP:
-        ptr = m_apis.lldp_api->clear_lldp_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ASSIGNMENT:
-        ptr = m_apis.assignment_api->clear_assignment_stats;
-        break;
-    case OTAI_OBJECT_TYPE_INTERFACE:
-        ptr = m_apis.interface_api->clear_interface_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OA:
-        ptr = m_apis.oa_api->clear_oa_stats;
-        break;
-    case OTAI_OBJECT_TYPE_OSC:
-        ptr = m_apis.osc_api->clear_osc_stats;
-        break;
-    case OTAI_OBJECT_TYPE_APS:
-        ptr = m_apis.aps_api->clear_aps_stats;
-        break;
-    case OTAI_OBJECT_TYPE_APSPORT:
-        ptr = m_apis.apsport_api->clear_apsport_stats;
-        break;
-    case OTAI_OBJECT_TYPE_ATTENUATOR:
-        ptr = m_apis.attenuator_api->clear_attenuator_stats;
-        break;
-    default:
-        SWSS_LOG_ERROR("not implemented, FIXME");
+        SWSS_LOG_ERROR("object type %s has no clearstats method",
+            otai_serialize_object_type(object_type).c_str());
+
         return OTAI_STATUS_FAILURE;
     }
 
-    if (nullptr == ptr)
-    {
-        SWSS_LOG_ERROR("not implemented, FIXME");
-        return OTAI_STATUS_FAILURE;
-    }
-
-    return ptr(object_id, number_of_counters, counter_ids);
+    otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = { .key = { .object_id = object_id} } };
+    return info->clearstats(&mk, number_of_counters, counter_ids);
 }
 
 // OTAI API
