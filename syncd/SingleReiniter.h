@@ -42,8 +42,6 @@ namespace syncd
 
         std::shared_ptr<OtaiLinecard> hardReinit();
 
-        void postRemoveActions();
-
         ObjectIdMap getTranslatedVid2Rid() const;
 
         std::shared_ptr<OtaiLinecard> getLinecard() const;

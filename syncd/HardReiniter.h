@@ -35,24 +35,18 @@ namespace syncd
 
         public:
 
-            std::map<otai_object_id_t, std::shared_ptr<syncd::OtaiLinecard>> hardReinit();
+            std::shared_ptr<syncd::OtaiLinecard> hardReinit();
 
         private:
 
             void readAsicState();
-
-            void redisSetVidAndRidMap(
-                    _In_ const std::unordered_map<otai_object_id_t, otai_object_id_t> &map);
 
         private:
 
             ObjectIdMap m_vidToRidMap;
             ObjectIdMap m_ridToVidMap;
 
-            std::map<otai_object_id_t, ObjectIdMap> m_linecardVidToRid;
-            std::map<otai_object_id_t, ObjectIdMap> m_linecardRidToVid;
-
-            std::map<otai_object_id_t, std::vector<std::string>> m_linecardMap;
+            std::vector<std::string> m_linecardKeys;
 
             std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 

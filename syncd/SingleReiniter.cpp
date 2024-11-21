@@ -832,29 +832,6 @@ SingleReiniter::ObjectIdMap SingleReiniter::getTranslatedVid2Rid() const
     return m_translatedV2R;
 }
 
-void SingleReiniter::postRemoveActions()
-{
-    SWSS_LOG_ENTER();
-
-    /*
-     * Now we must check whether we need to remove some objects like VLAN
-     * members etc.
-     *
-     * TODO: Should this be done at start, before other operations?
-     * We are able to determine which objects are missing from rid map
-     * as long as id's between restart don't change.
-     */
-
-    if (m_sw == nullptr)
-    {
-        /*
-         * No linecard was created.
-         */
-
-        return;
-    }
-}
-
 std::shared_ptr<OtaiAttributeList> SingleReiniter::redisGetAttributesFromAsicKey(
     _In_ const std::string& key)
 {

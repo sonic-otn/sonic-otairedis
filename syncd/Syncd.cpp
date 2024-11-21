@@ -32,41 +32,40 @@ using namespace otaimeta;
 using namespace std::placeholders;
 using namespace swss;
 
-int64_t time_zone_nanosecs = 0;
-
 Syncd::Syncd(
     _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
-    _In_ std::shared_ptr<CommandLineOptions> cmd,
-    _In_ bool needCheckLink) :
+    _In_ std::shared_ptr<CommandLineOptions> cmd) :
     m_commandLineOptions(cmd),
-    m_linkCheckLoop(needCheckLink),
-    m_vendorOtai(vendorOtai)
+    m_vendorOtai(vendorOtai),
+    m_linecardState(OTAI_OPER_STATUS_INACTIVE)
 {
     SWSS_LOG_ENTER();
-    //swss::Logger::getInstance().setMinPrio(swss::Logger::Priority(m_commandLineOptions->m_loglevel));//read level from db or set as default level
+
+    setOtaiApiLogLevel();
     SWSS_LOG_NOTICE("command line: %s", m_commandLineOptions->getCommandLineString().c_str());
 
+    //flexcounters
+    m_dbFlexCounter = std::make_shared<swss::DBConnector>("FLEX_COUNTER_DB", 0);
+    m_flexCounterGroup = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_GROUP_TABLE);
+    m_flexCounter = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_TABLE);
     m_manager = std::make_shared<FlexCounterManager>(m_vendorOtai, "COUNTERS_DB");
+
+    m_dbAsic = std::make_shared<swss::DBConnector>("ASIC_DB", 0);
+    m_client = std::make_shared<RedisClient>(m_dbAsic, m_dbFlexCounter);
 
     m_state_db = std::shared_ptr<DBConnector>(new DBConnector("STATE_DB", 0));
     m_linecardtable = std::unique_ptr<Table>(new Table(m_state_db.get(), "LINECARD"));
-    m_curalarmtable = std::unique_ptr<Table>(new Table(m_state_db.get(), "CURALARM"));
 
-    loadProfileMap();
-    m_profileIter = m_profileMap.begin();
-
-    // we need STATE_DB ASIC_DB and COUNTERS_DB
-    m_dbAsic = std::make_shared<swss::DBConnector>("ASIC_DB", 0);
-    m_dbFlexCounter = std::make_shared<swss::DBConnector>("FLEX_COUNTER_DB", 0);
-    m_notifications = std::make_shared<RedisNotificationProducer>("ASIC_DB");
+    //Quad Events
     m_selectableChannel = std::make_shared<RedisSelectableChannel>(
         m_dbAsic,
         ASIC_STATE_TABLE,
         REDIS_TABLE_GETRESPONSE,
         false);
-    m_client = std::make_shared<RedisClient>(m_dbAsic, m_dbFlexCounter);
 
-    m_processor = std::make_shared<NotificationProcessor>(m_mtxAlarmTable, m_notifications, "ASIC_DB", m_client, std::bind(&Syncd::syncProcessNotification, this, _1), std::bind(&Syncd::handleLinecardStateChange, this, _1));
+    //Notifications
+    m_notifications = std::make_shared<RedisNotificationProducer>("ASIC_DB");
+    m_processor = std::make_shared<NotificationProcessor>(m_notifications, m_client, std::bind(&Syncd::syncProcessNotification, this, _1));
     m_handler = std::make_shared<NotificationHandler>(m_processor);
     m_ln.onLinecardStateChange = std::bind(&NotificationHandler::onLinecardStateChange, m_handler.get(), _1, _2);
     m_ln.onLinecardAlarm = std::bind(&NotificationHandler::onLinecardAlarm, m_handler.get(), _1, _2, _3);
@@ -74,19 +73,20 @@ Syncd::Syncd(
     m_ln.onOcmReportSpectrumPower = std::bind(&NotificationHandler::onOcmReportSpectrumPower, m_handler.get(), _1, _2, _3);
     m_ln.onOtdrReportResult = std::bind(&NotificationHandler::onOtdrReportResult, m_handler.get(), _1, _2, _3);
     m_handler->setLinecardNotifications(m_ln.getLinecardNotifications());
+
     m_restartQuery = std::make_shared<swss::NotificationConsumer>(m_dbAsic.get(), SYNCD_NOTIFICATION_CHANNEL_RESTARTQUERY);
     m_linecardStateNtf = std::make_shared<swss::NotificationConsumer>(m_dbAsic.get(), SYNCD_NOTIFICATION_CHANNEL_LINECARDSTATE);
-    // TODO to be moved to ASIC_DB
 
-    m_flexCounter = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_TABLE);
-    m_flexCounterGroup = std::make_shared<swss::ConsumerTable>(m_dbFlexCounter.get(), FLEX_COUNTER_GROUP_TABLE);
     m_redisVidIndexGenerator = std::make_shared<otairedis::RedisVidIndexGenerator>(m_dbAsic, REDIS_KEY_VIDCOUNTER);
     m_virtualObjectIdManager =
         std::make_shared<otairedis::VirtualObjectIdManager>(
             m_redisVidIndexGenerator);
-    // TODO move to syncd object
     m_translator = std::make_shared<VirtualOidTranslator>(m_client, m_virtualObjectIdManager, vendorOtai);
-    m_processor->m_translator = m_translator; // TODO as param
+    m_processor->m_translator = m_translator; 
+
+    //vendor otai
+    loadProfileMap();
+    m_profileIter = m_profileMap.begin();
     m_smt.profileGetValue = std::bind(&Syncd::profileGetValue, this, _1, _2);
     m_smt.profileGetNextValue = std::bind(&Syncd::profileGetNextValue, this, _1, _2, _3);
     m_test_services = m_smt.getServiceMethodTable();
@@ -95,13 +95,10 @@ Syncd::Syncd(
     {
         SWSS_LOG_ERROR("FATAL: failed to otai_api_initialize: %s",
             otai_serialize_status(status).c_str());
-
         abort();
     }
-    setOtaiApiLogLevel();
 
-    m_linecardState = OTAI_OPER_STATUS_INACTIVE;
-    SWSS_LOG_NOTICE("////////////////////////syncd started////////////////////////");
+    SWSS_LOG_NOTICE("syncd-ot started");;
 }
 
 Syncd::~Syncd()
@@ -590,7 +587,7 @@ otai_status_t Syncd::processOidCreate(
 
     if (objectType == OTAI_OBJECT_TYPE_LINECARD)
     {
-        SWSS_LOG_NOTICE("creating linecard number %zu", m_linecards.size() + 1);
+        SWSS_LOG_NOTICE("creating linecard");
     }
     else
     {
@@ -603,8 +600,6 @@ otai_status_t Syncd::processOidCreate(
 
         linecardRid = m_translator->translateVidToRid(linecardVid);
     }
-
-    preprocessOidOps(objectType, attr_list, attr_count);
 
     otai_object_id_t objectRid;
 
@@ -639,8 +634,7 @@ otai_status_t Syncd::processOidCreate(
              * All needed data to populate linecard should be obtained inside OtaiLinecard
              * constructor, like getting all queues, ports, etc.
              */
-
-            m_linecards[linecardVid] = std::make_shared<OtaiLinecard>(linecardVid, objectRid, m_client, m_translator, m_vendorOtai);
+            m_linecard = std::make_shared<OtaiLinecard>(linecardVid, objectRid, m_client, m_translator, m_vendorOtai);
         }
     }
 
@@ -696,8 +690,6 @@ otai_status_t Syncd::processOidSet(
     otai_deserialize_object_id(strObjectId, objectVid);
 
     otai_object_id_t rid = m_translator->translateVidToRid(objectVid);
-
-    preprocessOidOps(objectType, attr, 1);
 
     otai_status_t status = m_vendorOtai->set(objectType, rid, attr);
 
@@ -912,14 +904,14 @@ void Syncd::onSyncdStart()
      * recreate linecards map.
      */
 
-    if (m_linecards.size())
+    if (m_linecard)
     {
-        SWSS_LOG_THROW("performing hard reinit, but there are %zu linecards defined, bug!", m_linecards.size());
+        SWSS_LOG_THROW("performing hard reinit, but there are linecard defined, bug!");
     }
 
     HardReiniter hr(m_client, m_translator, m_vendorOtai, m_handler, m_manager);
 
-    m_linecards = hr.hardReinit();
+    m_linecard = hr.hardReinit();
 
     SWSS_LOG_NOTICE("hard reinit succeeded");
 }
@@ -932,15 +924,7 @@ void Syncd::sendShutdownRequestAfterException()
 
     try
     {
-        if (m_linecards.size())
-        {
-            for (auto& kvp : m_linecards)
-            {
-                auto msg = otai_serialize_linecard_oper_status(kvp.first, OTAI_OPER_STATUS_INACTIVE);
-                m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg);
-            }
-        }
-
+        notifyLinecardStateChange(OTAI_OPER_STATUS_INACTIVE);
         SWSS_LOG_NOTICE("notification send successfully");
     }
     catch (const std::exception& e)
@@ -1011,34 +995,25 @@ void Syncd::setOtaiApiLogLevel()
         otai_serialize_log_level(OTAI_LOG_LEVEL_ERROR));
 }
 
-otai_status_t Syncd::removeAllLinecards()
+otai_status_t Syncd::removeLinecard()
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_NOTICE("Removing all linecards");
+    SWSS_LOG_NOTICE("Removing linecard");
 
-    // TODO mutex ?
+    auto rid = m_linecard->getRid();
 
-    otai_status_t result = OTAI_STATUS_SUCCESS;
+    auto strRid = otai_serialize_object_id(rid);
 
-    for (auto& sw : m_linecards)
+    SWSS_LOG_TIMER("removing linecard RID %s", strRid.c_str());
+
+    otai_status_t result = m_vendorOtai->remove(OTAI_OBJECT_TYPE_LINECARD, rid);
+
+    if (result != OTAI_STATUS_SUCCESS)
     {
-        auto rid = sw.second->getRid();
-
-        auto strRid = otai_serialize_object_id(rid);
-
-        SWSS_LOG_TIMER("removing linecard RID %s", strRid.c_str());
-
-        auto status = m_vendorOtai->remove(OTAI_OBJECT_TYPE_LINECARD, rid);
-
-        if (status != OTAI_STATUS_SUCCESS)
-        {
-            SWSS_LOG_NOTICE("Can't delete a linecard RID %s: %s",
-                strRid.c_str(),
-                otai_serialize_status(status).c_str());
-
-            result = status;
-        }
+        SWSS_LOG_NOTICE("Can't delete linecard RID %s: %s",
+            strRid.c_str(),
+            otai_serialize_status(result).c_str());
     }
 
     return result;
@@ -1076,14 +1051,11 @@ void Syncd::run()
 {
     SWSS_LOG_ENTER();
 
-    //change from local 00:00:00 to UTC 00:00:00
-    //time_zone_nanosecs = get_time_zone_offset_milliseconds();
-
     volatile bool runMainLoop = true;
 
     std::shared_ptr<swss::Select> s = std::make_shared<swss::Select>();
 
-    while (m_linkCheckLoop)
+    while (true)
     {
         otai_status_t status;
         bool isLinkUp = false;
@@ -1103,7 +1075,7 @@ void Syncd::run()
 
         // create notifications processing thread after we create_linecard to
         // make sure, we have linecard_id translated to VID before we start
-        // processing possible quick fdb notifications, and pointer for
+        // processing possible quick notifications, and pointer for
         // notification queue is created before we create linecard
         m_processor->startNotificationsProcessingThread();
 
@@ -1148,13 +1120,7 @@ void Syncd::run()
     }
 
     m_linecardtable->flush();
-
-    for (auto& linecard : m_linecards)
-    {
-        auto msg = otai_serialize_linecard_oper_status(linecard.first, OTAI_OPER_STATUS_ACTIVE);
-        SWSS_LOG_NOTICE("linecard is active, send this message to swss");
-        m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg);
-    }
+    notifyLinecardStateChange(OTAI_OPER_STATUS_ACTIVE);
 
     while (runMainLoop)
     {
@@ -1183,12 +1149,6 @@ void Syncd::run()
                     }
                     else if (linecard_state == OTAI_OPER_STATUS_ACTIVE)
                     {
-                        //clear current alarm table.
-                        otai_attribute_t attr;
-                        attr.id = OTAI_LINECARD_ATTR_COLLECT_LINECARD_ALARM;
-                        attr.value.booldata = true;
-                        preprocessOidOps(OTAI_OBJECT_TYPE_LINECARD, &attr, 1);
-
                         SoftReiniter sr(m_client, m_translator, m_vendorOtai, m_manager);
                         sr.softReinit();
                     }
@@ -1278,14 +1238,8 @@ void Syncd::run()
 
     m_manager->removeAllCounters();
 
-    for (auto& linecard : m_linecards)
-    {
-        auto msg = otai_serialize_linecard_oper_status(linecard.first, OTAI_OPER_STATUS_INACTIVE);
-        SWSS_LOG_NOTICE("syncd will exit, send this message to swss");
-        m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg);
-    }
-
-    otai_status_t status = removeAllLinecards();
+    notifyLinecardStateChange(OTAI_OPER_STATUS_INACTIVE);
+    otai_status_t status = removeLinecard();
 
     // Stop notification thread after removing linecard
     m_processor->stopNotificationsProcessingThread();
@@ -1301,22 +1255,6 @@ void Syncd::run()
 
     SWSS_LOG_NOTICE("uninitialize finished");
 }
-
-// syncd_restart_type_t Syncd::handleRestartQuery(
-//     _In_ swss::NotificationConsumer& restartQuery)
-// {
-//     SWSS_LOG_ENTER();
-
-//     std::string op;
-//     std::string data;
-//     std::vector<swss::FieldValueTuple> values;
-
-//     restartQuery.pop(op, data, values);
-
-//     SWSS_LOG_NOTICE("received %s linecard shutdown event", op.c_str());
-
-//     return RequestShutdownCommandLineOptions::stringToRestartType(op);
-// }
 
 otai_oper_status_t Syncd::handleLinecardState(
     _In_ swss::NotificationConsumer& linecardState)
@@ -1339,46 +1277,13 @@ otai_oper_status_t Syncd::handleLinecardState(
     return linecard_oper_status;
 }
 
-void Syncd::handleLinecardStateChange(
-    _In_ const otai_oper_status_t& oper_status)
+void Syncd::notifyLinecardStateChange(otai_oper_status_t status) 
 {
     SWSS_LOG_ENTER();
 
-    if (oper_status == OTAI_OPER_STATUS_INACTIVE)
-    {
-        m_manager->removeAllCounters();
-    }
-
-    return;
-}
-
-void Syncd::preprocessOidOps(otai_object_type_t objectType, otai_attribute_t* attr_list, uint32_t attr_count)
-{
-    SWSS_LOG_ENTER();
-
-    if (OTAI_OBJECT_TYPE_LINECARD == objectType)
-    {
-        for (uint32_t idx = 0; idx < attr_count; idx++)
-        {
-            if (OTAI_LINECARD_ATTR_COLLECT_LINECARD_ALARM == attr_list[idx].id)
-            {
-                // clear current alarm table
-                std::lock_guard<std::mutex> lock_alarm(m_mtxAlarmTable);
-                int nCount = 0;
-                vector<string> almkeys;
-                m_curalarmtable->getKeys(almkeys);
-                for (auto& key : almkeys)
-                {
-                    if (string::npos == key.find("SLOT_COMM_FAIL"))//skip alarms which are not generated by linecard.
-                    {
-                        m_curalarmtable->del(key);
-                        nCount++;
-                    }
-                }
-                SWSS_LOG_NOTICE("%d items in CURALARM table are cleared.", nCount);
-
-                break;
-            }
-        }
-    }
+    auto strOperStatus = otai_serialize_enum(status, &otai_metadata_enum_otai_oper_status_t, true);
+    SWSS_LOG_NOTICE("notify linecard state change to %s", strOperStatus.c_str());
+    
+    auto msg = otai_serialize_linecard_oper_status(m_linecard->getVid(), status);
+    m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg); 
 }

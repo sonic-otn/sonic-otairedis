@@ -19,18 +19,12 @@ using namespace swss;
 #define EXIPRE_TIME_SECONDS_7DAYS (7 * 24 * 3600)
 
 NotificationProcessor::NotificationProcessor(
-    _In_ std::mutex& mtxAlarm,
     _In_ std::shared_ptr<NotificationProducerBase> producer,
-    _In_ std::string dbAsic,
     _In_ std::shared_ptr<RedisClient> client,
-    _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer,
-    _In_ std::function<void(const otai_oper_status_t&)> linecard_state_change_handler) :
-    m_mtxAlarmTable(mtxAlarm),
+    _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer) :
     m_synchronizer(synchronizer),
-    m_linecard_state_change_handler(linecard_state_change_handler),
     m_client(client),
-    m_notifications(producer),
-    m_dbAsic(dbAsic)
+    m_notifications(producer)
 {
     SWSS_LOG_ENTER();
 
@@ -140,7 +134,7 @@ void NotificationProcessor::process_on_linecard_state_change(
 
     sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, s);
 
-    swss::DBConnector db(m_dbAsic, 0);
+    swss::DBConnector db("ASIC_DB", 0);
     swss::NotificationProducer linecard_state(&db, SYNCD_NOTIFICATION_CHANNEL_LINECARDSTATE);
 
     std::vector<swss::FieldValueTuple> values;
@@ -192,6 +186,7 @@ void NotificationProcessor::handle_olp_switch_notify(
 
     SWSS_LOG_NOTICE("record olp switch info, key=%s", strKey.c_str());
 
+    //TODO, need move to history_db
     m_stateOLPSwitchInfoTbl->set(strKey, fv);
 }
 
@@ -395,7 +390,6 @@ void NotificationProcessor::handle_linecard_alarm(
     otai_alarm_info_t alarm_info;
 
     otai_deserialize_linecard_alarm(data, linecard_id, alarm_type, alarm_info);
-    std::lock_guard<std::mutex> lock_alarm(m_mtxAlarmTable);
     if (alarm_info.status == OTAI_ALARM_STATUS_ACTIVE)
     {
         handler_alarm_generated(data);

@@ -32,7 +32,7 @@ int syncd_main(int argc, char **argv)
 
     auto vendorOtai = std::make_shared<VendorOtai>();
 
-    auto syncd = std::make_shared<Syncd>(vendorOtai, commandLineOptions, true);
+    auto syncd = std::make_shared<Syncd>(vendorOtai, commandLineOptions);
 
     syncd->run();
 

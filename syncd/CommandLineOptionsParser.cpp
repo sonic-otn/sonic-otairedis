@@ -17,17 +17,15 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
     SWSS_LOG_ENTER();
 
     auto options = std::make_shared<CommandLineOptions>();
-    const char* const optstring = "p:f:g:x:sz:lh";
+    const char* const optstring = "p:f:lh";
 
     while (true)
     {
         static struct option long_options[] =
         {
             { "profile",                 required_argument, 0, 'p' },
-            { "redisCommunicationMode",  required_argument, 0, 'z' },
             { "enableOtaiBulkSupport",    no_argument,       0, 'l' },
             { "help",                    no_argument,       0, 'h' },
-            { "fordebug",                no_argument,       0, 'f' },
             { 0,                         0,                 0,  0  }
         };
 
@@ -48,10 +46,6 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
 
             case 'l':
                 options->m_enableOtaiBulkSupport = true;
-                break;
-
-            case 'f':
-                options->m_loglevel = (uint32_t)std::stoul(optarg);
                 break;
 
             case 'h':
@@ -76,13 +70,11 @@ std::shared_ptr<CommandLineOptions> CommandLineOptionsParser::parseCommandLine(
 void CommandLineOptionsParser::printUsage()
 {
     SWSS_LOG_ENTER();
-    std::cout << "Usage: syncd [-p profile] [-l] [-f fordebug] [-h]" << std::endl;
+    std::cout << "Usage: syncd [-p profile] [-l] [-h]" << std::endl;
     std::cout << "    -p --profile profile" << std::endl;
     std::cout << "        Provide profile map file" << std::endl;
     std::cout << "    -l --enableBulk" << std::endl;
     std::cout << "        Enable OTAI Bulk support" << std::endl;
-    std::cout << "    -f --fordebug" << std::endl;
-    std::cout << "        debug level(0-EMERGE,1-ALERT,2-CRIT,3-ERROR,4-WARN,5-NOTICE,6-INFO,7-DEBUG)" << std::endl;
     std::cout << "    -h --help" << std::endl;
     std::cout << "        Print out this message" << std::endl;
 }

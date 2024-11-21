@@ -22,12 +22,9 @@ namespace syncd
     public:
 
         NotificationProcessor(
-            _In_ std::mutex& mtxAlarm,
             _In_ std::shared_ptr<NotificationProducerBase> producer,
-            _In_ std::string dbAsic,
             _In_ std::shared_ptr<RedisClient> client,
-            _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer,
-            _In_ std::function<void(const otai_oper_status_t&)> linecard_state_change_handler);
+            _In_ std::function<void(const swss::KeyOpFieldsValuesTuple&)> synchronizer);
 
         virtual ~NotificationProcessor();
 
@@ -125,15 +122,12 @@ namespace syncd
         // determine whether notification thread is running
 
         bool m_runThread;
-        std::mutex& m_mtxAlarmTable;
 
         std::function<void(const swss::KeyOpFieldsValuesTuple&)> m_synchronizer;
-        std::function<void(const otai_oper_status_t&)> m_linecard_state_change_handler;
 
         std::shared_ptr<RedisClient> m_client;
 
         std::shared_ptr<NotificationProducerBase> m_notifications;
-        std::string m_dbAsic;
         std::shared_ptr<swss::DBConnector> m_state_db;
 
         std::unique_ptr<swss::Table> m_stateAlarmable;

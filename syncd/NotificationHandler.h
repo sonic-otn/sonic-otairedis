@@ -84,6 +84,8 @@ namespace syncd
 
         std::unique_ptr<swss::Table> m_linecardtable;
 
+        std::unique_ptr<swss::Table> m_curalarmtable;
+
         otai_notifications_t m_notifications;
 
         std::shared_ptr<NotificationQueue> m_notificationQueue;

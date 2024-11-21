@@ -21,6 +21,7 @@ NotificationHandler::NotificationHandler(
     memset(&m_notifications, 0, sizeof(m_notifications));
     m_state_db = std::shared_ptr<DBConnector>(new DBConnector("STATE_DB", 0));
     m_linecardtable = std::unique_ptr<Table>(new Table(m_state_db.get(), "LINECARD"));
+    m_curalarmtable = std::unique_ptr<Table>(new Table(m_state_db.get(), "CURALARM"));
     m_notificationQueue = processor->getQueue();
 }
 
@@ -287,6 +288,9 @@ void NotificationHandler::generate_linecard_communication_alarm(
         {
             status = OTAI_ALARM_STATUS_ACTIVE;
             m_linecardtable->hset(strlinecard, "slot-status", "CommFail");
+
+            //flush all current alarms
+            m_curalarmtable->flush();
         }
         else
         {

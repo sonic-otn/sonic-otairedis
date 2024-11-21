@@ -32,7 +32,6 @@
 
 namespace syncd
 {
-    extern int64_t time_zone_nanosecs;
     class Syncd
     {
     private:
@@ -44,8 +43,7 @@ namespace syncd
 
         Syncd(
             _In_ std::shared_ptr<otairedis::OtaiInterface> vendorOtai,
-            _In_ std::shared_ptr<CommandLineOptions> cmd,
-            _In_ bool needCheckLink);
+            _In_ std::shared_ptr<CommandLineOptions> cmd);
 
         virtual ~Syncd();
 
@@ -79,9 +77,9 @@ namespace syncd
 
         void sendShutdownRequestAfterException();
 
-    public: // shutdown actions for all linecards
+    public: // shutdown actions for the linecard
 
-        otai_status_t removeAllLinecards();
+        otai_status_t removeLinecard();
 
     private:
 
@@ -212,14 +210,12 @@ namespace syncd
         void syncProcessNotification(
             _In_ const swss::KeyOpFieldsValuesTuple& item);
 
-        void handleLinecardStateChange(
-            _In_ const otai_oper_status_t& linecard_oper_status);
-
     private:
         otai_oper_status_t handleLinecardState(
             _In_ swss::NotificationConsumer& linecardState);
+        
+        void notifyLinecardStateChange(otai_oper_status_t status); 
 
-        void preprocessOidOps(otai_object_type_t objectType, otai_attribute_t* attr_list, uint32_t attr_count);
 
     private:
 
@@ -249,9 +245,6 @@ namespace syncd
 
         std::shared_ptr<CommandLineOptions> m_commandLineOptions;
 
-
-        bool m_linkCheckLoop;
-
         LinecardNotifications m_ln;
 
         ServiceMethodTable m_smt;
@@ -264,32 +257,11 @@ namespace syncd
 
         std::shared_ptr<otairedis::OtaiInterface> m_vendorOtai;
 
-        /*
-         * TODO: Those are hard coded values for mlnx integration for v1.0.1 they need
-         * to be updated.
-         *
-         * Also DEVICE_MAC_ADDRESS is not present in otailinecard.h
-         */
         std::map<std::string, std::string> m_profileMap;
 
         std::map<std::string, std::string>::iterator m_profileIter;
 
-
-        /**
-         * @brief Contains map of all created linecards.
-         *
-         * This syncd implementation supports only one linecard but it's
-         * written in a way that could be extended to use multiple linecards
-         * in the future, some refactoring needs to be made in marked
-         * places.
-         *
-         * To support multiple linecards VIDTORID and RIDTOVID db entries
-         * needs to be made per linecard like HIDDEN and LANES. Best way is
-         * to wrap vid/rid map to functions that will return right key.
-         *
-         * Key is linecard VID.
-         */
-        std::map<otai_object_id_t, std::shared_ptr<syncd::OtaiLinecard>> m_linecards;
+        std::shared_ptr<syncd::OtaiLinecard> m_linecard;
 
         std::shared_ptr<VirtualOidTranslator> m_translator;
 
@@ -346,8 +318,6 @@ namespace syncd
         std::shared_ptr<swss::DBConnector> m_state_db;
         std::unique_ptr<swss::Table> m_linecardtable;
 
-        std::mutex m_mtxAlarmTable;
-        std::unique_ptr<swss::Table> m_curalarmtable;
         otai_oper_status_t m_linecardState;
     };
 }
