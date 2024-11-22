@@ -132,14 +132,6 @@ otai_status_t VendorOtai::create(
         return OTAI_STATUS_FAILURE;
     }
 
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(object_type).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
-
     otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = 0 } } };
 
     auto status = info->create(&mk, linecardId, attr_count, attr_list);
@@ -169,14 +161,6 @@ otai_status_t VendorOtai::remove(
         return OTAI_STATUS_FAILURE;
     }
 
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_ERROR("passed non object id as object id!: %s",
-            otai_serialize_object_type(object_type).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
-
     otai_object_meta_key_t mk = { .objecttype = object_type, .objectkey = {.key = {.object_id = objectId } } };
 
     return info->remove(&mk);
@@ -195,14 +179,6 @@ otai_status_t VendorOtai::set(
     if (!info->set)
     {
         SWSS_LOG_ERROR("object type %s has no set method",
-            otai_serialize_object_type(object_type).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
-
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_ERROR("passed non object id as object id!: %s",
             otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;
@@ -227,14 +203,6 @@ otai_status_t VendorOtai::get(
     if (!info->get)
     {
         SWSS_LOG_ERROR("object type %s has no get method",
-            otai_serialize_object_type(object_type).c_str());
-
-        return OTAI_STATUS_FAILURE;
-    }
-
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_ERROR("passed non object id as object id!: %s",
             otai_serialize_object_type(object_type).c_str());
 
         return OTAI_STATUS_FAILURE;

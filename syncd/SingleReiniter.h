@@ -75,9 +75,6 @@ namespace syncd
             _In_ uint32_t attr_count,
             _In_ otai_attribute_t* attr_list);
 
-        void processStructNonObjectIds(
-            _In_ otai_object_meta_key_t& meta_key);
-
         void listFailedAttributes(
             _In_ otai_object_type_t objectType,
             _In_ uint32_t attrCount,

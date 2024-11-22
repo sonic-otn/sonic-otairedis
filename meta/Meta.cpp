@@ -408,14 +408,6 @@ otai_status_t Meta::meta_generic_validation_remove(
 {
     SWSS_LOG_ENTER();
 
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (info->isnonobjectid)
-    {
-        // we don't keep reference of those since those are leafs
-        return OTAI_STATUS_SUCCESS;
-    }
-
     // for OID objects check oid value
 
     otai_object_id_t oid = meta_key.objectkey.key.object_id;
@@ -464,13 +456,6 @@ otai_status_t Meta::meta_otai_validate_oid(
     }
 
     const char* otname =  otai_metadata_get_enum_value_name(&otai_metadata_enum_otai_object_type_t, object_type);
-
-    auto info = otai_metadata_get_object_type_info(object_type);
-
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_THROW("invalid object type (%s) specified as generic, FIXME", otname);
-    }
 
     SWSS_LOG_DEBUG("generic object type: %s", otname);
 
@@ -577,9 +562,6 @@ otai_status_t Meta::meta_generic_validation_create(
          *
          * NOTE: this is a lot of checks for each create
          */
-
-        linecard_id = meta_extract_linecard_id(meta_key, linecard_id);
-
         if (linecard_id == OTAI_NULL_OBJECT_ID)
         {
             SWSS_LOG_ERROR("linecard id is NULL for %s", otai_serialize_object_type(meta_key.objecttype).c_str());
@@ -599,12 +581,7 @@ otai_status_t Meta::meta_generic_validation_create(
         // ok
     }
 
-    otai_status_t status = meta_generic_validate_non_object_on_create(meta_key, linecard_id);
-
-    if (status != OTAI_STATUS_SUCCESS)
-    {
-        return status;
-    }
+    otai_status_t status = OTAI_STATUS_SUCCESS;
 
     std::unordered_map<otai_attr_id_t, const otai_attribute_t*> attrs;
 
@@ -955,16 +932,7 @@ otai_status_t Meta::meta_generic_validation_set(
     }
 
     otai_object_id_t linecard_id = OTAI_NULL_OBJECT_ID;
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (!info->isnonobjectid)
-    {
-        linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
-    }
-
-    linecard_id = meta_extract_linecard_id(meta_key, linecard_id);
-
+    linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
     // if we set OID check if exists and if type is correct
 
     switch (md.attrvaluetype)
@@ -1117,35 +1085,27 @@ otai_status_t Meta::meta_generic_validation_set(
 
     // object exists in DB so we can do "set" operation
 
-    if (info->isnonobjectid)
+    /*
+        * Check if object we are calling SET is the same object type as the
+        * type of SET function.
+        */
+
+    otai_object_id_t oid = meta_key.objectkey.key.object_id;
+
+    otai_object_type_t object_type = objectTypeQuery(oid);
+
+    if (object_type == OTAI_NULL_OBJECT_ID)
     {
-        SWSS_LOG_DEBUG("object key exists: %s",
-                otai_serialize_object_meta_key(meta_key).c_str());
+        META_LOG_ERROR(md, "oid 0x%" PRIx64 " is not valid, returned null object id", oid);
+
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
-    else
+
+    if (object_type != meta_key.objecttype)
     {
-        /*
-         * Check if object we are calling SET is the same object type as the
-         * type of SET function.
-         */
+        META_LOG_ERROR(md, "oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
-        otai_object_id_t oid = meta_key.objectkey.key.object_id;
-
-        otai_object_type_t object_type = objectTypeQuery(oid);
-
-        if (object_type == OTAI_NULL_OBJECT_ID)
-        {
-            META_LOG_ERROR(md, "oid 0x%" PRIx64 " is not valid, returned null object id", oid);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        if (object_type != meta_key.objecttype)
-        {
-            META_LOG_ERROR(md, "oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     return OTAI_STATUS_SUCCESS;
@@ -1281,37 +1241,27 @@ otai_status_t Meta::meta_generic_validation_get(
         }
     }
 
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
+    /*
+        * Check if object we are calling GET is the same object type as the
+        * type of GET function.
+        */
 
-    if (info->isnonobjectid)
+    otai_object_id_t oid = meta_key.objectkey.key.object_id;
+
+    otai_object_type_t object_type = objectTypeQuery(oid);
+
+    if (object_type == OTAI_NULL_OBJECT_ID)
     {
-        SWSS_LOG_DEBUG("object key exists: %s",
-                otai_serialize_object_meta_key(meta_key).c_str());
+        SWSS_LOG_ERROR("oid 0x%" PRIx64 " is not valid, returned null object id", oid);
+
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
-    else
+
+    if (object_type != meta_key.objecttype)
     {
-        /*
-         * Check if object we are calling GET is the same object type as the
-         * type of GET function.
-         */
+        SWSS_LOG_ERROR("oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
 
-        otai_object_id_t oid = meta_key.objectkey.key.object_id;
-
-        otai_object_type_t object_type = objectTypeQuery(oid);
-
-        if (object_type == OTAI_NULL_OBJECT_ID)
-        {
-            SWSS_LOG_ERROR("oid 0x%" PRIx64 " is not valid, returned null object id", oid);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        if (object_type != meta_key.objecttype)
-        {
-            SWSS_LOG_ERROR("oid 0x%" PRIx64 " type %d is not accepted, expected object type %d", oid, object_type, meta_key.objecttype);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
+        return OTAI_STATUS_INVALID_PARAMETER;
     }
 
     // object exists in DB so we can do "get" operation
@@ -1326,8 +1276,6 @@ void Meta::meta_generic_validation_post_get(
         _In_ const otai_attribute_t *attr_list)
 {
     SWSS_LOG_ENTER();
-
-    linecard_id = meta_extract_linecard_id(meta_key, linecard_id);
 
     /*
      * TODO We should snoop attributes retrieved from linecard and put them to
@@ -1588,144 +1536,6 @@ otai_status_t Meta::meta_genetic_validation_list(
     return OTAI_STATUS_SUCCESS;
 }
 
-otai_status_t Meta::meta_generic_validate_non_object_on_create(
-        _In_ const otai_object_meta_key_t& meta_key,
-        _In_ otai_object_id_t linecard_id)
-{
-    SWSS_LOG_ENTER();
-
-    /*
-     * Since non object id objects can contain several object id's inside
-     * object id structure, we need to check whether they all belong to the
-     * same switch (sine multiple linecards can be present and whether all those
-     * objects are allowed respectively on their members.
-     *
-     * This check is required only on creation, since on set/get/remove we
-     * check in object hash whether this object exists.
-     */
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (!info->isnonobjectid)
-    {
-        return OTAI_STATUS_SUCCESS;
-    }
-
-    /*
-     * This will be most utilized for creating route entries.
-     */
-
-    for (size_t j = 0; j < info->structmemberscount; ++j)
-    {
-        const otai_struct_member_info_t *m = info->structmembers[j];
-
-        if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-        {
-            continue;
-        }
-
-        otai_object_id_t oid = m->getoid(&meta_key);
-
-        if (oid == OTAI_NULL_OBJECT_ID)
-        {
-            SWSS_LOG_ERROR("oid on %s on struct member %s is NULL",
-                    otai_serialize_object_type(meta_key.objecttype).c_str(),
-                    m->membername);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        otai_object_type_t ot = objectTypeQuery(oid);
-
-        /*
-         * No need for checking null here, since metadata don't allow
-         * NULL in allowed objects list.
-         */
-
-        bool allowed = false;
-
-        for (size_t k = 0 ; k < m->allowedobjecttypeslength; k++)
-        {
-            if (ot == m->allowedobjecttypes[k])
-            {
-                allowed = true;
-                break;
-            }
-        }
-
-        if (!allowed)
-        {
-            SWSS_LOG_ERROR("object id 0x%" PRIx64 " is %s, but it's not allowed on member %s",
-                    oid, otai_serialize_object_type(ot).c_str(), m->membername);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-
-        otai_object_id_t oid_linecard_id = linecardIdQuery(oid);
-
-        if (linecard_id != oid_linecard_id)
-        {
-            SWSS_LOG_ERROR("oid 0x%" PRIx64 " is on linecard 0x%" PRIx64 " but required linecard is 0x%" PRIx64 "", oid, oid_linecard_id, linecard_id);
-
-            return OTAI_STATUS_INVALID_PARAMETER;
-        }
-    }
-
-    return OTAI_STATUS_SUCCESS;
-}
-
-otai_object_id_t Meta::meta_extract_linecard_id(
-        _In_ const otai_object_meta_key_t& meta_key,
-        _In_ otai_object_id_t linecard_id)
-{
-    SWSS_LOG_ENTER();
-
-    /*
-     * We assume here that objecttype in meta key is in valid range.
-     */
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (info->isnonobjectid)
-    {
-        /*
-         * Since object is non object id, we are sure via sanity check that
-         * struct member contains linecard_id, we need to extract it here.
-         *
-         * NOTE: we could have this in metadata predefined for all non object ids.
-         */
-
-        for (size_t j = 0; j < info->structmemberscount; ++j)
-        {
-            const otai_struct_member_info_t *m = info->structmembers[j];
-
-            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-            {
-                continue;
-            }
-
-            for (size_t k = 0 ; k < m->allowedobjecttypeslength; k++)
-            {
-                otai_object_type_t ot = m->allowedobjecttypes[k];
-
-                if (ot == OTAI_OBJECT_TYPE_LINECARD)
-                {
-                    return  m->getoid(&meta_key);
-                }
-            }
-        }
-
-        SWSS_LOG_ERROR("unable to find linecard id inside non object id");
-
-        return OTAI_NULL_OBJECT_ID;
-    }
-    else
-    {
-        // NOTE: maybe we should extract linecard from oid?
-        return linecard_id;
-    }
-}
-
 std::vector<const otai_attr_metadata_t*> Meta::get_attributes_metadata(
         _In_ otai_object_type_t objecttype)
 {
@@ -1820,59 +1630,54 @@ void Meta::meta_generic_validation_post_create(
 {
     SWSS_LOG_ENTER();
 
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
+    /*
+        * Check if object created was expected type as the type of CRATE
+        * function.
+        */
 
-    if (!info->isnonobjectid)
+    do
     {
-        /*
-         * Check if object created was expected type as the type of CRATE
-         * function.
-         */
+        otai_object_id_t oid = meta_key.objectkey.key.object_id;
 
-        do
+        if (oid == OTAI_NULL_OBJECT_ID)
         {
-            otai_object_id_t oid = meta_key.objectkey.key.object_id;
+            SWSS_LOG_ERROR("created oid is null object id (vendor bug?)");
+            break;
+        }
 
-            if (oid == OTAI_NULL_OBJECT_ID)
+        otai_object_type_t object_type = objectTypeQuery(oid);
+
+        if (object_type == OTAI_NULL_OBJECT_ID)
+        {
+            SWSS_LOG_ERROR("created oid 0x%" PRIx64 " is not valid object type after create (null) (vendor bug?)", oid);
+            break;
+        }
+
+        if (object_type != meta_key.objecttype)
+        {
+            SWSS_LOG_ERROR("created oid 0x%" PRIx64 " type %s, expected %s (vendor bug?)",
+                    oid,
+                    otai_serialize_object_type(object_type).c_str(),
+                    otai_serialize_object_type(meta_key.objecttype).c_str());
+            break;
+        }
+
+        if (meta_key.objecttype != OTAI_OBJECT_TYPE_LINECARD)
+        {
+            /*
+                * Check if created object linecard is the same as input linecard.
+                */
+
+            otai_object_id_t query_linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
+
+            if (linecard_id != query_linecard_id)
             {
-                SWSS_LOG_ERROR("created oid is null object id (vendor bug?)");
+                SWSS_LOG_ERROR("created oid 0x%" PRIx64 " linecard id 0x%" PRIx64 " is different than requested 0x%" PRIx64 "",
+                        oid, query_linecard_id, linecard_id);
                 break;
             }
-
-            otai_object_type_t object_type = objectTypeQuery(oid);
-
-            if (object_type == OTAI_NULL_OBJECT_ID)
-            {
-                SWSS_LOG_ERROR("created oid 0x%" PRIx64 " is not valid object type after create (null) (vendor bug?)", oid);
-                break;
-            }
-
-            if (object_type != meta_key.objecttype)
-            {
-                SWSS_LOG_ERROR("created oid 0x%" PRIx64 " type %s, expected %s (vendor bug?)",
-                        oid,
-                        otai_serialize_object_type(object_type).c_str(),
-                        otai_serialize_object_type(meta_key.objecttype).c_str());
-                break;
-            }
-
-            if (meta_key.objecttype != OTAI_OBJECT_TYPE_LINECARD)
-            {
-                /*
-                 * Check if created object linecard is the same as input linecard.
-                 */
-
-                otai_object_id_t query_linecard_id = linecardIdQuery(meta_key.objectkey.key.object_id);
-
-                if (linecard_id != query_linecard_id)
-                {
-                    SWSS_LOG_ERROR("created oid 0x%" PRIx64 " linecard id 0x%" PRIx64 " is different than requested 0x%" PRIx64 "",
-                            oid, query_linecard_id, linecard_id);
-                    break;
-                }
-            }
-        } while (false);
-    }
+        }
+    } while (false);
 }
 
 void Meta::meta_otai_on_linecard_state_change(

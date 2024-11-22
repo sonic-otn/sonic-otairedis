@@ -1176,14 +1176,6 @@ std::string otai_serialize_object_meta_key(
         SWSS_LOG_THROW("invalid object type value %s", otai_serialize_object_type(meta_key.objecttype).c_str());
     }
 
-    const auto& meta = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (meta->isnonobjectid)
-    {
-        SWSS_LOG_THROW("object %s is non object id, not supported yet, FIXME",
-                otai_serialize_object_type(meta->objecttype).c_str());
-    }
-
     key = otai_serialize_object_id(meta_key.objectkey.key.object_id);
 
     key = otai_serialize_object_type(meta_key.objecttype) + ":" + key;
@@ -1805,14 +1797,6 @@ void otai_deserialize_object_meta_key(
     if (meta_key.objecttype == OTAI_OBJECT_TYPE_NULL || meta_key.objecttype >= OTAI_OBJECT_TYPE_EXTENSIONS_MAX)
     {
         SWSS_LOG_THROW("invalid object type value %s", otai_serialize_object_type(meta_key.objecttype).c_str());
-    }
-
-    const auto& meta = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    if (meta->isnonobjectid)
-    {
-        SWSS_LOG_THROW("object %s is non object id, not supported yet, FIXME",
-                otai_serialize_object_type(meta->objecttype).c_str());
     }
 
     otai_deserialize_object_id(str_object_id, meta_key.objectkey.key.object_id);

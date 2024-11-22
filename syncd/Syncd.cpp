@@ -462,18 +462,9 @@ otai_status_t Syncd::processQuadEvent(
         m_translator->translateVidToRid(metaKey.objecttype, attr_count, attr_list);
     }
 
-    auto info = otai_metadata_get_object_type_info(metaKey.objecttype);
-
     otai_status_t status;
 
-    if (info->isnonobjectid)
-    {
-        status = processEntry(metaKey, api, attr_count, attr_list);
-    }
-    else
-    {
-        status = processOid(metaKey.objecttype, strObjectId, api, attr_count, attr_list);
-    }
+    status = processOid(metaKey.objecttype, strObjectId, api, attr_count, attr_list);
 
     if (api == OTAI_COMMON_API_GET)
     {
@@ -495,7 +486,7 @@ otai_status_t Syncd::processQuadEvent(
     {
         sendApiResponse(api, status);
 
-        if (info->isobjectid && api == OTAI_COMMON_API_SET)
+        if (api == OTAI_COMMON_API_SET)
         {
             otai_object_id_t vid = metaKey.objectkey.key.object_id;
             otai_object_id_t rid = m_translator->translateVidToRid(vid);
@@ -541,14 +532,6 @@ otai_status_t Syncd::processOid(
      * create new RID value, and we will have to map them to VID we received in
      * create query.
      */
-
-    auto info = otai_metadata_get_object_type_info(objectType);
-
-    if (info->isnonobjectid)
-    {
-        SWSS_LOG_THROW("passing non object id %s as generic object", info->objecttypename);
-    }
-
     switch (api)
     {
     case OTAI_COMMON_API_CREATE:

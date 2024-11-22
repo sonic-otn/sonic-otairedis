@@ -77,8 +77,6 @@ void SingleReiniter::prepareAsicState()
 
         const std::string& strObjectId = getObjectIdFromAsicKey(key);
 
-        auto info = otai_metadata_get_object_type_info(objectType);
-
         switch (objectType)
         {
         case OTAI_OBJECT_TYPE_LINECARD:
@@ -87,12 +85,6 @@ void SingleReiniter::prepareAsicState()
             break;
 
         default:
-
-            if (info->isnonobjectid)
-            {
-                SWSS_LOG_THROW("passing non object id %s as generic object", info->objecttypename);
-            }
-
             m_oids[strObjectId] = key;
             break;
         }
@@ -724,42 +716,6 @@ void SingleReiniter::processOids()
         otai_deserialize_object_id(strObjectId, vid);
 
         processSingleVid(vid);
-    }
-}
-
-void SingleReiniter::processStructNonObjectIds(
-    _In_ otai_object_meta_key_t& meta_key)
-{
-    SWSS_LOG_ENTER();
-
-    auto info = otai_metadata_get_object_type_info(meta_key.objecttype);
-
-    /*
-     * Call processSingleVid method for each oid in non object id (struct
-     * entry) in generic way.
-     */
-
-    if (info->isnonobjectid)
-    {
-        for (size_t j = 0; j < info->structmemberscount; ++j)
-        {
-            const otai_struct_member_info_t* m = info->structmembers[j];
-
-            if (m->membervaluetype != OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-            {
-                continue;
-            }
-
-            otai_object_id_t vid = m->getoid(&meta_key);
-
-            otai_object_id_t rid = processSingleVid(vid);
-
-            m->setoid(&meta_key, rid);
-
-            SWSS_LOG_DEBUG("processed vid 0x%" PRIx64 " to rid 0x%" PRIx64 " in %s:%s", vid, rid,
-                info->objecttypename,
-                m->membername);
-        }
     }
 }
 

@@ -110,14 +110,6 @@ namespace otaimeta
                     _In_ uint32_t count,
                     _In_ const void* list);
 
-            otai_status_t meta_generic_validate_non_object_on_create(
-                    _In_ const otai_object_meta_key_t& meta_key,
-                    _In_ otai_object_id_t linecard_id);
-
-            otai_object_id_t meta_extract_linecard_id(
-                    _In_ const otai_object_meta_key_t& meta_key,
-                    _In_ otai_object_id_t linecard_id);
-
             std::vector<const otai_attr_metadata_t*> get_attributes_metadata(
                     _In_ otai_object_type_t objecttype);
 

@@ -413,29 +413,7 @@ void VirtualOidTranslator::translateVidToRid(
 {
     SWSS_LOG_ENTER();
 
-    auto info = otai_metadata_get_object_type_info(metaKey.objecttype);
-
-    if (info->isobjectid)
-    {
-        metaKey.objectkey.key.object_id =
-            translateVidToRid(metaKey.objectkey.key.object_id);
-
-        return;
-    }
-
-    for (size_t j = 0; j < info->structmemberscount; ++j)
-    {
-        const otai_struct_member_info_t *m = info->structmembers[j];
-
-        if (m->membervaluetype == OTAI_ATTR_VALUE_TYPE_OBJECT_ID)
-        {
-            otai_object_id_t vid = m->getoid(&metaKey);
-
-            otai_object_id_t rid = translateVidToRid(vid);
-
-            m->setoid(&metaKey, rid);
-        }
-    }
+    metaKey.objectkey.key.object_id = translateVidToRid(metaKey.objectkey.key.object_id);
 }
 
 void VirtualOidTranslator::insertRidAndVid(

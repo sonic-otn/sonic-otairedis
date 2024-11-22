@@ -82,16 +82,12 @@ void SoftReiniter::prepareAsicState(vector<string> &asicKeys)
 
         SWSS_LOG_NOTICE("objectType = %s, objectId=%s", strObjectType.c_str(), strObjectId.c_str());
 
-        auto info = otai_metadata_get_object_type_info(objectType);
         switch (objectType) {
         case OTAI_OBJECT_TYPE_LINECARD:
             m_linecards[strObjectId] = key;
             m_oids[strObjectId] = key;
             break;
         default:
-            if (info->isnonobjectid) {
-                SWSS_LOG_THROW("passing non object id %s as generic object", info->objecttypename);
-            }
             m_oids[strObjectId] = key;
             break;
         }
