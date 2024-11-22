@@ -48,9 +48,6 @@ namespace syncd
         virtual ~Syncd();
 
     public:
-
-        bool isVeryFirstRun();
-
         void onSyncdStart();
 
         void run();
@@ -105,41 +102,6 @@ namespace syncd
             _In_ otai_common_api_t api,
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
 
-        otai_status_t processBulkQuadEvent(
-            _In_ otai_common_api_t api,
-            _In_ const swss::KeyOpFieldsValuesTuple& kco);
-
-        otai_status_t processBulkOid(
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& object_ids,
-            _In_ otai_common_api_t api,
-            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
-            _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
-
-        otai_status_t processBulkEntry(
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& object_ids,
-            _In_ otai_common_api_t api,
-            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
-            _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
-
-        otai_status_t processBulkCreateEntry(
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
-            _Out_ std::vector<otai_status_t>& statuses);
-
-        otai_status_t processBulkRemoveEntry(
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& objectIds,
-            _Out_ std::vector<otai_status_t>& statuses);
-
-        otai_status_t processBulkSetEntry(
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
-            _Out_ std::vector<otai_status_t>& statuses);
-
         otai_status_t processOid(
             _In_ otai_object_type_t objectType,
             _In_ const std::string& strObjectId,
@@ -170,34 +132,12 @@ namespace syncd
             _In_ uint32_t attr_count,
             _In_ otai_attribute_t* attr_list);
 
-    private: // process bulk oid
-
-        otai_status_t processBulkOidCreate(
-            _In_ otai_object_type_t objectType,
-            _In_ otai_bulk_op_error_mode_t mode,
-            _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::shared_ptr<otaimeta::OtaiAttributeList>>& attributes,
-            _Out_ std::vector<otai_status_t>& statuses);
-
-        otai_status_t processBulkOidRemove(
-            _In_ otai_object_type_t objectType,
-            _In_ otai_bulk_op_error_mode_t mode,
-            _In_ const std::vector<std::string>& objectIds,
-            _Out_ std::vector<otai_status_t>& statuses);
-
     private:
 
         void syncUpdateRedisQuadEvent(
             _In_ otai_status_t status,
             _In_ otai_common_api_t api,
             _In_ const swss::KeyOpFieldsValuesTuple& kco);
-
-        void syncUpdateRedisBulkQuadEvent(
-            _In_ otai_common_api_t api,
-            _In_ const std::vector<otai_status_t>& statuses,
-            _In_ otai_object_type_t objectType,
-            _In_ const std::vector<std::string>& objectIds,
-            _In_ const std::vector<std::vector<swss::FieldValueTuple>>& strAttributes);
 
     public: // TODO to private
 
@@ -216,6 +156,7 @@ namespace syncd
         
         void notifyLinecardStateChange(otai_oper_status_t status); 
 
+        void waitLinecardStateActive();
 
     private:
 

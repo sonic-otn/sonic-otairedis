@@ -60,34 +60,6 @@ std::shared_ptr<OtaiLinecard> SingleReiniter::hardReinit()
 
     stopPreConfigLinecards();
 
-#ifdef ENABLE_PERF
-
-    double total_create = 0;
-    double total_set = 0;
-
-    for (const auto& p : m_perf_create)
-    {
-        SWSS_LOG_NOTICE("create %s: %d: %f",
-            otai_serialize_object_type(p.first).c_str(),
-            std::get<0>(p.second),
-            std::get<1>(p.second));
-
-        total_create += std::get<1>(p.second);
-    }
-
-    for (const auto& p : m_perf_set)
-    {
-        SWSS_LOG_NOTICE("set %s: %d: %f",
-            otai_serialize_object_type(p.first).c_str(),
-            std::get<0>(p.second),
-            std::get<1>(p.second));
-
-        total_set += std::get<1>(p.second);
-    }
-
-    SWSS_LOG_NOTICE("create %lf, set: %lf", total_create, total_set);
-#endif
-
     checkAllIds();
 
     return m_sw;

@@ -37,6 +37,7 @@ Syncd::Syncd(
     _In_ std::shared_ptr<CommandLineOptions> cmd) :
     m_commandLineOptions(cmd),
     m_vendorOtai(vendorOtai),
+    m_linecard(nullptr),
     m_linecardState(OTAI_OPER_STATUS_INACTIVE)
 {
     SWSS_LOG_ENTER();
@@ -874,46 +875,20 @@ void Syncd::sendGetResponse(
     SWSS_LOG_INFO("response for GET api was send");
 }
 
-// TODO for future we can have each linecard in separate redis db index or even
-// some linecards in the same db index and some in separate.  Current redis get
-// asic view is assuming all linecards are in the same db index an also some
-// operations per linecard are accessing data base in OtaiLinecard class.  This
-// needs to be reorganised to access database per linecard basis and get only
-// data that corresponds to each particular linecard and access correct db index.
-
 void Syncd::onSyncdStart()
 {
     SWSS_LOG_ENTER();
 
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    /*
-     * It may happen that after initialize we will receive some port
-     * notifications with port'ids that are not in redis db yet, so after
-     * checking VIDTORID map there will be entries and translate_vid_to_rid
-     * will generate new id's for ports, this may cause race condition so we
-     * need to use a lock here to prevent that.
-     */
-
     SWSS_LOG_TIMER("on syncd start");
-
-    SWSS_LOG_NOTICE("performing hard reinit since COLD start was performed");
-
-    /*
-     * Linecard was restarted in hard way, we need to perform hard reinit and
-     * recreate linecards map.
-     */
-
-    if (m_linecard)
-    {
-        SWSS_LOG_THROW("performing hard reinit, but there are linecard defined, bug!");
-    }
+    SWSS_LOG_NOTICE("performing syncd reinit");
 
     HardReiniter hr(m_client, m_translator, m_vendorOtai, m_handler, m_manager);
 
     m_linecard = hr.hardReinit();
 
-    SWSS_LOG_NOTICE("hard reinit succeeded");
+    SWSS_LOG_NOTICE("syncd reinit succeeded");
 }
 
 void Syncd::sendShutdownRequestAfterException()
@@ -1029,24 +1004,6 @@ void Syncd::syncProcessNotification(
     m_processor->syncProcessNotification(item);
 }
 
-int64_t get_time_zone_offset_milliseconds()
-{
-    time_t t1 = 0;
-    time_t t2 = 0;
-    struct tm tm_local;
-    struct tm tm_utc;
-    memset(&tm_local, 0, sizeof(struct tm));
-    memset(&tm_utc, 0, sizeof(struct tm));
-
-    time(&t1);
-    t2 = t1;
-    localtime_r(&t1, &tm_local);
-    t1 = mktime(&tm_local);
-    gmtime_r(&t2, &tm_utc);
-    t2 = mktime(&tm_utc);
-    return (t1 - t2) * 1000;
-}
-
 void Syncd::run()
 {
     SWSS_LOG_ENTER();
@@ -1055,19 +1012,8 @@ void Syncd::run()
 
     std::shared_ptr<swss::Select> s = std::make_shared<swss::Select>();
 
-    while (true)
-    {
-        otai_status_t status;
-        bool isLinkUp = false;
-        status = m_vendorOtai->linkCheck(&isLinkUp);
-        if (status == OTAI_STATUS_SUCCESS && isLinkUp == true)
-        {
-            SWSS_LOG_NOTICE("Link is up");
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-    m_linecardState = OTAI_OPER_STATUS_ACTIVE;
+    //Wait until the linecard status changes to active
+    waitLinecardStateActive();
 
     try
     {
@@ -1121,6 +1067,7 @@ void Syncd::run()
 
     m_linecardtable->flush();
     notifyLinecardStateChange(OTAI_OPER_STATUS_ACTIVE);
+    
 
     while (runMainLoop)
     {
@@ -1286,4 +1233,21 @@ void Syncd::notifyLinecardStateChange(otai_oper_status_t status)
     
     auto msg = otai_serialize_linecard_oper_status(m_linecard->getVid(), status);
     m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg); 
+}
+
+void Syncd::waitLinecardStateActive()
+{
+    while (true)
+    {
+        otai_status_t status;
+        bool isLinkUp = false;
+        status = m_vendorOtai->linkCheck(&isLinkUp);
+        if (status == OTAI_STATUS_SUCCESS && isLinkUp == true)
+        {
+            SWSS_LOG_NOTICE("Linecard Link is up");
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    m_linecardState = OTAI_OPER_STATUS_ACTIVE;
 }
