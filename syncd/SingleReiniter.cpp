@@ -58,6 +58,7 @@ std::shared_ptr<OtaiLinecard> SingleReiniter::hardReinit()
 
     processOids();
 
+    //For certain transponder and WSS linecards, notify the linecard that syncd has finished configuration
     stopPreConfigLinecards();
 
     checkAllIds();
@@ -165,14 +166,6 @@ void SingleReiniter::processLinecards()
 {
     SWSS_LOG_ENTER();
 
-    /*
-     * If there are any linecards, we need to create them first to perform any
-     * other operations.
-     *
-     * NOTE: This method needs to be revisited if we want to support multiple
-     * linecards.
-     */
-
     if (m_linecards.size() > 1)
     {
         SWSS_LOG_THROW("multiple linecards %zu in single hard reinit are not allowed", m_linecards.size());
@@ -232,6 +225,7 @@ void SingleReiniter::processLinecards()
         std::vector<otai_attribute_t> attrs;         // attrs for create
         std::vector<otai_attribute_t> attrs_left;    // attrs for set
 
+        //for transponders, it may require create linecard first, then change the linecard board-mode(300G/400G/800G, etc).
         bool is_board_mode_existed = false;
         std::string board_mode;
 
@@ -280,7 +274,7 @@ void SingleReiniter::processLinecards()
         otai_status_t status;
 
         {
-            SWSS_LOG_TIMER("Cold boot: create linecard");
+            SWSS_LOG_TIMER("create linecard");
             status = m_vendorOtai->create(OTAI_OBJECT_TYPE_LINECARD, &m_linecard_rid, 0, attr_count, attr_list);
         }
 
@@ -306,17 +300,22 @@ void SingleReiniter::processLinecards()
 
         m_sw = std::make_shared<OtaiLinecard>(m_linecard_vid, m_linecard_rid, m_client, m_translator, m_vendorOtai);
 
+        //For certain transponder and WSS linecards, notify the linecard that syncd has started configuration
         otai_attribute_t pre_config_attr;
         pre_config_attr.id = OTAI_LINECARD_ATTR_START_PRE_CONFIGURATION;
         pre_config_attr.value.booldata = true;
 
+        SWSS_LOG_NOTICE("send linecard pre-configuration");
         status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, &pre_config_attr);
         if (status != OTAI_STATUS_SUCCESS) {
             SWSS_LOG_THROW("failed to start pre-config linecard");
         }
 
+        //For certain transponder, set board mode(300G/400G/800G, etc) after linecard creation
         if (is_board_mode_existed) {
+            SWSS_LOG_NOTICE("start configure transponder linecard board-mode");
             setBoardMode(board_mode);
+            SWSS_LOG_NOTICE("finish configure transponder linecard board-mode");
         }
        
         /*
@@ -333,6 +332,10 @@ void SingleReiniter::processLinecards()
         for (uint32_t idx = 0; idx < attr_count_left; ++idx)
         {
             otai_attribute_t* attr = &attrs_left[idx];
+
+            SWSS_LOG_NOTICE("set attribute %s on linecard VID %s: %s",
+                    otai_metadata_get_attr_metadata(OTAI_OBJECT_TYPE_LINECARD, attr->id)->attridname,
+                    otai_serialize_object_id(m_linecard_rid).c_str());
 
             status = m_vendorOtai->set(OTAI_OBJECT_TYPE_LINECARD, m_linecard_rid, attr);
 
@@ -388,7 +391,7 @@ void SingleReiniter::setBoardMode(std::string mode)
         {
             break;
         }
-    } while (wait_count < 10 * 60); /* 10 minutes is enough for OTN to change its boardmode */
+    } while (wait_count < 10 * 60); /* 10 minutes is enough for transponder to change its boardmode */
 
     SWSS_LOG_NOTICE("The end of setting board-mode");
 }
@@ -472,9 +475,8 @@ otai_object_id_t SingleReiniter::processSingleVid(
     bool createObject = true;
 
     /*
-     * Now let's determine whether this object need to be created.  Default
-     * objects like default virtual router, queues or cpu can't be created.
-     * When object exists on the switch (even VLAN member) it will not be
+     * Now let's determine whether this object need to be created.  
+     * When object exists on the linecard it will not be
      * created, but matched. We just need to watch for RO/CO attributes.
      *
      * NOTE: this also should be per linecard.
@@ -541,23 +543,8 @@ otai_object_id_t SingleReiniter::processSingleVid(
         /*
          * Since we have only one linecard, we can get away using m_linecard_rid here.
          */
-
-#ifdef ENABLE_PERF
-        auto start = std::chrono::high_resolution_clock::now();
-#endif
-
+        SWSS_LOG_NOTICE("start to create object %s", otai_serialize_object_type(objectType).c_str());
         otai_status_t status = m_vendorOtai->create(meta_key.objecttype, &meta_key.objectkey.key.object_id, m_linecard_rid, attr_count, attrs.data());
-
-#ifdef ENABLE_PERF
-        auto end = std::chrono::high_resolution_clock::now();
-
-        typedef std::chrono::duration<double, std::ratio<1>> second_t;
-
-        double duration = std::chrono::duration_cast<second_t>(end - start).count();
-
-        std::get<0>(m_perf_create[objectType])++;
-        std::get<1>(m_perf_create[objectType]) += duration;
-#endif
 
         if (status != OTAI_STATUS_SUCCESS)
         {
@@ -604,7 +591,9 @@ otai_object_id_t SingleReiniter::processSingleVid(
 #ifdef ENABLE_PERF
             auto start = std::chrono::high_resolution_clock::now();
 #endif
-
+            SWSS_LOG_NOTICE("start to set object %s: %s", 
+                otai_serialize_object_type(objectType).c_str(),
+                otai_serialize_attr_value(*meta, *attr).c_str());
             otai_status_t status = m_vendorOtai->set(objectType, rid, attr);
 
 #ifdef ENABLE_PERF

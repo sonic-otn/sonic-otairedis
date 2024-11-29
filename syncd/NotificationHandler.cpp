@@ -161,7 +161,8 @@ void NotificationHandler::updateNotificationsPointers(
     _In_ otai_attribute_t* attr_list) const
 {
     SWSS_LOG_ENTER();
-
+    SWSS_LOG_NOTICE("update object:%s notification pointers",
+                otai_serialize_object_type(object_type).c_str());
     /*
      * This function should only be called on CREATE/SET api when object is
      * LINECARD.
