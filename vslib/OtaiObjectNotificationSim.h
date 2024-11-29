@@ -20,7 +20,7 @@ namespace otaivs
             void triggerApsSwitchNtfs(otai_object_id_t aps_id);
 
         private:    
-            void sendLinecardNotifications(otai_object_id_t linecard_id);
+            [[noreturn]] void sendLinecardNotifications(otai_object_id_t linecard_id);
             void sendAlarmNotification(otai_object_id_t linecard_id);
             void sendOcmScanNotification(otai_object_id_t linecard_id, otai_object_id_t ocm_id);
             void sendOtdrScanNotification(otai_object_id_t linecard_id, otai_object_id_t otdr_id);
