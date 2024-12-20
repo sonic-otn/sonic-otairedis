@@ -2,12 +2,6 @@
 
 CMD_SYNCD=/usr/bin/syncd
 
-# dsserve: domain socket server for stdio
-CMD_DSSERVE=/usr/bin/dsserve
-CMD_DSSERVE_ARGS="$CMD_SYNCD --diag"
-
-ENABLE_SAITHRIFT=0
-
 PLATFORM_DIR=/usr/share/sonic/platform
 PROFILE_FILE=/tmp/otai_test.profile
 
@@ -19,19 +13,8 @@ ASIC_ID=$(echo $SYNCD_VARS | jq -r '.asic_id')
 SLOT_ID=$((AISC_ID+1))
 echo "OTAI_LINECARD_LOCATION=$SLOT_ID" > $PROFILE_FILE
 
-if [ -x $CMD_DSSERVE ]; then
-    CMD=$CMD_DSSERVE
-    CMD_ARGS=$CMD_DSSERVE_ARGS
-else
-    CMD=$CMD_SYNCD
-    CMD_ARGS=
-fi
-
-# Set synchronous mode if it is enabled in CONFIG_DB
-SYNC_MODE=$(echo $SYNCD_VARS | jq -r '.synchronous_mode')
-if [ "$SYNC_MODE" == "enable" ]; then
-    CMD_ARGS+=" -s"
-fi
+CMD=$CMD_SYNCD
+CMD_ARGS=
 
 config_syncd_vs()
 {

@@ -1210,12 +1210,15 @@ otai_oper_status_t Syncd::handleLinecardState(
 void Syncd::notifyLinecardStateChange(otai_oper_status_t status) 
 {
     SWSS_LOG_ENTER();
-
-    auto strOperStatus = otai_serialize_enum(status, &otai_metadata_enum_otai_oper_status_t, true);
-    SWSS_LOG_NOTICE("notify linecard state change to %s", strOperStatus.c_str());
     
-    auto msg = otai_serialize_linecard_oper_status(m_linecard->getVid(), status);
-    m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg); 
+    if (m_linecard != nullptr) 
+    {
+        auto strOperStatus = otai_serialize_enum(status, &otai_metadata_enum_otai_oper_status_t, true);
+        SWSS_LOG_NOTICE("notify linecard state change to %s", strOperStatus.c_str());
+        
+        auto msg = otai_serialize_linecard_oper_status(m_linecard->getVid(), status);
+        m_processor->sendNotification(OTAI_LINECARD_NOTIFICATION_NAME_LINECARD_STATE_CHANGE, msg); 
+    }
 }
 
 void Syncd::waitLinecardStateActive()
