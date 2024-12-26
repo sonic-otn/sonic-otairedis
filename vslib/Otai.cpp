@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <fstream>
 
 using namespace otaivs;
 using namespace std;
@@ -28,7 +29,6 @@ Otai::Otai()
 {
     SWSS_LOG_ENTER();
     m_apiInitialized = false;
-    m_isLinkUp = true;
 }
 
 Otai::~Otai()
@@ -101,7 +101,12 @@ otai_status_t Otai::linkCheck(_Out_ bool *up)
         return OTAI_STATUS_INVALID_PARAMETER;
     }
 
-    *up = m_isLinkUp;
+    //change linkup status to ture when /tmp/linkup file exists
+    static string linkupFlagFile = "/tmp/linkup";
+    ifstream linkUpFile(linkupFlagFile.c_str());
+    *up = linkUpFile.good();
+    SWSS_LOG_NOTICE("linkup status = %d", *up);
+
     return OTAI_STATUS_SUCCESS;
 }
 

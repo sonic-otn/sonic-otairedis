@@ -84,7 +84,6 @@ namespace otaivs
 
         private:
             bool m_apiInitialized;
-            bool m_isLinkUp;
             std::recursive_mutex m_apimutex;
     };
 }

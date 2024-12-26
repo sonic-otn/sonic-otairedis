@@ -64,6 +64,7 @@ otai_status_t RedisRemoteOtaiInterface::initialize(
     m_communicationChannel = std::make_shared<RedisChannel>(
             "ASIC_DB",
             std::bind(&RedisRemoteOtaiInterface::handleNotification, this, _1, _2, _3));
+    m_communicationChannel->setBuffered(false);
 
     m_db = std::make_shared<swss::DBConnector>("ASIC_DB", 0);
 
